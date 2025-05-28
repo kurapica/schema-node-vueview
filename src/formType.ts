@@ -18,5 +18,5 @@ export enum SchemaNodeFormType
     /**
      * Generate the form item nested
      */
-    Next = "nest",
+    Nest = "nest",
 }

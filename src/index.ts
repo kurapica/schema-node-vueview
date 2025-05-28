@@ -1,1 +1,1 @@
-export { default as SchemaNodeView } from './components/schemaNode.vue'
+export { default as SchemaView } from './components/schemaView.vue'
