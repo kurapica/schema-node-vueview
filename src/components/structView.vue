@@ -13,7 +13,14 @@ import { getSubNodeFormType } from '../schemaView'
 import schemaView from './schemaView.vue'
 
 defineProps<{
+    /**
+     * Struct Schema node
+     */
     node: StructNode,
+
+    /**
+     * In-form settings
+     */
     inForm?: SchemaNodeFormType
 }>()
 </script>
