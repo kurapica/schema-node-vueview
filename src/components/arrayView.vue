@@ -20,8 +20,8 @@
             no-label
             v-bind="$attrs"
         >
-            <template v-for="(value, key) in $slots" :key="key" #[key]="slotProps">
-                <slot :name="key" v-bind="slotProps"></slot>
+            <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
+                <component :is="slot" v-bind="slotProps" />
             </template>
         </schema-view>
     </div>
@@ -29,7 +29,7 @@
 
 <script setup lang="ts">
 import { ArrayNode, isNull, SchemaType } from 'schema-node'
-import { onMounted, onUnmounted, reactive } from 'vue'
+import { onMounted, onUnmounted, reactive, useSlots } from 'vue'
 import schemaView from './schemaView.vue'
 import { SchemaNodeFormType } from '../formType';
 import { getSubNodeFormType } from '../schemaView';
@@ -40,6 +40,10 @@ const props = defineProps<{
     plainText?: any,
     inForm?: SchemaNodeFormType
 }>()
+
+// slots
+const slots = useSlots()
+const slotEntries = Object.entries(slots) as [string, (...args: any[]) => any][]
 
 // state
 const state = reactive<{

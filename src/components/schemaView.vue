@@ -5,24 +5,25 @@
             :node="(schemaNode as any)"
             :in-form="inFormType" 
             v-bind="$attrs">
-            <template v-for="(value, key) in $slots" :key="key" v-slot:[key]="slotProps">
-                <slot :name="key" v-bind="slotProps"></slot>
+            <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
+                <component :is="slot" v-bind="slotProps" />
             </template>
         </form-view>
-        <component v-else-if="component" :is="component" 
+        <component v-else-if="component" 
+            :is="component" 
             :key="schemaNode.guid"
             :node="schemaNode" 
             :in-form="inFormType"
             v-bind="$attrs">
-            <template v-for="(value, key) in $slots" :key="key" v-slot:[key]="slotProps">
-                <slot :name="key" v-bind="slotProps"></slot>
+            <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
+                <component :is="slot" v-bind="slotProps" />
             </template>
         </component>
     </template>
 </template>
 
 <script setup lang="ts">
-import { isReactive, isRef, onMounted, onUnmounted, ref, shallowRef, toRaw, watch, WatchHandle } from 'vue'
+import { isReactive, isRef, onMounted, onUnmounted, ref, shallowRef, toRaw, useSlots, watch, WatchHandle } from 'vue'
 import { AnySchemaNode, ISchemaConfig } from 'schema-node'
 import formView from './formView.vue'
 import { SchemaNodeFormType } from '../formType'
@@ -60,6 +61,10 @@ const props = defineProps<{
      */
     inForm?: boolean | "nest" | "expand" | "expandall" | ""
 }>()
+
+// slots
+const slots = useSlots()
+const slotEntries = Object.entries(slots) as [string, (...args: any[]) => any][]
 
 // model
 const emit = defineEmits(['update:modelValue'])
@@ -103,7 +108,7 @@ onMounted(async () => {
 
     if (props.inForm === true) {
         // use default
-        inFormType.value = useSingleView(node) ? SchemaNodeFormType.Nest : SchemaNodeFormType.Expand
+        inFormType.value = useSingleView(node.schemaInfo) ? SchemaNodeFormType.Nest : SchemaNodeFormType.Expand
     }
     else if (props.inForm) {
         inFormType.value = props.inForm as SchemaNodeFormType

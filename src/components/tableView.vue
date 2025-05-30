@@ -1,0 +1,353 @@
+<template>
+    <section>
+        <el-table :data="state.rows" :span-method="spanMethod" v-bind="$attrs">
+            <template v-for="col in state.columns">
+                <!-- with sub cols -->
+                <el-table-column v-if="col.subCols && col.subCols.length" :prop="col.prop" :label="col.label" header-align="center">
+                    <el-table-column v-for="scol in col.subCols" :prop="`${col.prop}.${scol.prop}`" :label="scol.label" min-width="240" header-align="center">
+                        <template #header v-if="scol.require">
+                            <span :class="{ require: true }">{{ scol.label }}</span>
+                        </template>
+                        <template #default="scope">
+                            <!-- multi row -->
+                            <template v-if="col.isArray && scope.row.node.getField(col.prop) && (scope.row.node.getField(col.prop) as ArrayNode).elements.length > scope.row.index">
+                                <data-node-view
+                                    :type-node="((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode).getField(scol.prop)"
+                                    :in-form="getSubNodeFormType(((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode).getField(scol.prop)!, inForm)"
+                                    no-label plain-text="center" v-bind="$attrs">
+                                    <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
+                                        <component :is="slot" v-bind="slotProps" />
+                                    </template>
+                                </data-node-view>
+                            </template>
+                            <!-- single row -->
+                            <data-node-view v-else-if="!col.isArray && scope.row.index === 0"
+                                :type-node="(scope.row.node.getField(col.prop) as StructNode).getField(scol.prop)"
+                                :in-form="getSubNodeFormType((scope.row.node.getField(col.prop) as StructNode).getField(scol.prop)!, inForm)"
+                                no-label plain-text="center" v-bind="$attrs">
+                                <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
+                                    <component :is="slot" v-bind="slotProps" />
+                                </template>
+                            </data-node-view>
+                        </template>
+                    </el-table-column>
+
+                    <el-table-column
+                        v-if="col.isArray && !state.readonly && !state.disabled && !(noSubAdd && noSubDel)"
+                        :label="_LS('OPER')" align="center" width="100">
+                        <template #default="scope">
+                            <template v-if="scope.row.node.getField(col.prop)">
+                                <el-button type="primary"
+                                    v-if="!noSubAdd && (scope.row.node.getField(col.prop) as ArrayNode).elements.length == scope.row.index"
+                                    text
+                                    @click="(scope.row.node.getField(col.prop) as ArrayNode).addRow()">{{ _LS("ADD" )}}</el-button>
+                                <el-button type="danger"
+                                    v-else-if="!noSubDel && (scope.row.node.getField(col.prop) as ArrayNode).elements.length > scope.row.index"
+                                    text
+                                    @click="(scope.row.node.getField(col.prop) as ArrayNode).delRows(scope.row.index)">{{ _LS("DEL") }}</el-button>
+                            </template>
+                        </template>
+                    </el-table-column>
+                </el-table-column>
+
+                <!-- Single row -->
+                <el-table-column v-else :prop="col.prop" :label="col.label" min-width="240" header-align="center">
+                    <template #header v-if="col.require">
+                        <span :class="{ require: true }">{{ col.label }}</span>
+                    </template>
+                    <template #default="scope">
+                        <data-node-view v-if="scope.row.index === 0" :type-node="scope.row.node.getField(col.prop)"
+                            :in-form="getSubNodeFormType(scope.row.node.getField(col.prop)!, inForm)"
+                            no-label plain-text="center" v-bind="$attrs">                            
+                            <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
+                                <component :is="slot" v-bind="slotProps" />
+                            </template>
+                        </data-node-view>
+                    </template>
+                </el-table-column>
+            </template>
+
+            <!-- Oper -->
+            <el-table-column
+                v-if="$slots.operator || !state.readonly && !state.disabled && !(noAdd && noDel)" :label="_LS('OPER')"
+                align="center" width="100" fixed="right">
+                <template #header>
+                    <a href="javascript:void(0)" v-if="!noAdd" @click="node.addRow()" style="text-decoration: underline; color: lightseagreen;">{{ _LS("ADD") }}</a>
+                    <p v-else>操作</p>
+                </template>
+                <template #default="scope" v-if="$slots.operator || !noDel">
+                    <template v-if="!noDel">
+                        <el-button type="danger" text @click="node.delRows(scope.row.eleIdx)">删除</el-button>
+                    </template>
+                    <slot name="operator" :row="scope.row"></slot>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <!-- page -->
+        <el-pagination v-if="node.isIncrUpdate && node.total > node.pageCount" :current-page="node.page + 1"
+            :page-size="node.pageCount" :total="node.total" :pager-count="11" layout="prev, pager, next"
+            @current-change="handlePage"></el-pagination>
+    </section>
+</template>
+
+<script lang="ts" setup>
+import { AnySchemaNode, ArrayNode, debounce, getSchema, _LS, IStructFieldConfig, SchemaType, StructNode } from 'schema-node'
+import { SchemaNodeFormType } from '../formType';
+import { onMounted, onUnmounted, reactive, useSlots } from 'vue';
+import { getSubNodeFormType, useSingleView } from '../schemaView'
+
+// Properties
+const props = defineProps<{
+    /**
+     * The array node with struct elements
+     */
+    node: ArrayNode
+
+    /**
+     * form settings
+     */
+    inForm?: SchemaNodeFormType
+
+    /**
+     * No add row
+     */
+    noAdd: boolean,
+
+    /**
+     * No del row
+     */
+    noDel: boolean,
+
+    /**
+     * No sub row add
+     */
+    noSubAdd: boolean,
+
+    /**
+     * No sub row del
+     */
+    noSubDel: boolean,
+
+    /**
+     * Hight light change row
+     */
+    highLightChange?: boolean
+
+    /**
+     * new row color
+     */
+    newColor?: String
+
+    /**
+     * change row color
+     */
+    changeColor?: String
+
+    /**
+     * del row color
+     */
+    delColor?: string
+}>()
+
+// slots
+const slots = useSlots()
+const slotEntries = Object.entries(slots) as [string, (...args: any[]) => any][]
+
+// State
+const state = reactive<{
+    columns: IColumnInfo[]              // column info
+    rows: ITableRow[]                   // rows
+    spanCols: { [key: number]: boolean }    // column span info
+    primaryFields: string[]
+    readonly?: boolean
+    disabled?: boolean
+}>({
+    columns: [],
+    rows: [],
+    spanCols: {},
+    primaryFields: []
+})
+
+const newdatacolor = props.newColor || "#98d7eb"
+const changedatacolor = props.changeColor || "#c7f3b1"
+const deldatacolor = props.delColor || "grey"
+
+// data & state watcher
+let dataWatcher: Function | null = null
+let stateWatcher: Function | null = null
+
+onMounted(async () => {
+    const node = props.node
+
+    // column info
+    const primary = node.schemaInfo.array?.primary
+    const fields = node.elementSchemaInfo.struct?.fields
+    const columnInfos: IColumnInfo[] = []
+    let spanCols: { [key: number]: boolean } = {}
+    let columnIndex = 0
+    if (fields) {
+        for (let i = 0; i < fields.length; i++) {
+            const f = fields[i]
+            if (primary && primary.findIndex(p => p.toLowerCase() === f.name.toLowerCase()))
+                state.primaryFields.push(f.name)
+
+            if (!f.invisible) {
+                const columnInfo = await genColumn(f)
+                if (!columnInfo) continue
+                columnInfos.push(columnInfo)
+
+                if (columnInfo.subCols) {
+                    if (!columnInfo.isArray) {
+                        for (let j = 0; j < columnInfo.subCols.length; j++)
+                            spanCols[columnIndex++] = true
+                    }
+                    else {
+                        columnIndex += columnInfo.subCols.length + (node.readonly ? 0 : 1)
+                    }
+                }
+                else {
+                    spanCols[columnIndex++] = true
+                }
+            }
+        }
+    }
+    if (!node.readonly)
+        spanCols[columnIndex++] = true
+
+    // update state
+    state.columns = columnInfos
+    state.spanCols = spanCols
+
+    // row change handler
+    let rowCount = 0
+    dataWatcher = node.subscribe(() => {
+        const count = node.elements.length
+        if (count !== rowCount) {
+            rowCount = count
+            genRows()
+        }
+    }, true)
+
+    // state handler
+    stateWatcher = node.subscribeState(() => {
+        state.readonly = node.readonly
+        state.disabled = node.rule.disable
+    })
+})
+
+onUnmounted(() => {
+    if (dataWatcher) dataWatcher()
+    if (stateWatcher) stateWatcher()
+})
+
+// gen columns
+const genColumn = async (field: IStructFieldConfig, skipSub?: boolean) => {
+    const column: IColumnInfo = { prop: field.name, label: `${field.display || field.name}${field.unit ? `(${field.unit})` : ''}`, require: field.require || false }
+    let schemaInfo = await getSchema(field.type)
+    if (!schemaInfo) return null
+
+    // gen sub columns
+    if (!skipSub) {
+        if (!useSingleView(schemaInfo)) {
+            if (schemaInfo.type === SchemaType.Array) {
+                column.isArray = true
+                schemaInfo = await getSchema(schemaInfo.array!.element)
+                if (!schemaInfo) return null
+            }
+
+            if (schemaInfo.type === SchemaType.Struct) {
+                const subCols: IColumnInfo[] = []
+                for (let i = 0; i < schemaInfo.struct!.fields.length; i++) {
+                    const f = schemaInfo.struct!.fields[i]
+                    if (!f.invisible) {
+                        const col = await genColumn(f, true)
+                        if (!col) continue
+                        subCols.push(col)
+                    }
+                }
+                column.subCols = subCols
+            }
+        }
+    }
+
+    return column
+}
+
+const spanMethod = (data: any) => {
+    const { row, column, rowIndex, columnIndex } = data;
+    if (state.spanCols[columnIndex]) {
+        if (row.index === 0) {
+            return {
+                rowspan: row.count,
+                colspan: 1
+            }
+        }
+
+        return {
+            rowspan: 0,
+            colspan: 0
+        }
+    }
+}
+
+const genRows = debounce(() => {
+    const node = props.node
+    const rowDatas: ITableRow[] = []
+    node.elements.forEach((node, eleIdx) => {
+        let count = 0
+        state.columns
+            .filter(f => f.isArray && f.subCols)
+            .forEach(ef => count = Math.max(count, node.data[ef.prop]?.length || 0))
+
+        // for add
+        if (!node.readonly && !props.noSubAdd)
+            count++
+
+        count = Math.max(1, count)
+
+        // gen row
+        for (let index = 0; index < count; index++)
+            rowDatas.push({ node, eleIdx, index, count })
+    })
+    state.rows = rowDatas
+}, 50)
+
+const handlePage = (page: number) => {
+    props.node.page = page - 1
+}
+
+/*const getrowclass = (data:any) =>{
+  const row = data.row as StructNode
+  return row.deleted ? "del-row" : row.changed ? (primaryFields.find(p => row.getField(p)?.changed) ? "new-row" : "change-row") : ""
+}
+
+const getincrrowclass = (data:any) =>{
+  const row = data.row as StructNode
+  return row.deleted ? "del-row" : ""
+}*/
+
+interface IColumnInfo {
+    prop: string
+    label: string
+    require: boolean
+    isArray?: boolean
+    subCols?: IColumnInfo[]
+}
+
+interface ITableRow {
+    node: AnySchemaNode
+    eleIdx: number
+    index: number
+    count: number
+}
+
+</script>
+
+<style lang="scss" scoped>
+.require::before {
+    content: "*";
+    color: #f56c6c;
+    margin-right: 4px;
+}
+</style>

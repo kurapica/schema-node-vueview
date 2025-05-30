@@ -23,11 +23,11 @@
 <script lang="ts" setup>
 import schemaView from './schemaView.vue'
 import { AnySchemaNode } from 'schema-node'
-import { ref, onUnmounted, onMounted } from 'vue'
+import { ref, onUnmounted, onMounted, useSlots } from 'vue'
 import { useSingleView } from '../schemaView'
 import { SchemaNodeFormType } from '../formType'
 
-// 属性定义
+// Properties
 const props = defineProps<{
     /**
      * The schema node
@@ -50,6 +50,7 @@ const props = defineProps<{
     instantValid?: boolean
 }>()
 
+// error
 const showError = ref(false)
 const shouldShowError = ref(false)
 const error = ref<string | null>(null)
@@ -64,7 +65,7 @@ let stateWatcher: Function | null = null
 
 onMounted(() => {
     const node = props.node
-    shouldShowError.value = node && !node.readonly && useSingleView(node)
+    shouldShowError.value = node && !node.readonly && useSingleView(node.schemaInfo) || false
     showError.value = shouldShowError.value && (node.changed || props.instantValid)
     
     if (shouldShowError.value)

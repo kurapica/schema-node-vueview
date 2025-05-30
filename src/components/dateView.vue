@@ -5,7 +5,7 @@
     </span>
     <el-select v-else-if="state.useWhiteList" 
         v-model="whiteListData"
-        :disabled="state.disable"
+        :disabled="disabled || state.disable"
         :placeholder="node.selectPlaceHolder || placeHolder"
         :clearable="!state.require" 
         style="width: 100%">
@@ -18,13 +18,12 @@
         v-model="data"
         :type="node.isYear && 'year' || node.isYearMonth && 'month' || node.isFullDate && 'datetime' || 'date'"
         :placeholder="!state.readonly && state.default && dateFormat(state.default, node.isFullDate, node.isYear) || node.selectPlaceHolder"
-        :disabled="state.disable"
+        :disabled="disabled || state.disable"
         :value-format="node.isYear && 'YYYY' || null" 
         :disabled-date="disabledDate" 
         style="width: 100%"
     ></el-date-picker>
 </template>
-
 
 <script lang="ts" setup>
 import { isNull, ScalarNode } from 'schema-node'
@@ -46,6 +45,11 @@ const props = defineProps<{
      * The place holder
      */
     placeHolder?: string,
+
+    /**
+     * Force disabled
+     */
+    disabled?: boolean
 }>()
 
 // display state
@@ -113,10 +117,10 @@ onMounted(() => {
 
         if (node.rule.whiteList) {
             state.useWhiteList = true
-            let whiteList = node.rule.whiteList
+            let whiteList = node.rule.whiteList.map(w => typeof w === "object" && !(w instanceof Date) ? w.value : w)
             const blackList = node.rule.blackList
             if (blackList && blackList.length)
-                whiteList = whiteList.filter(w => typeof (w) === "object" ? blackList.findIndex(b => `${b}` === `${w.value}`) < 0 : blackList.findIndex(b => `${b}` === `${w}`) < 0) as any
+                whiteList = whiteList.filter(w => blackList.findIndex(b => `${b}` === `${w}`) < 0) as any
             state.whiteList = whiteList
         }
         else {
@@ -135,57 +139,57 @@ onUnmounted(() => {
 
 // genrate display
 const display = () => {
-    const typeNode = props.typeNode;
-    if (typeNode.isYear) return typeNode.data;
+    const node = props.node
+    if (node.isYear) return node.data
 
-    // 验证日期
-    let value: any = isRef(typeNode.data) ? typeNode.data.value : typeNode.data;
+    // check value
+    let value: any = node.data
     if (value) {
         if (typeof (value) === "string") {
             value = new Date(value);
-            if (isNaN(value.getFullYear())) value = null;
+            if (isNaN(value.getFullYear())) value = null
         }
         if (!(value instanceof Date)) {
-            value = null;
+            value = null
         }
     }
-    if (!value) return "";
+    if (!value) return ""
 
-    // 返回显示值
-    const date = value as unknown as Date;
-    if (typeNode.isYearMonth) {
-        return `${date.getFullYear()}-${date.getMonth() + 1}`;
+    // display
+    const date = value as unknown as Date
+    if (node.isYearMonth) {
+        return `${date.getFullYear()}-${date.getMonth() + 1}`
     }
-    if (typeNode.isFullDate) {
-        return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.toLocaleTimeString()}`;
+    if (node.isFullDate) {
+        return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.toLocaleTimeString()}`
     }
 
-    return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-};
+    return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+}
 
-// 时间范围
 const disabledDate = (time: Date) => {
-    const typeNode = props.typeNode;
-    if (typeNode.readonly) return false;
+    const node = props.node;
+    if (node.readonly) return false;
 
-    if (typeNode.isYear) {
-        return (typeNode.upLimit && (typeNode.upLimit as unknown as number) < time.getFullYear()) || (typeNode.lowLimit && (typeNode.lowLimit as unknown as number) > time.getFullYear());
+    const upLimit = node.upLimit
+    const lowLimit = node.lowLimit
+
+    if (node.isYear) {
+        return (typeof upLimit === "number" && upLimit < time.getFullYear()) || (typeof lowLimit === "number" && lowLimit > time.getFullYear());
     }
-    else if (typeNode.isYearMonth) {
-        if (typeNode.upLimit) {
-            const upLimit = typeNode.upLimit as unknown as Date
+    else if (node.isYearMonth) {
+        if (upLimit instanceof Date) {
             if (upLimit.getFullYear() < time.getFullYear() || upLimit.getFullYear() === time.getFullYear() && upLimit.getMonth() < time.getMonth())
                 return true
         }
-        if (typeNode.lowLimit) {
-            const lowLimit = typeNode.lowLimit as unknown as Date
+        if (lowLimit instanceof Date) {
             if (lowLimit.getFullYear() > time.getFullYear() || lowLimit.getFullYear() === time.getFullYear() && lowLimit.getMonth() > time.getMonth())
                 return true
         }
         return false
     }
     else {
-        return (typeNode.upLimit && (typeNode.upLimit as unknown as Date) < time) || (typeNode.lowLimit && (typeNode.lowLimit as unknown as Date) > time)
+        return (upLimit instanceof Date && upLimit < time) || (lowLimit instanceof Date && lowLimit > time)
     }
 }
 

@@ -1,4 +1,4 @@
-import { AnySchemaNode, ArrayNode, EnumNode, getSchema, ISchemaConfig, ScalarNode, SchemaType, StructNode } from "schema-node"
+import { AnySchemaNode, ArrayNode, EnumNode, getCachedSchema, getSchema, INodeSchema, ISchemaConfig, ScalarNode, SchemaType, StructNode } from "schema-node"
 import { SchemaNodeFormType } from "./formType"
 
 export const DEFAULT_SKIN = "default"
@@ -14,17 +14,24 @@ const schemaViews: { [key: string]: { [key: string]: any } } = {}
 /**
  * if node is single node or use a special schema view
  */
-export function useSingleView(node: AnySchemaNode) {
-    return node.schemaType === SchemaType.Scalar || node.schemaType === SchemaType.Enum
-        || (node.schemaType === SchemaType.Struct && schemaViews[node.schemaName.toLowerCase()] && true || false)
-        || (node instanceof ArrayNode && (node.asSingleValue || [SchemaType.Scalar, SchemaType.Enum].includes(node.elementSchemaInfo.type)))
+export function useSingleView(node: INodeSchema) {
+    switch(node.type)
+    {
+        case SchemaType.Enum:
+        case SchemaType.Scalar:
+            return true
+        case SchemaType.Struct:
+            return schemaViews[node.name.toLowerCase()] ? true : false
+        case SchemaType.Array:
+            return node.array!.single || [SchemaType.Scalar, SchemaType.Enum].includes(getCachedSchema(node.array!.element)!.type)
+    }
 }
 
 /**
  * gets the form type of the sub node
  */
 export function getSubNodeFormType(node: AnySchemaNode, type?: SchemaNodeFormType) {
-    return useSingleView(node)
+    return useSingleView(node.schemaInfo)
         ? SchemaNodeFormType.Nest
         : type === SchemaNodeFormType.ExpandAll
             ? SchemaNodeFormType.ExpandAll
@@ -51,7 +58,7 @@ export function regBaseSchemaTypeView(type: SchemaType, view?: any, resolve?: Fu
 /**
  * Register the skin view for specific type
  */
-export function regiSchemaTypeView(type: string, view: any, skinName: string = DEFAULT_SKIN) {
+export function regSchemaTypeView(type: string, view: any, skinName: string = DEFAULT_SKIN) {
     type = type.toLowerCase()
     schemaViews[type] = schemaViews[type] || {}
     schemaViews[type][skinName.toLowerCase()] = view
