@@ -29,7 +29,7 @@
 
 <script setup lang="ts">
 import { ArrayNode, isNull, SchemaType } from 'schema-node'
-import { onMounted, onUnmounted, reactive, useSlots } from 'vue'
+import { onMounted, onUnmounted, reactive, toRaw, useSlots } from 'vue'
 import schemaView from './schemaView.vue'
 import { SchemaNodeFormType } from '../formType';
 import { getSubNodeFormType } from '../schemaView';
@@ -40,6 +40,7 @@ const props = defineProps<{
     plainText?: any,
     inForm?: SchemaNodeFormType
 }>()
+const arrayNode = toRaw(props.node)
 
 // slots
 const slots = useSlots()
@@ -57,7 +58,7 @@ let dataHandler: Function | null = null
 let stateHandler: Function | null = null
 
 onMounted(() => {
-    const node = props.node
+    const node = arrayNode
 
     dataHandler = node.subscribe(() => {
         if (!node.readonly)

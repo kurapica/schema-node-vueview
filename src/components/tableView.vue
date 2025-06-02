@@ -1,6 +1,6 @@
 <template>
     <section>
-        <el-table :data="state.rows" :span-method="spanMethod" v-bind="$attrs">
+        <el-table :data="rows" :span-method="spanMethod" v-bind="$attrs">
             <template v-for="col in state.columns">
                 <!-- with sub cols -->
                 <el-table-column v-if="col.subCols && col.subCols.length" :prop="col.prop" :label="col.label" header-align="center">
@@ -11,40 +11,40 @@
                         <template #default="scope">
                             <!-- multi row -->
                             <template v-if="col.isArray && scope.row.node.getField(col.prop) && (scope.row.node.getField(col.prop) as ArrayNode).elements.length > scope.row.index">
-                                <data-node-view
-                                    :type-node="((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode).getField(scol.prop)"
+                                <schema-view
+                                    :node="((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode).getField(scol.prop)"
                                     :in-form="getSubNodeFormType(((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode).getField(scol.prop)!, inForm)"
                                     no-label plain-text="center" v-bind="$attrs">
                                     <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
                                         <component :is="slot" v-bind="slotProps" />
                                     </template>
-                                </data-node-view>
+                                </schema-view>
                             </template>
                             <!-- single row -->
-                            <data-node-view v-else-if="!col.isArray && scope.row.index === 0"
-                                :type-node="(scope.row.node.getField(col.prop) as StructNode).getField(scol.prop)"
+                            <schema-view v-else-if="!col.isArray && scope.row.index === 0"
+                                :node="(scope.row.node.getField(col.prop) as StructNode).getField(scol.prop)"
                                 :in-form="getSubNodeFormType((scope.row.node.getField(col.prop) as StructNode).getField(scol.prop)!, inForm)"
                                 no-label plain-text="center" v-bind="$attrs">
                                 <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
                                     <component :is="slot" v-bind="slotProps" />
                                 </template>
-                            </data-node-view>
+                            </schema-view>
                         </template>
                     </el-table-column>
 
                     <el-table-column
                         v-if="col.isArray && !state.readonly && !state.disabled && !(noSubAdd && noSubDel)"
-                        :label="_LS('OPER')" align="center" width="100">
+                        :label="_L['OPER']" align="center" width="100">
                         <template #default="scope">
                             <template v-if="scope.row.node.getField(col.prop)">
                                 <el-button type="primary"
                                     v-if="!noSubAdd && (scope.row.node.getField(col.prop) as ArrayNode).elements.length == scope.row.index"
                                     text
-                                    @click="(scope.row.node.getField(col.prop) as ArrayNode).addRow()">{{ _LS("ADD" )}}</el-button>
+                                    @click="(scope.row.node.getField(col.prop) as ArrayNode).addRow()">{{ _L["ADD"] }}</el-button>
                                 <el-button type="danger"
                                     v-else-if="!noSubDel && (scope.row.node.getField(col.prop) as ArrayNode).elements.length > scope.row.index"
                                     text
-                                    @click="(scope.row.node.getField(col.prop) as ArrayNode).delRows(scope.row.index)">{{ _LS("DEL") }}</el-button>
+                                    @click="(scope.row.node.getField(col.prop) as ArrayNode).delRows(scope.row.index)">{{ _L["DEL"] }}</el-button>
                             </template>
                         </template>
                     </el-table-column>
@@ -56,28 +56,28 @@
                         <span :class="{ require: true }">{{ col.label }}</span>
                     </template>
                     <template #default="scope">
-                        <data-node-view v-if="scope.row.index === 0" :type-node="scope.row.node.getField(col.prop)"
+                        <schema-view v-if="scope.row.index === 0" :node="scope.row.node.getField(col.prop)"
                             :in-form="getSubNodeFormType(scope.row.node.getField(col.prop)!, inForm)"
                             no-label plain-text="center" v-bind="$attrs">                            
                             <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
                                 <component :is="slot" v-bind="slotProps" />
                             </template>
-                        </data-node-view>
+                        </schema-view>
                     </template>
                 </el-table-column>
             </template>
 
             <!-- Oper -->
             <el-table-column
-                v-if="$slots.operator || !state.readonly && !state.disabled && !(noAdd && noDel)" :label="_LS('OPER')"
+                v-if="$slots.operator || !state.readonly && !state.disabled && !(noAdd && noDel)" :label="_L['OPER']"
                 align="center" width="100" fixed="right">
                 <template #header>
-                    <a href="javascript:void(0)" v-if="!noAdd" @click="node.addRow()" style="text-decoration: underline; color: lightseagreen;">{{ _LS("ADD") }}</a>
-                    <p v-else>操作</p>
+                    <a href="javascript:void(0)" v-if="!noAdd" @click="arrayNode.addRow()" style="text-decoration: underline; color: lightseagreen;">{{ _L["ADD"] }}</a>
+                    <p v-else>{{ _L['OPER'] }}</p>
                 </template>
                 <template #default="scope" v-if="$slots.operator || !noDel">
                     <template v-if="!noDel">
-                        <el-button type="danger" text @click="node.delRows(scope.row.eleIdx)">删除</el-button>
+                        <el-button type="danger" text @click="arrayNode.delRows(scope.row.eleIdx)">{{ _L["DEL"] }}</el-button>
                     </template>
                     <slot name="operator" :row="scope.row"></slot>
                 </template>
@@ -92,10 +92,12 @@
 </template>
 
 <script lang="ts" setup>
-import { AnySchemaNode, ArrayNode, debounce, getSchema, _LS, IStructFieldConfig, SchemaType, StructNode } from 'schema-node'
-import { SchemaNodeFormType } from '../formType';
-import { onMounted, onUnmounted, reactive, useSlots } from 'vue';
+import { AnySchemaNode, ArrayNode, debounce, getSchema, IStructFieldConfig, SchemaType, StructNode } from 'schema-node'
+import { SchemaNodeFormType } from '../formType'
+import { onMounted, onUnmounted, reactive, toRaw, shallowRef, useSlots } from 'vue'
 import { getSubNodeFormType, useSingleView } from '../schemaView'
+import schemaView from './schemaView.vue'
+import _L from '../locale'
 
 // Properties
 const props = defineProps<{
@@ -153,18 +155,18 @@ const props = defineProps<{
 // slots
 const slots = useSlots()
 const slotEntries = Object.entries(slots) as [string, (...args: any[]) => any][]
+const rows = shallowRef<ITableRow[]>([])
 
 // State
+const arrayNode: ArrayNode = toRaw(props.node)
 const state = reactive<{
     columns: IColumnInfo[]              // column info
-    rows: ITableRow[]                   // rows
     spanCols: { [key: number]: boolean }    // column span info
     primaryFields: string[]
     readonly?: boolean
     disabled?: boolean
 }>({
     columns: [],
-    rows: [],
     spanCols: {},
     primaryFields: []
 })
@@ -178,7 +180,7 @@ let dataWatcher: Function | null = null
 let stateWatcher: Function | null = null
 
 onMounted(async () => {
-    const node = props.node
+    const node = arrayNode
 
     // column info
     const primary = node.schemaInfo.array?.primary
@@ -292,7 +294,7 @@ const spanMethod = (data: any) => {
 }
 
 const genRows = debounce(() => {
-    const node = props.node
+    const node = arrayNode
     const rowDatas: ITableRow[] = []
     node.elements.forEach((node, eleIdx) => {
         let count = 0
@@ -310,11 +312,11 @@ const genRows = debounce(() => {
         for (let index = 0; index < count; index++)
             rowDatas.push({ node, eleIdx, index, count })
     })
-    state.rows = rowDatas
+    rows.value = rowDatas
 }, 50)
 
 const handlePage = (page: number) => {
-    props.node.page = page - 1
+    arrayNode.page = page - 1
 }
 
 /*const getrowclass = (data:any) =>{

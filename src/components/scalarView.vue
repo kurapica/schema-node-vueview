@@ -6,7 +6,7 @@
         v-else-if="state.useWhiteList"
         v-model="data"
         style="width: 100%;"
-        :disabled="state.disable"
+        :disabled="state.readonly || state.disable"
         :clearable="!state.require"
         :filterable="state.asSuggest"
         :allow-create="state.asSuggest"
@@ -22,7 +22,7 @@
     <el-input
         v-else
         v-model="data"
-        :disabled="state.disable"
+        :disabled="state.readonly || state.disable"
         style="width: 100%;"
         :placeholder="!state.readonly && !isNull(state.default) && `${state.default}` || placeHolder || node.inputPlaceHolder">
     ></el-input>
@@ -30,7 +30,7 @@
 
 <script lang="ts" setup>
 import { isNull, ScalarNode } from 'schema-node'
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, toRaw } from 'vue'
 
 // Define props
 const props = defineProps<{
@@ -49,9 +49,11 @@ const props = defineProps<{
      */
     placeHolder?: string,
 }>()
+const scalarNode = toRaw(props.node)
 
 // display state
 const state = reactive<{
+    data?: any,
     default?: any,
     display?: any,
     disable?: boolean,
@@ -63,26 +65,12 @@ const state = reactive<{
 }>({})
 
 // Data
-const inputdata = ref<string>("")
 const data = computed({
     get (): any {
-        inputdata.value
+        return state.data
     },
     set(value: any) {
-        inputdata.value = "" + value
-        const node = props.node
-        if (node.isNumber && inputdata.value !== "")
-        {
-            const res = Number(inputdata.value)
-            if (Number.isFinite(res))
-                node.data = res
-            else
-                node.data = inputdata.value
-        }
-        else
-        {
-            node.data = inputdata.value
-        }
+        scalarNode.data = value
     }
 })
 
@@ -91,11 +79,11 @@ let dataWatcher: Function | null = null
 let stateWatcher: Function | null = null
 
 onMounted(() => {
-    const node = props.node
+    const node = scalarNode
     dataWatcher = node.subscribe(() => {
-        const data = node.data
-        state.display = `${data}`
-        inputdata.value = isNull(data) ? "" : ("" + data)
+        const data = node.rawData
+        state.data = data
+        state.display = `${!isNull(data) ? data : ''}`
     }, true)
 
     stateWatcher = node.subscribeState(() => {

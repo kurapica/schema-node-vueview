@@ -1,20 +1,19 @@
 <template>
     <template
         v-if="schemaNode && !invisible">
-        <form-view v-if="inFormType === SchemaNodeFormType.Nest" 
+        <form-view v-if="inFormType === SchemaNodeFormType.Nest"
             :node="(schemaNode as any)"
-            :in-form="inFormType" 
+            :in-form="inFormType"
             v-bind="$attrs">
             <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
                 <component :is="slot" v-bind="slotProps" />
             </template>
         </form-view>
-        <component v-else-if="component" 
-            :is="component" 
+        <component v-else-if="component"
+            :is="component"
             :key="schemaNode.guid"
-            :node="schemaNode" 
-            :in-form="inFormType"
-            v-bind="$attrs">
+            :node="schemaNode"
+            v-bind="{ ...$attrs, ...(inFormType ? { 'in-form': inFormType } : {})}">
             <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
                 <component :is="slot" v-bind="slotProps" />
             </template>
@@ -22,12 +21,12 @@
     </template>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" name="SchemaView">
 import { isReactive, isRef, onMounted, onUnmounted, ref, shallowRef, toRaw, useSlots, watch, WatchHandle } from 'vue'
-import { AnySchemaNode, ISchemaConfig } from 'schema-node'
+import { AnySchemaNode, ISchemaConfig, getSchemaNode } from 'schema-node'
 import formView from './formView.vue'
 import { SchemaNodeFormType } from '../formType'
-import { getSchemaNode, getSchemaTypeView, useSingleView } from '../schemaView'
+import { getSchemaTypeView, useSingleView } from '../schemaView'
 
 // props
 const props = defineProps<{

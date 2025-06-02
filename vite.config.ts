@@ -1,8 +1,14 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import dts from 'vite-plugin-dts'
+import path from 'path'
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@' : path.resolve(__dirname, 'src'),
+    }
+  },
   plugins: [
     vue(),
     dts({
@@ -13,7 +19,7 @@ export default defineConfig({
   build: {
     lib: {
       entry: 'src/index.ts',
-      name: 'SchemaView',
+      name: 'SchemaNodeVueView',
       formats: ['es', 'cjs'],
       fileName: (format) => format === 'cjs' ? `index.js` : `index.${format}.js`,
     },
@@ -26,6 +32,6 @@ export default defineConfig({
           'schema-node': 'SchemaNode'
         }
       }
-    }
+    },
   }
 })

@@ -3,14 +3,17 @@
   "version": "0.1.0",
   "description": "Reusable Vue 3 components for visualizing schema-node data using Element Plus.",
   "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "module": "dist/index.es.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite build --watch"
+  },
+  "dependencies": {
+    "schema-node": "*"
   },
   "peerDependencies": {
     "element-plus": "^2.0.0",

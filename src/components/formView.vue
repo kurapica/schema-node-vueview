@@ -10,6 +10,12 @@
         <slot name="pre" :node="node"></slot>
         <slot :node="node">
             <schema-view 
+                v-if="useSingleView(node.schemaInfo)"
+                :node="node"
+                v-bind="$attrs">
+            </schema-view>
+            <schema-view 
+                v-else
                 :node="node" 
                 :instantValid="instantValid"
                 :in-form="inForm === SchemaNodeFormType.ExpandAll ? SchemaNodeFormType.ExpandAll : SchemaNodeFormType.Expand"
@@ -23,7 +29,7 @@
 <script lang="ts" setup>
 import schemaView from './schemaView.vue'
 import { AnySchemaNode } from 'schema-node'
-import { ref, onUnmounted, onMounted, useSlots } from 'vue'
+import { ref, onUnmounted, onMounted, useSlots, toRaw } from 'vue'
 import { useSingleView } from '../schemaView'
 import { SchemaNodeFormType } from '../formType'
 
@@ -49,6 +55,7 @@ const props = defineProps<{
      */
     instantValid?: boolean
 }>()
+const formNode = toRaw(props.node)
 
 // error
 const showError = ref(false)
@@ -57,20 +64,20 @@ const error = ref<string | null>(null)
 const rule = {
     validator: function (rule: any, value: any, callback: Function) {
         showError.value = true;
-        return (props.node && !props.node.valid) ? callback(props.node?.error) : callback()
+        return (formNode && !formNode.valid) ? callback(formNode?.error) : callback()
     }
 }
 
 let stateWatcher: Function | null = null
 
 onMounted(() => {
-    const node = props.node
+    const node = formNode
     shouldShowError.value = node && !node.readonly && useSingleView(node.schemaInfo) || false
     showError.value = shouldShowError.value && (node.changed || props.instantValid)
     
     if (shouldShowError.value)
     {
-        stateWatcher = props.node.subscribe(() => {
+        stateWatcher = node.subscribeState(() => {
             if (node.changed) showError.value = true
             error.value = node.error || null
         }, true)

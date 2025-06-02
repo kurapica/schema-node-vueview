@@ -19,7 +19,7 @@
         :type="node.isYear && 'year' || node.isYearMonth && 'month' || node.isFullDate && 'datetime' || 'date'"
         :placeholder="!state.readonly && state.default && dateFormat(state.default, node.isFullDate, node.isYear) || node.selectPlaceHolder"
         :disabled="disabled || state.disable"
-        :value-format="node.isYear && 'YYYY' || null" 
+        :value-format="node.isYear ? 'YYYY' : null" 
         :disabled-date="disabledDate" 
         style="width: 100%"
     ></el-date-picker>
@@ -67,7 +67,7 @@ const state = reactive<{
 // Data
 const data = computed({
     get(): any {
-        props.node.data
+        return props.node.rawData
     },
     set(value: any) {
         props.node.data = value

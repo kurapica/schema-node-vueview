@@ -1,4 +1,4 @@
-import { AnySchemaNode, ArrayNode, EnumNode, getCachedSchema, getSchema, INodeSchema, ISchemaConfig, ScalarNode, SchemaType, StructNode } from "schema-node"
+import { AnySchemaNode, getCachedSchema, INodeSchema, SchemaType } from "schema-node"
 import { SchemaNodeFormType } from "./formType"
 
 export const DEFAULT_SKIN = "default"
@@ -79,28 +79,4 @@ export function getSchemaTypeView(node: AnySchemaNode, skinName: string = DEFAUL
     return baseMap.customResolve && baseMap.customResolve(node, skinName) ||
         baseMap.resolve && baseMap.resolve(node, skinName) ||
         baseMap.view
-}
-
-export async function getSchemaNode(config: ISchemaConfig, data: any) {
-    const schemaInfo = await getSchema(config.type)
-    if (!schemaInfo) return undefined
-    let node: AnySchemaNode | undefined = undefined
-
-    switch(schemaInfo.type)
-    {
-        case SchemaType.Scalar:
-            node = new ScalarNode(config, data)
-            break
-        case SchemaType.Enum:
-            node = new EnumNode(config, data)
-            break
-        case SchemaType.Struct:
-            node = new StructNode(config, data)
-            break
-        case SchemaType.Array:
-            node = new ArrayNode(config, data)
-            break
-    }
-
-    return node
 }
