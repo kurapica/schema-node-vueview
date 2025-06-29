@@ -1,6 +1,5 @@
 <template>
-    <template
-        v-if="schemaNode && !invisible">
+    <template v-if="schemaNode && !invisible">
         <form-view v-if="inFormType === SchemaNodeFormType.Nest"
             :node="(schemaNode as any)"
             :in-form="inFormType"

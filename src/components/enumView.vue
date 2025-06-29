@@ -205,7 +205,7 @@ const toCascaderOptionInfos = (values: IEnumValueInfo[], level: number, whitelis
         children: e.hasSubList && state.cascade > level && e.subList 
             ? toCascaderOptionInfos(e.subList, level + 1, typeof whitelist === "object" ? whitelist[e.value]: null)
             : null
-    }))
+    } as ICascaderOptionInfo))
 }
 
 const getCascadeInfo = (value: any, options: ICascaderOptionInfo[]): ICascaderOptionInfo | undefined => {
@@ -220,7 +220,7 @@ const getCascadeInfo = (value: any, options: ICascaderOptionInfo[]): ICascaderOp
     }
 }
 
-const lazyLoad = (node: { value: any, level: number }, resolve: Function, reject: Function):void => {
+const lazyLoad = (node: { value: any, level: number }, resolve: Function, reject: any):void => {
     const { value } = node
     const vnode = getCascadeInfo(value, options.value)
     if (!vnode || vnode.leaf) return resolve([])

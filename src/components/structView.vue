@@ -1,16 +1,32 @@
 <template>
-    <schema-view v-for="fnode in node.fields.filter(f => !f.invisible)" 
-        :node="fnode"
-        :in-form="getSubNodeFormType(fnode, inForm)" 
-        v-bind="$attrs"
-    ></schema-view>
+    <template v-for="field in node.fields">
+        <struct-field-view v-if="node.isFieldChangable((field.config as IStructFieldConfig).name)"
+            :node="node"
+            :field="(field.config as IStructFieldConfig).name"
+            :in-form="inForm" 
+            v-bind="$attrs">
+            <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
+                <component :is="slot" v-bind="slotProps" />
+            </template>
+        </struct-field-view>
+        <schema-view v-else
+            :node="field"
+            :in-form="getSubNodeFormType(field, inForm)" 
+            v-bind="$attrs">
+            <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
+                <component :is="slot" v-bind="slotProps" />
+            </template>
+        </schema-view>
+    </template>
 </template>
 
 <script lang="ts" setup>
-import { StructNode } from 'schema-node'
+import { IStructFieldConfig, StructNode } from 'schema-node'
 import { SchemaNodeFormType } from '../formType'
 import { getSubNodeFormType } from '../schemaView'
+import structFieldView from './structFieldView.vue'
 import schemaView from './schemaView.vue'
+import { useSlots } from 'vue'
 
 defineProps<{
     /**
@@ -23,4 +39,8 @@ defineProps<{
      */
     inForm?: SchemaNodeFormType
 }>()
+
+// slots
+const slots = useSlots()
+const slotEntries = Object.entries(slots) as [string, (...args: any[]) => any][]
 </script>

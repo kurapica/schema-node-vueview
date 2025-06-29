@@ -11,30 +11,30 @@
                         <template #default="scope">
                             <!-- multi row -->
                             <template v-if="col.isArray && scope.row.node.getField(col.prop) && (scope.row.node.getField(col.prop) as ArrayNode).elements.length > scope.row.index">
-                                <schema-view
-                                    :node="((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode).getField(scol.prop)"
-                                    :in-form="getSubNodeFormType(((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode).getField(scol.prop)!, inForm)"
-                                    no-label plain-text="center" v-bind="$attrs">
+                                <struct-field-view
+                                    :node="((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode)"
+                                    :field="scol.prop"
+                                    :in-form="inForm"
+                                    no-label v-bind="$attrs">
                                     <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
                                         <component :is="slot" v-bind="slotProps" />
                                     </template>
-                                </schema-view>
+                                </struct-field-view>
                             </template>
                             <!-- single row -->
-                            <schema-view v-else-if="!col.isArray && scope.row.index === 0"
-                                :node="(scope.row.node.getField(col.prop) as StructNode).getField(scol.prop)"
-                                :in-form="getSubNodeFormType((scope.row.node.getField(col.prop) as StructNode).getField(scol.prop)!, inForm)"
-                                no-label plain-text="center" v-bind="$attrs">
+                            <struct-field-view v-else-if="!col.isArray && scope.row.index === 0"
+                                :node="(scope.row.node.getField(col.prop) as StructNode)"
+                                :field="scol.prop"
+                                :in-form="inForm"
+                                no-label v-bind="$attrs">
                                 <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
                                     <component :is="slot" v-bind="slotProps" />
                                 </template>
-                            </schema-view>
+                            </struct-field-view>
                         </template>
                     </el-table-column>
 
-                    <el-table-column
-                        v-if="col.isArray && !state.readonly && !state.disabled && !(noSubAdd && noSubDel)"
-                        :label="_L['OPER']" align="center" width="100">
+                    <el-table-column v-if="col.isArray && !state.readonly && !state.disabled && !(noSubAdd && noSubDel)" :label="_L['OPER']" align="center" width="100">
                         <template #default="scope">
                             <template v-if="scope.row.node.getField(col.prop)">
                                 <el-button type="primary"
@@ -56,21 +56,21 @@
                         <span :class="{ require: true }">{{ col.label }}</span>
                     </template>
                     <template #default="scope">
-                        <schema-view v-if="scope.row.index === 0" :node="scope.row.node.getField(col.prop)"
-                            :in-form="getSubNodeFormType(scope.row.node.getField(col.prop)!, inForm)"
-                            no-label plain-text="center" v-bind="$attrs">                            
+                        <struct-field-view v-if="scope.row.index === 0" 
+                            :node="scope.row.node"
+                            :field="col.prop"
+                            :in-form="inForm"
+                            no-label v-bind="$attrs">
                             <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
                                 <component :is="slot" v-bind="slotProps" />
                             </template>
-                        </schema-view>
+                        </struct-field-view>
                     </template>
                 </el-table-column>
             </template>
 
             <!-- Oper -->
-            <el-table-column
-                v-if="$slots.operator || !state.readonly && !state.disabled && !(noAdd && noDel)" :label="_L['OPER']"
-                align="center" width="100" fixed="right">
+            <el-table-column v-if="$slots.operator || !state.readonly && !state.disabled && !(noAdd && noDel)" :label="_L['OPER']" align="center" width="100" fixed="right">
                 <template #header>
                     <a href="javascript:void(0)" v-if="!noAdd" @click="arrayNode.addRow()" style="text-decoration: underline; color: lightseagreen;">{{ _L["ADD"] }}</a>
                     <p v-else>{{ _L['OPER'] }}</p>
@@ -95,8 +95,8 @@
 import { AnySchemaNode, ArrayNode, debounce, getSchema, IStructFieldConfig, SchemaType, StructNode } from 'schema-node'
 import { SchemaNodeFormType } from '../formType'
 import { onMounted, onUnmounted, reactive, toRaw, shallowRef, useSlots } from 'vue'
-import { getSubNodeFormType, useSingleView } from '../schemaView'
-import schemaView from './schemaView.vue'
+import { useSingleView } from '../schemaView'
+import structFieldView from './structFieldView.vue'
 import _L from '../locale'
 
 // Properties

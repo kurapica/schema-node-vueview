@@ -14,8 +14,8 @@
         style="width: 100%;" 
         clearable
         :disabled="state.disable">
-        <el-option :label="_LS('YES')" :value="true" />
-        <el-option :label="_LS('NO')" :value="false" />
+        <el-option :label="`${_LS('YES')}`" :value="true" />
+        <el-option :label="`${_LS('NO')}`" :value="false" />
     </el-select>
 </template>
 
@@ -43,6 +43,7 @@ const props = defineProps<{
 
 // display state
 const state = reactive<{
+    data?: any,
     display?: string
     default?: any
     disable?: boolean
@@ -53,7 +54,7 @@ const state = reactive<{
 // Data
 const data = computed({
     get(): any {
-        props.node.data
+        return state.data
     },
     set(value: any) {
         props.node.data = value
@@ -68,6 +69,7 @@ onMounted(() => {
     const node = props.node
     dataWatcher = node.subscribe(() => {
         const data = node.data
+        state.data = data
         state.display = data ? `${_LS("YES")}` : `${_LS("NO")}`
     }, true)
 
