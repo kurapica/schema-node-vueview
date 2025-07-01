@@ -80,6 +80,7 @@ onMounted(async () => {
     let node = props.node
     if (!node) {
         if (props.config) {
+            if (!props.config.type && props.type) props.config.type = props.type
             node = await getSchemaNode(toRaw(props.config), toRaw(props.modelValue))
 
             // update the rule schema with config

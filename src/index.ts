@@ -1,4 +1,7 @@
 export { regBaseSchemaTypeView, regSchemaTypeView } from './schemaView'
+import _L from './locale'
+
+export { _L }
 
 import { ArrayNode, NS_SYSTEM_BOOL, NS_SYSTEM_DATE, NS_SYSTEM_FULLDATE,  NS_SYSTEM_RANGEDATE, NS_SYSTEM_RANGEFULLDATE, NS_SYSTEM_RANGEMONTH, NS_SYSTEM_RANGEYEAR, NS_SYSTEM_YEAR, NS_SYSTEM_YEARMONTH, SchemaType } from 'schema-node'
 
