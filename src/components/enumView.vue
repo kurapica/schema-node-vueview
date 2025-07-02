@@ -2,21 +2,6 @@
     <span v-if="state.readonly && plainText" :style="{'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
         {{ state.display }}
     </span>
-    <el-select v-else-if="state.cascade === 1"
-        v-model="data"
-        style="width: 100%;"
-        :placeholder="placeHolder || node.inputPlaceHolder"
-        :multiple="state.multiple"
-        :disabled="state.disabled"
-        :clearable="!state.require"
-        v-bind="$attrs">
-        <el-option v-for="item in options"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
-            :disabled="item.disabled"
-        ></el-option>
-    </el-select>
     <el-cascader v-else
         v-model="data"
         style="width: 100%;"
@@ -198,7 +183,7 @@ const toCascaderOptionInfos = (values: IEnumValueInfo[], level: number, whitelis
 
     return values.map(e => ({
         value: e.value,
-        label: e.name,
+        label: `${e.name}`,
         disabled: e.disabled,
         enumlevel: level,
         leaf: !e.hasSubList || (state.cascade <= level),

@@ -89,7 +89,7 @@ onMounted(() => {
     stateWatcher = node.subscribeState(() => {
         state.default = node.rule.default
         state.disable = node.rule.disable
-        state.readonly = node.require
+        state.require = node.require
         state.asSuggest = node.rule.asSuggest || false
         state.readonly = node.readonly
 

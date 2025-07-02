@@ -22,7 +22,7 @@
 
 <script setup lang="ts" name="SchemaView">
 import { isReactive, isRef, onMounted, onUnmounted, ref, shallowRef, toRaw, useSlots, watch, WatchHandle } from 'vue'
-import { AnySchemaNode, ISchemaConfig, getSchemaNode } from 'schema-node'
+import { AnySchemaNode, ISchemaConfig, SchemaType, getSchemaNode } from 'schema-node'
 import formView from './formView.vue'
 import { SchemaNodeFormType } from '../formType'
 import { getSchemaTypeView, useSingleView } from '../schemaView'
@@ -75,6 +75,17 @@ const invisible = ref(false)
 let dataWatcher: Function | null = null
 let stateWatcher: Function | null = null
 let configWatcher: WatchHandle | null = null
+let updatevalue = false
+
+if (!props.node)
+{
+    watch(() => props.modelValue, () => {
+        if (updatevalue) return
+        console.log("reset", props.modelValue)
+        if (schemaNode.value)
+            schemaNode.value!.data = toRaw(props.modelValue)
+    })
+}
 
 onMounted(async () => {
     let node = props.node
@@ -118,7 +129,11 @@ onMounted(async () => {
 
     // gets the schema view
     component.value = getSchemaTypeView(node, props.skin)
-    dataWatcher = node.subscribe(() => emit('update:modelValue', node.data))
+    dataWatcher = node.subscribe(() => {
+        updatevalue = true
+        emit('update:modelValue', node.data)
+        setTimeout(() => updatevalue = false, 20)
+    })
     stateWatcher = node.subscribeState(() => invisible.value = node.invisible, true)
 })
 
