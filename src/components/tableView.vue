@@ -235,7 +235,7 @@ onMounted(async () => {
     stateWatcher = node.subscribeState(() => {
         state.readonly = node.readonly
         state.disabled = node.rule.disable
-    })
+    }, true)
 })
 
 onUnmounted(() => {

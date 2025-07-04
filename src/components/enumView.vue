@@ -160,7 +160,7 @@ const refreshDisplay = async() => {
         const labels: string[] = []
         for (let i = 0; i < data.length; i++)
         {
-            const paths = (await getEnumAccessList(node.schemaName, data[i]))?.map(v => v.name) || []
+            const paths = (await getEnumAccessList(node.schemaName, data[i]))?.map(v => v.subList.find(s => s.value === v.value)?.name || v.value) || []
             const label = paths.length === 0 ? "" : (!props.showAllLevels ? paths[paths.length - 1] : paths.join(" / "))
             if (label) labels.push(label)
         }
@@ -168,7 +168,7 @@ const refreshDisplay = async() => {
     }
     else if (!isNull(data))
     {
-        const paths = (await getEnumAccessList(node.schemaName, data))?.map(v => v.name) || []
+        const paths = (await getEnumAccessList(node.schemaName, data))?.map(v => v.subList.find(s => s.value === v.value)?.name || v.value) || []
         state.display = paths.length === 0 ? "" : (!props.showAllLevels ? paths[paths.length - 1] : paths.join(" / "))
     }
     else

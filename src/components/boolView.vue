@@ -1,14 +1,15 @@
 <template>
-    <span v-if="state.readonly && plainText"
-        :style="{ 'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
+    <span v-if="state.readonly && plainText" :style="{ 'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
         {{ state.display }}
     </span>
-    <el-switch v-else-if="state.require || !isNull(state.default)" 
-        v-model="data" 
-        :disabled="state.disable"
-        active-color="#13ce66" 
-        inactive-color="#ff4949">
-    </el-switch>
+    <section v-else-if="state.require || !isNull(state.default)"  :style="{ 'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
+        <el-switch 
+            v-model="data" 
+            :disabled="state.disable"
+            active-color="#13ce66" 
+            inactive-color="#ff4949">
+        </el-switch>
+    </section>
     <el-select v-else 
         v-model="data" 
         style="width: 100%;" 

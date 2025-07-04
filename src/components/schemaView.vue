@@ -81,7 +81,6 @@ if (!props.node)
 {
     watch(() => props.modelValue, () => {
         if (updatevalue) return
-        console.log("reset", props.modelValue)
         if (schemaNode.value)
             schemaNode.value!.data = toRaw(props.modelValue)
     })
