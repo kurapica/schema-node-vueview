@@ -13,10 +13,10 @@
     </span>
     <div v-else style="display: flex;">
         <schema-view v-for="i in state.length"
-            :key="node.elements[i].guid"
-            :node="node.elements[i]"
+            :key="node.elements[i-1].guid"
+            :node="node.elements[i-1]"
             :plain-text="plainText"
-            :in-form="getSubNodeFormType(node.elements[i], inForm)"
+            :in-form="getSubNodeFormType(node.elements[i-1], inForm)"
             no-label
             v-bind="$attrs"
         >
@@ -66,11 +66,11 @@ onMounted(() => {
             const length = node.elements.length
             if (length === 0 || !isNull(node.elements[length - 1].rawData))
             {
-                node.addRow()
+                return node.addRow()
             }
             else if(length >= 2 && isNull(node.elements[length - 2].rawData))
             {
-                node.delRows(length - 1)
+                return node.delRows(length - 1)
             }
         }
         

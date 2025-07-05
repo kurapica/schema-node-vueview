@@ -3,7 +3,8 @@
         :key="node?.guid" 
         :prop="node?.access" 
         :error="showError ? error : null"
-        :rules="shouldShowError && !showError ? rule : null">
+        :rules="shouldShowError && !showError ? rule : null"
+        :label-width="noLabel ? '0px' : ''">
         <template v-if="!noLabel" #label>
             <span><span v-if="node?.require" style="color: #f56c6c; font-size: 14px"> * </span>{{ node?.display + `${node?.unit ? `(${node.unit})` : ``}` }}</span>
         </template>
