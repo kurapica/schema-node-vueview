@@ -3,8 +3,8 @@
         <el-table :data="rows" :span-method="spanMethod" v-bind="$attrs">
             <template v-for="col in state.columns">
                 <!-- with sub cols -->
-                <el-table-column v-if="col.subCols && col.subCols.length" :prop="col.prop" :label="col.label" header-align="center">
-                    <el-table-column v-for="scol in col.subCols" :prop="`${col.prop}.${scol.prop}`" :label="scol.label" min-width="240" header-align="center">
+                <el-table-column v-if="col.subCols && col.subCols.length" :prop="col.prop" :label="col.label" :header-align="headerAlign">
+                    <el-table-column v-for="scol in col.subCols" :prop="`${col.prop}.${scol.prop}`" :label="scol.label" min-width="240" :header-align="headerAlign">
                         <template #header v-if="scol.require">
                             <span :class="{ require: true }">{{ scol.label }}</span>
                         </template>
@@ -15,6 +15,7 @@
                                     :node="((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode)"
                                     :field="scol.prop"
                                     :in-form="inForm"
+                                    :plain-text="plainText"
                                     no-label v-bind="$attrs">
                                     <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
                                         <component :is="slot" v-bind="slotProps" />
@@ -26,6 +27,7 @@
                                 :node="(scope.row.node.getField(col.prop) as StructNode)"
                                 :field="scol.prop"
                                 :in-form="inForm"
+                                :plain-text="plainText"
                                 no-label v-bind="$attrs">
                                 <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
                                     <component :is="slot" v-bind="slotProps" />
@@ -51,7 +53,7 @@
                 </el-table-column>
 
                 <!-- Single row -->
-                <el-table-column v-else :prop="col.prop" :label="col.label" min-width="240" header-align="center">
+                <el-table-column v-else :prop="col.prop" :label="col.label" min-width="240" :header-align="headerAlign">
                     <template #header v-if="col.require">
                         <span :class="{ require: true }">{{ col.label }}</span>
                     </template>
@@ -60,6 +62,7 @@
                             :node="scope.row.node"
                             :field="col.prop"
                             :in-form="inForm"
+                            :plain-text="plainText"
                             no-label v-bind="$attrs">
                             <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
                                 <component :is="slot" v-bind="slotProps" />
@@ -110,6 +113,11 @@ const props = defineProps<{
      * form settings
      */
     inForm?: SchemaNodeFormType
+
+    /**
+     * Display readon only value as plain text
+     */
+    plainText?: any, 
 
     /**
      * No add row
@@ -174,6 +182,7 @@ const state = reactive<{
 const newdatacolor = props.newColor || "#98d7eb"
 const changedatacolor = props.changeColor || "#c7f3b1"
 const deldatacolor = props.delColor || "grey"
+const headerAlign = typeof(props.plainText) === "string" ? props.plainText : "center"
 
 // data & state watcher
 let dataWatcher: Function | null = null
