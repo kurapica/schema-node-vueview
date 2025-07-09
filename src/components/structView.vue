@@ -1,6 +1,7 @@
 <template>
     <template v-for="field in node.fields">
         <struct-field-view v-if="node.isFieldChangable((field.config as IStructFieldConfig).name)"
+            :key="node.getField((field.config as IStructFieldConfig).name).guid"
             :node="node"
             :field="(field.config as IStructFieldConfig).name"
             :in-form="inForm" 
@@ -10,6 +11,7 @@
             </template>
         </struct-field-view>
         <schema-view v-else
+            :key="field.guid"
             :node="field"
             :in-form="getSubNodeFormType(field, inForm)" 
             v-bind="$attrs">

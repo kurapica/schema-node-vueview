@@ -12,41 +12,35 @@
                             <!-- multi row -->
                             <template v-if="col.isArray && scope.row.node.getField(col.prop) && (scope.row.node.getField(col.prop) as ArrayNode).elements.length > scope.row.index">
                                 <struct-field-view
+                                    :key="((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode).getField(scol.prop).guid"
                                     :node="((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode)"
                                     :field="scol.prop"
                                     :in-form="inForm"
                                     :plain-text="plainText"
-                                    no-label v-bind="$attrs">
-                                    <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
-                                        <component :is="slot" v-bind="slotProps" />
-                                    </template>
-                                </struct-field-view>
+                                    no-label v-bind="$attrs"
+                                ></struct-field-view>
                             </template>
                             <!-- single row -->
                             <struct-field-view v-else-if="!col.isArray && scope.row.index === 0"
+                                :key="(scope.row.node.getField(col.prop) as StructNode).getField(scol.prop).guid"
                                 :node="(scope.row.node.getField(col.prop) as StructNode)"
                                 :field="scol.prop"
                                 :in-form="inForm"
                                 :plain-text="plainText"
-                                no-label v-bind="$attrs">
-                                <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
-                                    <component :is="slot" v-bind="slotProps" />
-                                </template>
-                            </struct-field-view>
+                                no-label v-bind="$attrs"
+                            ></struct-field-view>
                         </template>
                     </el-table-column>
 
                     <el-table-column v-if="col.isArray && !state.readonly && !state.disabled && !(noSubAdd && noSubDel)" :label="_L['OPER']" align="center" width="100">
                         <template #default="scope">
                             <template v-if="scope.row.node.getField(col.prop)">
-                                <el-button type="primary"
+                                <a href="javascript:void(0)" style="color:lightseagreen"
                                     v-if="!noSubAdd && (scope.row.node.getField(col.prop) as ArrayNode).elements.length == scope.row.index"
-                                    text
-                                    @click="(scope.row.node.getField(col.prop) as ArrayNode).addRow()">{{ _L["ADD"] }}</el-button>
-                                <el-button type="danger"
+                                    @click="addRow(scope.row.node.getField(col.prop) as ArrayNode)">{{ _L["ADD"] }}</a>
+                                <a href="javascript:void(0)" style="color:red"
                                     v-else-if="!noSubDel && (scope.row.node.getField(col.prop) as ArrayNode).elements.length > scope.row.index"
-                                    text
-                                    @click="(scope.row.node.getField(col.prop) as ArrayNode).delRows(scope.row.index)">{{ _L["DEL"] }}</el-button>
+                                    @click="delRow(scope.row.node.getField(col.prop) as ArrayNode, scope.row.index)">{{ _L["DEL"] }}</a>
                             </template>
                         </template>
                     </el-table-column>
@@ -59,28 +53,26 @@
                     </template>
                     <template #default="scope">
                         <struct-field-view v-if="scope.row.index === 0" 
+                            :key="(scope.row.node as StructNode).getField(col.prop).guid"
                             :node="scope.row.node"
                             :field="col.prop"
                             :in-form="inForm"
                             :plain-text="plainText"
-                            no-label v-bind="$attrs">
-                            <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
-                                <component :is="slot" v-bind="slotProps" />
-                            </template>
-                        </struct-field-view>
+                            no-label v-bind="$attrs"
+                        ></struct-field-view>
                     </template>
                 </el-table-column>
             </template>
 
             <!-- Oper -->
-            <el-table-column v-if="$slots.operator || !state.readonly && !state.disabled && !(noAdd && noDel)" :label="_L['OPER']" align="center" width="100" fixed="right">
+            <el-table-column v-if="$slots.operator || !state.readonly && !state.disabled && !(noAdd && noDel)" :label="_L['OPER']" align="center" fixed="right">
                 <template #header>
                     <a href="javascript:void(0)" v-if="!noAdd" @click="arrayNode.addRow()" style="text-decoration: underline; color: lightseagreen;">{{ _L["ADD"] }}</a>
                     <p v-else>{{ _L['OPER'] }}</p>
                 </template>
                 <template #default="scope" v-if="$slots.operator || !noDel">
                     <template v-if="!noDel">
-                        <el-button type="danger" text @click="arrayNode.delRows(scope.row.eleIdx)">{{ _L["DEL"] }}</el-button>
+                        <a type="danger" href="javascript:void(0)" style="padding-right: 1rem;" @click="arrayNode.delRows(scope.row.eleIdx)">{{ _L["DEL"] }}</a>
                     </template>
                     <slot name="operator" :row="scope.row"></slot>
                 </template>
@@ -122,22 +114,22 @@ const props = defineProps<{
     /**
      * No add row
      */
-    noAdd: boolean,
+    noAdd?: boolean,
 
     /**
      * No del row
      */
-    noDel: boolean,
+    noDel?: boolean,
 
     /**
      * No sub row add
      */
-    noSubAdd: boolean,
+    noSubAdd?: boolean,
 
     /**
      * No sub row del
      */
-    noSubDel: boolean,
+    noSubDel?: boolean,
 
     /**
      * Hight light change row
@@ -187,6 +179,7 @@ const headerAlign = typeof(props.plainText) === "string" ? props.plainText : "ce
 // data & state watcher
 let dataWatcher: Function | null = null
 let stateWatcher: Function | null = null
+let rowCount = 0
 
 onMounted(async () => {
     const node = arrayNode
@@ -231,7 +224,6 @@ onMounted(async () => {
     state.spanCols = spanCols
 
     // row change handler
-    let rowCount = 0
     dataWatcher = node.subscribe(() => {
         const count = node.elements.length
         if (count !== rowCount) {
@@ -251,6 +243,17 @@ onUnmounted(() => {
     if (dataWatcher) dataWatcher()
     if (stateWatcher) stateWatcher()
 })
+
+// add row
+const addRow = (arrayNode: ArrayNode) => {
+    arrayNode.addRow()
+    genRows()
+}
+
+const delRow = (arrayNode: ArrayNode, index: number) => {
+    arrayNode.delRows(index)
+    genRows()
+}
 
 // gen columns
 const genColumn = async (field: IStructFieldConfig, skipSub?: boolean) => {
@@ -305,6 +308,7 @@ const spanMethod = (data: any) => {
 const genRows = debounce(() => {
     const node = arrayNode
     const rowDatas: ITableRow[] = []
+    rowCount = node.elements.length
     node.elements.forEach((node, eleIdx) => {
         let count = 0
         state.columns
@@ -322,7 +326,7 @@ const genRows = debounce(() => {
             rowDatas.push({ node, eleIdx, index, count })
     })
     rows.value = rowDatas
-}, 50)
+}, 20)
 
 const handlePage = (page: number) => {
     arrayNode.page = page - 1
@@ -360,5 +364,14 @@ interface ITableRow {
     content: "*";
     color: #f56c6c;
     margin-right: 4px;
+}
+.link-button {
+    background: none;
+    border: none;
+    color: blue;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+    font: inherit;
 }
 </style>
