@@ -74,7 +74,7 @@
                     <template v-if="!noDel">
                         <a type="danger" href="javascript:void(0)" style="padding-right: 1rem;" @click="arrayNode.delRows(scope.row.eleIdx)">{{ _L["DEL"] }}</a>
                     </template>
-                    <slot name="operator" :row="scope.row"></slot>
+                    <slot name="operator" :row="scope.row.node"></slot>
                 </template>
             </el-table-column>
         </el-table>
