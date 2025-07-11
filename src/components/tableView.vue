@@ -65,7 +65,7 @@
             </template>
 
             <!-- Oper -->
-            <el-table-column v-if="$slots.operator || !state.readonly && !state.disabled && !(noAdd && noDel)" :label="_L['OPER']" align="center" fixed="right">
+            <el-table-column v-if="$slots.operator || !state.readonly && !state.disabled && !(noAdd && noDel)" :label="_L['OPER']" align="center" fixed="right" :width="operWidth">
                 <template #header>
                     <a href="javascript:void(0)" v-if="!state.readonly && !noAdd" @click="arrayNode.addRow()" style="text-decoration: underline; color: lightseagreen;">{{ _L["ADD"] }}</a>
                     <p v-else>{{ _L['OPER'] }}</p>
@@ -149,6 +149,11 @@ const props = defineProps<{
      * del row color
      */
     delColor?: string
+
+    /**
+     * operation width
+     */
+    operWidth?: any
 }>()
 
 // slots
@@ -223,9 +228,9 @@ onMounted(async () => {
     state.spanCols = spanCols
 
     // row change handler
-    dataWatcher = node.subscribe(() => {
+    dataWatcher = node.subscribe((action: any) => {
         const count = node.elements.length
-        if (count !== rowCount) {
+        if (count !== rowCount || action === "swap") {
             rowCount = count
             genRows()
         }

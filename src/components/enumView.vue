@@ -186,9 +186,9 @@ const toCascaderOptionInfos = (values: IEnumValueInfo[], level: number, whitelis
         label: `${e.name}`,
         disabled: e.disabled,
         enumlevel: level,
-        leaf: !e.hasSubList || (state.cascade <= level),
-        children: e.hasSubList && state.cascade > level && e.subList 
-            ? toCascaderOptionInfos(e.subList, level + 1, typeof whitelist === "object" ? whitelist[e.value]: null)
+        leaf: (!e.hasSubList && !e.subList?.length) || (state.cascade <= level),
+        children: (e.hasSubList || e.subList?.length) && state.cascade > level && e.subList 
+            ? toCascaderOptionInfos(e.subList, level + 1, whitelist && typeof whitelist === "object" ? whitelist[e.value]: null)
             : null
     } as ICascaderOptionInfo))
 }

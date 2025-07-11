@@ -1,5 +1,6 @@
 <template>
     <schema-view 
+        :key="fldnode.guid"
         :node="(fldnode as AnySchemaNode)"
         :in-form="getSubNodeFormType(fldnode as AnySchemaNode, inForm)">
         <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
