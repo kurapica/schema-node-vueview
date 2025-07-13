@@ -30,7 +30,7 @@
 
 <script lang="ts" setup>
 import { isNull, ScalarNode } from 'schema-node'
-import { computed, onMounted, onUnmounted, reactive, ref, toRaw } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
 
 // Define props
 const props = defineProps<{
@@ -93,14 +93,14 @@ onMounted(() => {
         state.asSuggest = node.rule.asSuggest || false
         state.readonly = node.readonly
 
-        if (node.rule.whiteList)
+        if (node.rule.whiteList?.length)
         {
             state.useWhiteList = true
-            let whiteList = node.rule.whiteList
+            let list = [...node.rule.whiteList]
             const blackList = node.rule.blackList
             if (blackList && blackList.length)
-                whiteList = whiteList.filter(w => typeof(w) === "object" ? blackList.findIndex(b => `${b}` === `${w.value}`) < 0 : blackList.findIndex(b => `${b}` === `${w}`) < 0) as any
-            state.whiteList = whiteList
+                list = list.filter(w => typeof(w) === "object" ? blackList.findIndex(b => `${b}` === `${w.value}`) < 0 : blackList.findIndex(b => `${b}` === `${w}`) < 0) as any
+            state.whiteList = list
         }
         else
         {

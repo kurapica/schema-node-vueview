@@ -5,7 +5,7 @@
     <section v-else-if="state.require || !isNull(state.default)"  :style="{ 'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
         <el-switch 
             v-model="data" 
-            :disabled="state.disable"
+            :disabled="state.readonly || state.disable"
             active-color="#13ce66" 
             inactive-color="#ff4949">
         </el-switch>
@@ -14,7 +14,8 @@
         v-model="data" 
         style="width: 100%;" 
         clearable
-        :disabled="state.disable">
+        :placeholder="node.selectPlaceHolder"
+        :disabled="state.readonly || state.disable">
         <el-option :label="`${_LS('YES')}`" :value="true" />
         <el-option :label="`${_LS('NO')}`" :value="false" />
     </el-select>

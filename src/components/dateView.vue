@@ -5,7 +5,7 @@
     </span>
     <el-select v-else-if="state.useWhiteList" 
         v-model="whiteListData"
-        :disabled="disabled || state.disable"
+        :disabled="state.readonly || disabled || state.disable"
         :placeholder="node.selectPlaceHolder || placeHolder"
         :clearable="!state.require" 
         style="width: 100%">
@@ -18,7 +18,7 @@
         v-model="data"
         :type="node.isYear && 'year' || node.isYearMonth && 'month' || node.isFullDate && 'datetime' || 'date'"
         :placeholder="!state.readonly && state.default && dateFormat(state.default, node.isFullDate, node.isYear) || node.selectPlaceHolder"
-        :disabled="disabled || state.disable"
+        :disabled="state.readonly || disabled || state.disable"
         :value-format="node.isYear ? 'YYYY' : null" 
         :disabled-date="disabledDate" 
         style="width: 100%"

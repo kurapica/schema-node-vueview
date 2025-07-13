@@ -87,7 +87,7 @@ if (!props.node)
 }
 
 onMounted(async () => {
-    let node = props.node
+    let node = props.node ? toRaw(props.node) : null
     if (!node) {
         if (props.config) {
             if (!props.config.type && props.type) props.config.type = props.type

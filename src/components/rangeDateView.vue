@@ -7,7 +7,7 @@
     :type="node.schemaName === NS_SYSTEM_RANGEDATE ? 'daterange' : 'datetimerange'"
     :placeholder="node.selectPlaceHolder"
     :clearable="!state.require"
-    :disabled="state.disable"
+    :disabled="state.readonly || state.disable"
     :disabled-date="disabledDate"
     range-separator="~"
     :start-placeholder="node.getField('start')?.display"

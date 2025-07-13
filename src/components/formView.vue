@@ -30,7 +30,7 @@
 <script lang="ts" setup>
 import schemaView from './schemaView.vue'
 import { AnySchemaNode } from 'schema-node'
-import { ref, onUnmounted, onMounted, useSlots, toRaw } from 'vue'
+import { ref, onUnmounted, onMounted, toRaw } from 'vue'
 import { useSingleView } from '../schemaView'
 import { SchemaNodeFormType } from '../formType'
 

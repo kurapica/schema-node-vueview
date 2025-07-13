@@ -15,13 +15,13 @@
         }"
         :show-all-levels="showAllLevels || false"
         :placeholder="placeHolder || node.inputPlaceHolder"
-        :disabled="state.disabled"
+        :disabled="state.readonly || state.disabled"
         :clearable="!state.require"
         v-bind="$attrs"></el-cascader>
 </template>
 
 <script setup lang="ts">
-import { EnumNode, getEnumAccessList, getEnumSubList, IEnumValueInfo, isEqual, isNull } from 'schema-node'
+import { EnumNode, getEnumAccessList, getEnumSubList, IEnumValueInfo, isEqual, IEnumValueAccess, isNull } from 'schema-node'
 import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, toRaw } from 'vue'
 
 // properties
@@ -118,7 +118,7 @@ onMounted(() => {
             await refreshDisplay()
 
             // combine with whitelist
-            if (state.whiteList)
+            if (state.whiteList?.length)
             {
                 whiteTree = {}
                 const whiteList = state.blackList ? state.whiteList.filter(w => state.blackList!.findIndex(b => `${b}` === `${w}`) < 0) : state.whiteList
@@ -160,7 +160,7 @@ const refreshDisplay = async() => {
         const labels: string[] = []
         for (let i = 0; i < data.length; i++)
         {
-            const paths = (await getEnumAccessList(node.schemaName, data[i]))?.map(v => v.subList.find(s => s.value === v.value)?.name || v.value) || []
+            const paths = (await getEnumAccessList(node.schemaName, data[i]))?.map((v: IEnumValueAccess) => v.subList.find((s: IEnumValueInfo) => s.value === v.value)?.name || v.value) || []
             const label = paths.length === 0 ? "" : (!props.showAllLevels ? paths[paths.length - 1] : paths.join(" / "))
             if (label) labels.push(label)
         }
@@ -168,7 +168,7 @@ const refreshDisplay = async() => {
     }
     else if (!isNull(data))
     {
-        const paths = (await getEnumAccessList(node.schemaName, data))?.map(v => v.subList.find(s => s.value === v.value)?.name || v.value) || []
+        const paths = (await getEnumAccessList(node.schemaName, data))?.map((v: IEnumValueAccess) => v.subList.find((s: IEnumValueInfo) => s.value === v.value)?.name || v.value) || []
         state.display = paths.length === 0 ? "" : (!props.showAllLevels ? paths[paths.length - 1] : paths.join(" / "))
     }
     else

@@ -1,4 +1,4 @@
-import { AnySchemaNode, getCachedSchema, INodeSchema, SchemaType } from "schema-node"
+import { AnySchemaNode, ArrayNode, getCachedSchema, INodeSchema, SchemaType } from "schema-node"
 import { SchemaNodeFormType } from "./formType"
 
 export const DEFAULT_SKIN = "default"
@@ -31,7 +31,7 @@ export function useSingleView(node: INodeSchema) {
  * gets the form type of the sub node
  */
 export function getSubNodeFormType(node: AnySchemaNode, type?: SchemaNodeFormType) {
-    return useSingleView(node.schemaInfo)
+    return useSingleView(node.schemaInfo) || node instanceof ArrayNode
         ? SchemaNodeFormType.Nest
         : type === SchemaNodeFormType.ExpandAll
             ? SchemaNodeFormType.ExpandAll
