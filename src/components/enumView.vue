@@ -4,7 +4,7 @@
     </span>
     <el-cascader v-else
         v-model="data"
-        style="width: 100%;"
+        style="width: 100%;min-width: 120px"
         :options="options"
         :props="{
             emitPath: false,

@@ -15,8 +15,9 @@ import tableView from './components/tableView.vue'
 import { App } from 'vue'
 import { regBaseSchemaTypeView, regSchemaTypeView } from './schemaView'
 import structFieldView from './components/structFieldView.vue'
+import { SchemaNodeFormType } from './formType'
 
-export { _L, schemaView, scalarView, boolView, dateView, enumView, arrayView, structView, rangeDateView, tableView, structFieldView }
+export { _L, SchemaNodeFormType, schemaView, scalarView, boolView, dateView, enumView, arrayView, structView, rangeDateView, tableView, structFieldView }
 
 // base view
 regBaseSchemaTypeView(SchemaType.Scalar, scalarView)
