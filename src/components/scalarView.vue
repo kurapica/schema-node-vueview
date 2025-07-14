@@ -5,7 +5,7 @@
     <el-select
         v-else-if="state.useWhiteList"
         v-model="data"
-        style="width: 100%;min-width: 120px;"
+        style="width: 100%;min-width: 60px;"
         :disabled="state.readonly || state.disable"
         :clearable="!state.require"
         :filterable="state.asSuggest"

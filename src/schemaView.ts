@@ -21,7 +21,14 @@ export function useSingleView(node: INodeSchema) {
         case SchemaType.Scalar:
             return true
         case SchemaType.Struct:
-            return schemaViews[node.name.toLowerCase()] ? true : false
+            if (!schemaViews[node.name.toLowerCase()]) return false
+            for(let i = 0; i < (node.struct?.fields?.length || 0); i++)
+            {
+                const s = getCachedSchema(node.struct!.fields[i].type)
+               if (s?.type === SchemaType.Struct) return false
+               if (s?.type === SchemaType.Array) return false
+            }
+            return true
         case SchemaType.Array:
             return node.array!.single || [SchemaType.Scalar, SchemaType.Enum].includes(getCachedSchema(node.array!.element)!.type)
     }

@@ -4,7 +4,7 @@
             <template v-for="col in state.columns">
                 <!-- with sub cols -->
                 <el-table-column v-if="col.subCols && col.subCols.length" :prop="col.prop" :label="col.label" :header-align="headerAlign">
-                    <el-table-column v-for="scol in col.subCols" :prop="`${col.prop}.${scol.prop}`" :label="scol.label" min-width="240" :header-align="headerAlign">
+                    <el-table-column v-for="scol in col.subCols" :prop="`${col.prop}.${scol.prop}`" :label="scol.label" min-width="120" :header-align="headerAlign">
                         <template #header v-if="scol.require">
                             <span :class="{ require: true }">{{ scol.label }}</span>
                         </template>
@@ -47,7 +47,7 @@
                 </el-table-column>
 
                 <!-- Single row -->
-                <el-table-column v-else :prop="col.prop" :label="col.label" min-width="240" :header-align="headerAlign">
+                <el-table-column v-else :prop="col.prop" :label="col.label" min-width="120" :header-align="headerAlign">
                     <template #header v-if="col.require">
                         <span :class="{ require: true }">{{ col.label }}</span>
                     </template>
