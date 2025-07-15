@@ -115,12 +115,12 @@ onMounted(() => {
         state.asSuggest = node.rule.asSuggest || false
         state.readonly = node.readonly
 
-        if (node.rule.whiteList) {
+        if (node.rule.whiteList?.length) {
             state.useWhiteList = true
-            let whiteList = node.rule.whiteList.map(w => typeof w === "object" && !(w instanceof Date) ? w.value : w)
+            let whiteList = node.rule.whiteList.map((w: any) => typeof w === "object" && !(w instanceof Date) ? w.value : w)
             const blackList = node.rule.blackList
             if (blackList && blackList.length)
-                whiteList = whiteList.filter(w => blackList.findIndex(b => `${b}` === `${w}`) < 0) as any
+                whiteList = whiteList.filter((w: any) => blackList.findIndex((b:any) => `${b}` === `${w}`) < 0) as any
             state.whiteList = whiteList
         }
         else {

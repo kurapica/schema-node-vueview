@@ -17,7 +17,8 @@
         :placeholder="placeHolder || node.inputPlaceHolder"
         :disabled="state.readonly || state.disabled"
         :clearable="!state.require"
-        v-bind="$attrs"></el-cascader>
+        v-bind="$attrs"
+    ></el-cascader>
 </template>
 
 <script setup lang="ts">
@@ -134,12 +135,34 @@ onMounted(() => {
                         const a = accessList[j]
                         if (!currwhite[a.value] || currwhite[a.value] === true)
                             currwhite[a.value] = {}
+                        currwhite = currwhite[a.value]
                     }
                     const last = accessList[accessList.length - 1]
                     currwhite[last.value] = currwhite[last.value] || true
                 }
             }
 
+            // root
+            if (!isNull(state.root))
+            {
+                const accessList = await getEnumAccessList(node.schemaName, state.root)
+                if (accessList?.length)
+                {
+                    let currwhite = whiteTree
+                    for(let j = 0; j < accessList.length; j++)
+                    {
+                        if (!currwhite) break
+
+                        const a = accessList[j]
+                        currwhite = currwhite[a.value]
+                        if (currwhite === true) currwhite = null
+                    }
+                    options.value = toCascaderOptionInfos(await getEnumSubList(node.schemaName, state.root), accessList.length + 1, currwhite)
+                    return
+                }
+            }
+            
+            // default
             options.value = toCascaderOptionInfos(await getEnumSubList(node.schemaName), 1, whiteTree)
         }
     }, true)
@@ -178,6 +201,8 @@ const refreshDisplay = async() => {
 }
 
 const toCascaderOptionInfos = (values: IEnumValueInfo[], level: number, whitelist?: any): ICascaderOptionInfo[] => {
+    if (state.cascade < level) return []
+
     if (state.blackList?.length) values = values.filter(e => state.blackList!.findIndex(b => `${b}` === `${e.value}`) < 0)
     if (whitelist && typeof whitelist === "object") values = values.filter(e => whitelist[e.value])
 

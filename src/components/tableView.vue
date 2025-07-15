@@ -1,6 +1,6 @@
 <template>
-    <section>
-        <el-table :data="rows" :span-method="spanMethod" v-bind="$attrs">
+    <section style="width: 100%;">
+        <el-table :data="rows" :span-method="spanMethod" style="width: 100%;" v-bind="$attrs">
             <template v-for="col in state.columns">
                 <!-- with sub cols -->
                 <el-table-column v-if="col.subCols && col.subCols.length" :prop="col.prop" :label="col.label" :header-align="headerAlign">
