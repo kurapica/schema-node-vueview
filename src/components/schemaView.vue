@@ -22,7 +22,7 @@
 
 <script setup lang="ts" name="SchemaView">
 import { isReactive, isRef, onMounted, onUnmounted, ref, shallowRef, toRaw, useSlots, watch, WatchHandle } from 'vue'
-import { AnySchemaNode, ISchemaConfig, SchemaType, getSchemaNode } from 'schema-node'
+import { AnySchemaNode, ISchemaConfig, getSchemaNode } from 'schema-node'
 import formView from './formView.vue'
 import { SchemaNodeFormType } from '../formType'
 import { getSchemaTypeView, useSingleView } from '../schemaView'

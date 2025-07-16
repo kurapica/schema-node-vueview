@@ -6,7 +6,7 @@
         :rules="shouldShowError && !showError ? rule : null"
         :label-width="noLabel ? '0px' : ''">
         <template v-if="!noLabel" #label>
-            <span><span v-if="node?.require" style="color: #f56c6c; font-size: 14px"> * </span>{{ node?.display + `${node?.unit ? `(${node.unit})` : ``}` }}</span>
+            <span><span v-if="node?.require" style="color: #f56c6c; font-size: 14px"> * </span>{{ getNodeLabel(formNode) }}</span>
         </template>
         <slot name="pre" :node="node"></slot>
         <slot :node="node">
@@ -33,6 +33,7 @@ import { AnySchemaNode } from 'schema-node'
 import { ref, onUnmounted, onMounted, toRaw } from 'vue'
 import { useSingleView } from '../schemaView'
 import { SchemaNodeFormType } from '../formType'
+import { getNodeLabel } from '../locale'
 
 // Properties
 const props = defineProps<{

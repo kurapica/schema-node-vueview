@@ -1,5 +1,5 @@
 export { regBaseSchemaTypeView, regSchemaTypeView } from './schemaView'
-import _L from './locale'
+export * from './locale'
 
 import { ArrayNode, NS_SYSTEM_BOOL, NS_SYSTEM_DATE, NS_SYSTEM_FULLDATE,  NS_SYSTEM_RANGEDATE, NS_SYSTEM_RANGEFULLDATE, NS_SYSTEM_RANGEMONTH, NS_SYSTEM_RANGEYEAR, NS_SYSTEM_YEAR, NS_SYSTEM_YEARMONTH, SchemaType } from 'schema-node'
 
@@ -17,7 +17,7 @@ import { regBaseSchemaTypeView, regSchemaTypeView } from './schemaView'
 import structFieldView from './components/structFieldView.vue'
 import { SchemaNodeFormType } from './formType'
 
-export { _L, SchemaNodeFormType, schemaView, scalarView, boolView, dateView, enumView, arrayView, structView, rangeDateView, tableView, structFieldView }
+export { SchemaNodeFormType, schemaView, scalarView, boolView, dateView, enumView, arrayView, structView, rangeDateView, tableView, structFieldView }
 
 // base view
 regBaseSchemaTypeView(SchemaType.Scalar, scalarView)

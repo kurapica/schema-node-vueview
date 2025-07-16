@@ -6,20 +6,20 @@
     <el-select v-else-if="state.useWhiteList" 
         v-model="whiteListData"
         :disabled="state.readonly || disabled || state.disable"
-        :placeholder="node.selectPlaceHolder || placeHolder"
+        :placeholder="getSelectPlaceHolder(scalarNode)"
         :clearable="!state.require" 
         style="width: 100%">
         <el-option v-for="item in state.whiteList" 
             :key="item"
-            :label="node.isYear ? item : dateFormat(item + '', node.isFullDate, node.isYear)"
+            :label="node.isYear ? item : dateFormat(item + '', scalarNode.isFullDate, scalarNode.isYear)"
             :value="item"></el-option>
     </el-select>
     <el-date-picker v-else 
         v-model="data"
-        :type="node.isYear && 'year' || node.isYearMonth && 'month' || node.isFullDate && 'datetime' || 'date'"
-        :placeholder="!state.readonly && state.default && dateFormat(state.default, node.isFullDate, node.isYear) || node.selectPlaceHolder"
+        :type="scalarNode.isYear && 'year' || scalarNode.isYearMonth && 'month' || scalarNode.isFullDate && 'datetime' || 'date'"
+        :placeholder="!state.readonly && state.default && dateFormat(state.default, scalarNode.isFullDate, scalarNode.isYear) || getSelectPlaceHolder(scalarNode)"
         :disabled="state.readonly || disabled || state.disable"
-        :value-format="node.isYear ? 'YYYY' : null" 
+        :value-format="scalarNode.isYear ? 'YYYY' : null" 
         :disabled-date="disabledDate" 
         style="width: 100%"
     ></el-date-picker>
@@ -27,33 +27,16 @@
 
 <script lang="ts" setup>
 import { isNull, ScalarNode } from 'schema-node'
-import { computed, onMounted, onUnmounted, reactive } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
+import { getSelectPlaceHolder } from '../locale';
 
 // Define props
-const props = defineProps<{
-    /**
-     * Scalar schema node
-     */
-    node: ScalarNode,
-
-    /**
-     * Display readon only value as plain text
-     */
-    plainText?: any,
-
-    /**
-     * The place holder
-     */
-    placeHolder?: string,
-
-    /**
-     * Force disabled
-     */
-    disabled?: boolean
-}>()
+const props = defineProps<{ node: ScalarNode, plainText?: any, disabled?: boolean }>()
+const scalarNode = toRaw(props.node)
 
 // display state
 const state = reactive<{
+    data?: Date,
     default?: any,
     display?: any,
     disable?: boolean,
@@ -67,10 +50,10 @@ const state = reactive<{
 // Data
 const data = computed({
     get(): any {
-        return props.node.rawData
+        return state.data
     },
     set(value: any) {
-        props.node.data = value
+        scalarNode.data = value
     }
 })
 
@@ -78,11 +61,11 @@ const data = computed({
 const whiteListData = computed(
     {
         get() {
-            const node = props.node;
+            const node = scalarNode;
             return node.data ? dateFormat(node.data, node.isFullDate, node.isYear) : null;
         },
         set(newValue) {
-            const node = props.node;
+            const node = scalarNode;
             if (!isNull(newValue)) {
                 if (node.isYear) {
                     node.data = parseInt(newValue!)
@@ -102,23 +85,22 @@ let dataWatcher: Function | null = null
 let stateWatcher: Function | null = null
 
 onMounted(() => {
-    const node = props.node
-    dataWatcher = node.subscribe(() => {
-        const data = node.data
+    dataWatcher = scalarNode.subscribe(() => {
+        state.data = scalarNode.data
         state.display = display()
     }, true)
 
-    stateWatcher = node.subscribeState(() => {
-        state.default = node.rule.default
-        state.disable = node.rule.disable
-        state.readonly = node.require
-        state.asSuggest = node.rule.asSuggest || false
-        state.readonly = node.readonly
+    stateWatcher = scalarNode.subscribeState(() => {
+        state.default = scalarNode.rule.default
+        state.disable = scalarNode.rule.disable
+        state.readonly = scalarNode.require
+        state.asSuggest = scalarNode.rule.asSuggest || false
+        state.readonly = scalarNode.readonly
 
-        if (node.rule.whiteList?.length) {
+        if (scalarNode.rule.whiteList?.length) {
             state.useWhiteList = true
-            let whiteList = node.rule.whiteList.map((w: any) => typeof w === "object" && !(w instanceof Date) ? w.value : w)
-            const blackList = node.rule.blackList
+            let whiteList = scalarNode.rule.whiteList.map((w: any) => typeof w === "object" && !(w instanceof Date) ? w.value : w)
+            const blackList = scalarNode.rule.blackList
             if (blackList && blackList.length)
                 whiteList = whiteList.filter((w: any) => blackList.findIndex((b:any) => `${b}` === `${w}`) < 0) as any
             state.whiteList = whiteList
@@ -139,7 +121,7 @@ onUnmounted(() => {
 
 // genrate display
 const display = () => {
-    const node = props.node
+    const node = scalarNode
     if (node.isYear) return node.data
 
     // check value
@@ -168,7 +150,7 @@ const display = () => {
 }
 
 const disabledDate = (time: Date) => {
-    const node = props.node;
+    const node = scalarNode;
     if (node.readonly) return false;
 
     const upLimit = node.upLimit

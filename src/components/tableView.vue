@@ -91,7 +91,7 @@ import { SchemaNodeFormType } from '../formType'
 import { onMounted, onUnmounted, reactive, toRaw, shallowRef, useSlots } from 'vue'
 import { useSingleView } from '../schemaView'
 import structFieldView from './structFieldView.vue'
-import _L from '../locale'
+import { _L } from '../locale'
 
 // Properties
 const props = defineProps<{

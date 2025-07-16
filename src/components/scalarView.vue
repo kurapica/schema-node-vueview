@@ -1,6 +1,6 @@
 <template>
     <span v-if="state.readonly && plainText" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
-        {{ state.display || placeHolder }}
+        {{ state.display }}
     </span>
     <el-select
         v-else-if="state.useWhiteList"
@@ -11,7 +11,7 @@
         :filterable="state.asSuggest"
         :allow-create="state.asSuggest"
         :default-first-option="state.asSuggest"
-        :placeholder="placeHolder || node.selectPlaceHolder">
+        :placeholder="getSelectPlaceHolder(scalarNode)">
         <el-option
             v-for="item in state.whiteList"
             :key="typeof(item) === 'object' ? item.value : item"
@@ -24,13 +24,14 @@
         v-model="data"
         :disabled="state.readonly || state.disable"
         style="width: 100%;"
-        :placeholder="!state.readonly && !isNull(state.default) && `${state.default}` || placeHolder || node.inputPlaceHolder">
+        :placeholder="!state.readonly && !isNull(state.default) && `${state.default}` || getInputPlaceHolder(scalarNode)">
     ></el-input>
 </template>
 
 <script lang="ts" setup>
 import { isNull, ScalarNode } from 'schema-node'
 import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
+import { getInputPlaceHolder, getSelectPlaceHolder } from '../locale';
 
 // Define props
 const props = defineProps<{
@@ -42,12 +43,7 @@ const props = defineProps<{
     /**
      * Display readon only value as plain text
      */
-    plainText?: any, 
-    
-    /**
-     * The place holder
-     */
-    placeHolder?: string,
+    plainText?: any
 }>()
 const scalarNode = toRaw(props.node)
 
