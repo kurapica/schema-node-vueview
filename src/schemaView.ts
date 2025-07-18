@@ -1,4 +1,4 @@
-import { AnySchemaNode, ArrayNode, getCachedSchema, INodeSchema, SchemaType } from "schema-node"
+import { AnySchemaNode, ArrayNode, getCachedSchema, INodeSchema, SchemaType, SchemaTypeValue } from "schema-node"
 import { SchemaNodeFormType } from "./formType"
 
 export const DEFAULT_SKIN = "default"
@@ -10,6 +10,7 @@ const baseSchemaViews: {
     }
 } = {}
 const schemaViews: { [key: string]: { [key: string]: any } } = {}
+const simpleType: SchemaTypeValue[] = [SchemaType.Scalar, SchemaType.Enum]
 
 /**
  * if node is single node or use a special schema view
@@ -30,7 +31,7 @@ export function useSingleView(node: INodeSchema) {
             }
             return true
         case SchemaType.Array:
-            return node.array!.single || [SchemaType.Scalar, SchemaType.Enum].includes(getCachedSchema(node.array!.element)!.type)
+            return node.array!.single || simpleType.includes(getCachedSchema(node.array!.element)!.type)
     }
 }
 

@@ -4,7 +4,7 @@
     </span>
     <el-cascader v-else
         v-model="data"
-        style="width: 100%;min-width: 60px"
+        style="width: 100%;min-width: 120px"
         :options="options"
         :props="{
             emitPath: false,
@@ -14,7 +14,7 @@
             lazyLoad
         }"
         :show-all-levels="showAllLevels || false"
-        :placeholder="getInputPlaceHolder(enumNode)"
+    :placeholder="getInputPlaceHolder(enumNode)"
         :disabled="state.readonly || state.disabled"
         :clearable="!state.require"
         v-bind="$attrs"
@@ -205,7 +205,7 @@ const toCascaderOptionInfos = (values: IEnumValueInfo[], level: number, whitelis
     return values.map(e => ({
         value: e.value,
         label: `${e.name}`,
-        disabled: e.disabled,
+        disabled: e.disable,
         enumlevel: level,
         leaf: (!e.hasSubList && !e.subList?.length) || (state.cascade <= level),
         children: (e.hasSubList || e.subList?.length) && state.cascade > level && e.subList 
