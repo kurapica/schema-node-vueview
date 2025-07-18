@@ -1,29 +1,29 @@
 <template>
-    <el-form-item 
-        :key="node?.guid" 
-        :prop="node?.access" 
-        :error="showError ? error : null"
-        :rules="shouldShowError && !showError ? rule : null"
+    <el-form-item
+        :key="node?.guid"
+        :prop="node?.access"
+        :error="error"
+        :rules="shouldShowError ? rule : null"
         :label-width="noLabel ? '0px' : ''">
         <template v-if="!noLabel" #label>
-            <span><span v-if="node?.require" style="color: #f56c6c; font-size: 14px"> * </span>{{ getNodeLabel(formNode) }}</span>
+            <span><span v-if="node?.require" style="color: #f56c6c; font-size: 14px"> * </span>{{ getNodeLabel(node) }}</span>
         </template>
         <slot name="pre" :node="node"></slot>
         <slot :node="node">
-            <schema-view 
+            <schema-view
                 v-if="useSingleView(node.schemaInfo)"
                 :node="node"
                 v-bind="$attrs">
             </schema-view>
-            <schema-view 
+            <schema-view
                 v-else
-                :node="node" 
+                :node="node"
                 :instantValid="instantValid"
                 :in-form="inForm === SchemaNodeFormType.ExpandAll ? SchemaNodeFormType.ExpandAll : SchemaNodeFormType.Expand"
                 v-bind="$attrs">
             </schema-view>
         </slot>
-        <slot name="tail" :node="node"></slot>
+        <slot name="tail" :node="node"><span></span></slot>
     </el-form-item>
 </template>
 
@@ -57,35 +57,34 @@ const props = defineProps<{
      */
     instantValid?: boolean
 }>()
-const formNode = toRaw(props.node)
+const node = toRaw(props.node)
 
 // error
 const showError = ref(false)
 const shouldShowError = ref(false)
-const error = ref<string | null>(null)
+const error = ref<string | undefined>(undefined)
 const rule = {
+    trigger: 'blur',
     validator: function (rule: any, value: any, callback: Function) {
-        showError.value = true;
-        return (formNode && !formNode.valid) ? callback(formNode?.error) : callback()
+        node.valid ? callback() : callback(node.error)
+        showError.value = true
+        error.value = node.error
     }
 }
 
 let stateWatcher: Function | null = null
 
 onMounted(() => {
-    const node = formNode
     shouldShowError.value = node && !node.readonly && useSingleView(node.schemaInfo) || false
     showError.value = shouldShowError.value && (node.changed || props.instantValid)
-    
+
     if (shouldShowError.value)
     {
         stateWatcher = node.subscribeState(() => {
             if (node.changed) showError.value = true
-            error.value = node.error || null
+            if (showError.value)
+                error.value = node.error || undefined
         }, true)
-
-        if (showError.value)
-            error.value = node.error || null
     }
 })
 
