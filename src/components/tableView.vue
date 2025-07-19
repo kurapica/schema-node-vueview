@@ -184,6 +184,7 @@ const headerAlign = typeof(props.plainText) === "string" ? props.plainText : "ce
 let dataWatcher: Function | null = null
 let stateWatcher: Function | null = null
 let rowCount = 0
+let rowWatches: { guid: string, array: Function[] }[] = []
 
 onMounted(async () => {
     const node = arrayNode
@@ -232,6 +233,39 @@ onMounted(async () => {
         const count = node.elements.length
         if (count !== rowCount || action === "swap") {
             rowCount = count
+
+            // clear
+            for(let i = rowWatches.length - 1; i >= rowCount; i--)
+            {
+                const w = rowWatches.pop()
+                w?.array.forEach(a => a())
+            }
+
+            // check sub array
+            node.elements.forEach((e, i) => {
+                if (rowWatches.length > i)
+                {
+                    if (rowWatches[i].guid === e.guid) return
+                    rowWatches[i].array.forEach(a => a())
+                }
+                const n = e as StructNode
+                rowWatches[i] = {
+                    guid: e.guid,
+                    array: n.fields.filter(f => f.schemaType === SchemaType.Array).map(f => {
+                        const arr = f as ArrayNode
+                        let len = arr.elements.length
+                        return arr.subscribe((a:any) => {
+                            const clen = arr.elements.length
+                            if (clen !== len || a === "swap")
+                            {
+                                len = clen
+                                return genRows()
+                            }
+                        })
+                    }) || []
+                }
+            })
+
             genRows()
         }
     }, true)
@@ -244,6 +278,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+    rowWatches.forEach(r => r.array.forEach(a => a()))
     if (dataWatcher) dataWatcher()
     if (stateWatcher) stateWatcher()
 })
@@ -313,11 +348,11 @@ const genRows = debounce(() => {
     const node = arrayNode
     const rowDatas: ITableRow[] = []
     rowCount = node.elements.length
-    node.elements.forEach((node, eleIdx) => {
-        let count = 0
-        state.columns
-            .filter(f => f.isArray && f.subCols)
-            .forEach(ef => count = Math.max(count, node.data[ef.prop]?.length || 0))
+    node.elements.forEach((ele, eleIdx) => {
+        let count = 0;
+        (ele as StructNode).fields
+        .filter(f => f.schemaType === SchemaType.Array)
+        .forEach(f => count = Math.max(count, (f as ArrayNode).elements.length))
 
         // for add
         if (!node.readonly && !props.noSubAdd)
@@ -327,7 +362,7 @@ const genRows = debounce(() => {
 
         // gen row
         for (let index = 0; index < count; index++)
-            rowDatas.push({ node, eleIdx, index, count })
+            rowDatas.push({ node: ele, eleIdx, index, count })
     })
     rows.value = rowDatas
 }, 20)

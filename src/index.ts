@@ -13,11 +13,11 @@ import structView from './components/structView.vue'
 import rangeDateView from './components/rangeDateView.vue'
 import tableView from './components/tableView.vue'
 import { App } from 'vue'
-import { regBaseSchemaTypeView, regSchemaTypeView } from './schemaView'
+import { getSubNodeFormType, regBaseSchemaTypeView, regSchemaTypeView } from './schemaView'
 import structFieldView from './components/structFieldView.vue'
 import { SchemaNodeFormType } from './formType'
 
-export { SchemaNodeFormType, schemaView, scalarView, boolView, dateView, enumView, arrayView, structView, rangeDateView, tableView, structFieldView }
+export { SchemaNodeFormType, schemaView, scalarView, boolView, dateView, enumView, arrayView, structView, rangeDateView, tableView, structFieldView, getSubNodeFormType }
 
 // base view
 regBaseSchemaTypeView(SchemaType.Scalar, scalarView)
@@ -44,4 +44,4 @@ schemaView.install = (app: App): void => {
 }
 
 // default
-export default schemaView
+// export default schemaView
