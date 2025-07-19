@@ -1,0 +1,46 @@
+{
+  "name": "schema-node-vueview",
+  "version": "1.0.0",
+  "description": "Reusable Vue 3 components for visualizing schema-node data using Element Plus.",
+  "main": "dist/index.js",
+  "module": "dist/index.es.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch"
+  },
+  "peerDependencies": {
+    "element-plus": "^2.0.0",
+    "vue": "^3.0.0"
+  },
+  "keywords": [
+    "vue",
+    "element-plus",
+    "schema",
+    "ui",
+    "component",
+    "visualization"
+  ],
+  "author": "kurapica125@outlook.com",
+  "license": "MIT",
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.3",
+    "sass-embedded": "^1.89.0",
+    "vite": "^6.3.2",
+    "vite-plugin-dts": "^4.5.4",
+    "vue-tsc": "^2.2.10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kurapica/schema-node-vueview.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "schema-node": "^1.0.0"
+  }
+}
