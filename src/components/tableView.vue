@@ -285,12 +285,12 @@ onUnmounted(() => {
 
 // add row
 const addRow = (arrayNode: ArrayNode) => {
-    arrayNode.addRow()
+    toRaw(arrayNode).addRow()
     genRows()
 }
 
 const delRow = (arrayNode: ArrayNode, index: number) => {
-    arrayNode.delRows(index)
+    toRaw(arrayNode).delRows(index)
     genRows()
 }
 

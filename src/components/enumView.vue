@@ -14,7 +14,7 @@
             lazyLoad
         }"
         :show-all-levels="showAllLevels || false"
-    :placeholder="getInputPlaceHolder(enumNode)"
+        :placeholder="getInputPlaceHolder(enumNode)"
         :disabled="state.readonly || state.disabled"
         :clearable="!state.require"
         v-bind="$attrs"
@@ -23,7 +23,7 @@
 
 <script setup lang="ts">
 import { EnumNode, getEnumAccessList, getEnumSubList, IEnumValueInfo, isEqual, IEnumValueAccess, isNull } from 'schema-node'
-import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, toRaw } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw } from 'vue'
 import { getInputPlaceHolder } from '../locale';
 
 // properties
