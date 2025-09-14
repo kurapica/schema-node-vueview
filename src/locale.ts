@@ -3,6 +3,7 @@ import { ref } from "vue"
 
 export const _L = ref<{[key:string]: string}>({})
 const _Label = ref<Map<AnySchemaNode, string>>(new Map())
+const _Desc = ref<Map<AnySchemaNode, string>>(new Map())
 const _InputPlaceHolder = ref<Map<AnySchemaNode, string>>(new Map())
 const _SelectPlaceHolder = ref<Map<AnySchemaNode, string>>(new Map())
 
@@ -22,12 +23,26 @@ subscribeLanguage((_: string, locale: {[key:string]: string}) => {
             if (prop === "get")
             {
                 return (key: AnySchemaNode) => {
-                    return `${key?.config.display}` + `${key?.unit ? `(${key.unit})` : ``}`
+                    return `${key?.config.display || ""}` + `${key?.unit ? `(${key.unit})` : ``}`
                 }
             }
             if (typeof(prop) === "object")
             {
-                return prop?.display + `${prop?.unit ? `(${prop.unit})` : ``}`
+                return (prop?.display || "") + `${prop?.unit ? `(${prop.unit})` : ``}`
+            }
+        }
+    })
+    _Desc.value = new Proxy(new Map(), {
+        get (target, prop: any) {
+            if (prop === "get")
+            {
+                return (key: AnySchemaNode) => {
+                    return `${key?.config.desc || ""}`
+                }
+            }
+            if (typeof(prop) === "object")
+            {
+                return prop?.desc
             }
         }
     })
@@ -64,6 +79,11 @@ subscribeLanguage((_: string, locale: {[key:string]: string}) => {
 export function getNodeLabel(node: AnySchemaNode)
 {
     return _Label.value.get(node)
+}
+
+export function getNodeDesc(node: AnySchemaNode)
+{
+    return _Desc.value.get(node)
 }
 
 export function getInputPlaceHolder(node: AnySchemaNode)

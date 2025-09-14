@@ -39,7 +39,7 @@ export function useSingleView(node: INodeSchema) {
  * gets the form type of the sub node
  */
 export function getSubNodeFormType(node: AnySchemaNode, type?: SchemaNodeFormType) {
-    return useSingleView(node.schemaInfo) || node instanceof ArrayNode
+    return useSingleView(node.schema) || node instanceof ArrayNode
         ? SchemaNodeFormType.Nest
         : type === SchemaNodeFormType.ExpandAll
             ? SchemaNodeFormType.ExpandAll

@@ -79,7 +79,7 @@
         </el-table>
 
         <!-- page -->
-        <el-pagination v-if="node.isIncrUpdate && node.total > node.pageCount" :current-page="node.page + 1"
+        <el-pagination v-if="node.incrUpdate && node.total > node.pageCount" :current-page="node.page + 1"
             :page-size="node.pageCount" :total="node.total" :pager-count="11" layout="prev, pager, next"
             @current-change="handlePage"></el-pagination>
     </section>
@@ -190,8 +190,8 @@ onMounted(async () => {
     const node = arrayNode
 
     // column info
-    const primary = node.schemaInfo.array?.primary
-    const fields = node.elementSchemaInfo.struct?.fields
+    const primary = node.schema.array?.primary
+    const fields = node.elementSchema.struct?.fields
     const columnInfos: IColumnInfo[] = []
     let spanCols: { [key: number]: boolean } = {}
     let columnIndex = 0
@@ -297,22 +297,22 @@ const delRow = (arrayNode: ArrayNode, index: number) => {
 // gen columns
 const genColumn = async (field: IStructFieldConfig, skipSub?: boolean) => {
     const column: IColumnInfo = { prop: field.name, label: `${field.display || field.name}${field.unit ? `(${field.unit})` : ''}`, require: field.require || false }
-    let schemaInfo = await getSchema(field.type)
-    if (!schemaInfo) return null
+    let schema = await getSchema(field.type)
+    if (!schema) return null
 
     // gen sub columns
     if (!skipSub) {
-        if (!useSingleView(schemaInfo)) {
-            if (schemaInfo.type === SchemaType.Array) {
+        if (!useSingleView(schema)) {
+            if (schema.type === SchemaType.Array) {
                 column.isArray = true
-                schemaInfo = await getSchema(schemaInfo.array!.element)
-                if (!schemaInfo) return null
+                schema = await getSchema(schema.array!.element)
+                if (!schema) return null
             }
 
-            if (schemaInfo.type === SchemaType.Struct) {
+            if (schema.type === SchemaType.Struct) {
                 const subCols: IColumnInfo[] = []
-                for (let i = 0; i < schemaInfo.struct!.fields.length; i++) {
-                    const f = schemaInfo.struct!.fields[i]
+                for (let i = 0; i < schema.struct!.fields.length; i++) {
+                    const f = schema.struct!.fields[i]
                     if (!f.invisible) {
                         const col = await genColumn(f, true)
                         if (!col) continue

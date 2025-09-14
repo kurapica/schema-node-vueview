@@ -6,12 +6,21 @@
         :rules="shouldShowError ? rule : null"
         :label-width="noLabel ? '0px' : ''">
         <template v-if="!noLabel" #label>
-            <span><span v-if="node?.require" style="color: #f56c6c; font-size: 14px"> * </span>{{ getNodeLabel(node) }}</span>
+            <el-tooltip v-if="node.config.desc" class="item" :content="getNodeDesc(node)">
+                <span>
+                    <span v-if="node?.require" style="color: #f56c6c; font-size: 14px"> * </span>
+                    {{ getNodeLabel(node) }}
+                </span>
+            </el-tooltip>
+            <span v-else>
+                <span v-if="node?.require" style="color: #f56c6c; font-size: 14px"> * </span>
+                {{ getNodeLabel(node) }}
+            </span>
         </template>
         <slot name="pre" :node="node"></slot>
         <slot :node="node">
             <schema-view
-                v-if="useSingleView(node.schemaInfo)"
+                v-if="useSingleView(node.schema)"
                 :node="node"
                 v-bind="$attrs">
             </schema-view>
@@ -33,7 +42,7 @@ import { AnySchemaNode } from 'schema-node'
 import { ref, onUnmounted, onMounted, toRaw } from 'vue'
 import { useSingleView } from '../schemaView'
 import { SchemaNodeFormType } from '../formType'
-import { getNodeLabel } from '../locale'
+import { getNodeDesc, getNodeLabel } from '../locale'
 
 // Properties
 const props = defineProps<{
@@ -75,7 +84,7 @@ const rule = {
 let stateWatcher: Function | null = null
 
 onMounted(() => {
-    shouldShowError.value = node && !node.readonly && useSingleView(node.schemaInfo) || false
+    shouldShowError.value = node && !node.readonly && useSingleView(node.schema) || false
     showError.value = shouldShowError.value && (node.changed || props.instantValid)
 
     if (shouldShowError.value)
