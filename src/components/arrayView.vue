@@ -16,7 +16,8 @@
             :key="node.elements[i-1].guid"
             :node="node.elements[i-1]"
             :plain-text="plainText"
-            :in-form="getSubNodeFormType(node.elements[i-1], inForm)"
+            :skin="skin"
+            :in-form="getSubNodeFormType(node.elements[i-1], inForm, skin)"
             no-label
             v-bind="$attrs"
         >
@@ -38,7 +39,8 @@ import { getSubNodeFormType } from '../schemaView';
 const props = defineProps<{
     node: ArrayNode
     plainText?: any,
-    inForm?: SchemaNodeFormType
+    inForm?: SchemaNodeFormType,
+    skin?: string
 }>()
 const arrayNode = toRaw(props.node)
 

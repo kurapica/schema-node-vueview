@@ -2,7 +2,8 @@
     <schema-view 
         :key="fldnode.guid"
         :node="(fldnode as AnySchemaNode)"
-        :in-form="getSubNodeFormType(fldnode as AnySchemaNode, inForm)">
+        :in-form="getSubNodeFormType(fldnode as AnySchemaNode, inForm, skin)"
+        :skin="skin">
         <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
             <component :is="slot" v-bind="slotProps" />
         </template>
@@ -31,6 +32,11 @@ const props = defineProps<{
      * In-form settings
      */
     inForm?: SchemaNodeFormType
+
+    /**
+     * Skin
+     */
+    skin?: string
 }>()
 
 // slots

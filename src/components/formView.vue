@@ -6,22 +6,23 @@
         :rules="shouldShowError ? rule : null"
         :label-width="noLabel ? '0px' : ''">
         <template v-if="!noLabel" #label>
-            <el-tooltip v-if="node.config.desc" class="item" :content="getNodeDesc(node)">
+            <el-tooltip v-if="node.config.desc" class="item" :content="_L(node.desc)">
                 <span>
                     <span v-if="node?.require" style="color: #f56c6c; font-size: 14px"> * </span>
-                    {{ getNodeLabel(node) }}
+                    {{ _L(node.display) }}
                 </span>
             </el-tooltip>
             <span v-else>
                 <span v-if="node?.require" style="color: #f56c6c; font-size: 14px"> * </span>
-                {{ getNodeLabel(node) }}
+                {{ _L(node.display) }}
             </span>
         </template>
         <slot name="pre" :node="node"></slot>
         <slot :node="node">
             <schema-view
-                v-if="useSingleView(node.schema)"
+                v-if="useSingleView(node.schema, skin)"
                 :node="node"
+                :skin="skin"
                 v-bind="$attrs">
             </schema-view>
             <schema-view
@@ -29,6 +30,7 @@
                 :node="node"
                 :instantValid="instantValid"
                 :in-form="inForm === SchemaNodeFormType.ExpandAll ? SchemaNodeFormType.ExpandAll : SchemaNodeFormType.Expand"
+                :skin="skin"
                 v-bind="$attrs">
             </schema-view>
         </slot>
@@ -42,7 +44,7 @@ import { AnySchemaNode } from 'schema-node'
 import { ref, onUnmounted, onMounted, toRaw } from 'vue'
 import { useSingleView } from '../schemaView'
 import { SchemaNodeFormType } from '../formType'
-import { getNodeDesc, getNodeLabel } from '../locale'
+import { _L } from '../locale'
 
 // Properties
 const props = defineProps<{
@@ -60,6 +62,11 @@ const props = defineProps<{
      * Don't display the form label
      */
     noLabel?: boolean
+
+    /**
+     * The vskin
+     */
+    skin?: string
 
     /**
      * instant validate the value
@@ -84,7 +91,7 @@ const rule = {
 let stateWatcher: Function | null = null
 
 onMounted(() => {
-    shouldShowError.value = node && !node.readonly && useSingleView(node.schema) || false
+    shouldShowError.value = node && !node.readonly && useSingleView(node.schema, props.skin) || false
     showError.value = shouldShowError.value && (node.changed || props.instantValid)
 
     if (shouldShowError.value)

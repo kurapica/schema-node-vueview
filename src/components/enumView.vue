@@ -1,6 +1,6 @@
 <template>
     <span v-if="state.readonly && plainText" :style="{'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
-        {{ state.display }}
+        {{ _L(state.display) }}
     </span>
     <el-cascader v-else
         v-model="data"
@@ -14,7 +14,7 @@
             lazyLoad
         }"
         :show-all-levels="showAllLevels || false"
-        :placeholder="getInputPlaceHolder(enumNode)"
+        :placeholder="enumNode.inputPlaceHolder"
         :disabled="state.readonly || state.disabled"
         :clearable="!state.require"
         v-bind="$attrs"
@@ -22,9 +22,9 @@
 </template>
 
 <script setup lang="ts">
-import { EnumNode, getEnumAccessList, getEnumSubList, IEnumValueInfo, isEqual, IEnumValueAccess, isNull } from 'schema-node'
+import { EnumNode, getEnumAccessList, getEnumSubList, IEnumValueInfo, isEqual, IEnumValueAccess, isNull, ILocaleString, subscribeLanguage } from 'schema-node'
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw } from 'vue'
-import { getInputPlaceHolder } from '../locale';
+import { _L } from '../locale'
 
 // properties
 const props = defineProps<{
@@ -77,6 +77,7 @@ const data = computed({
 // change handler
 let dataHandler: Function | null = null
 let stateHandler: Function | null = null
+let langHandler: Function | null = null
 
 onMounted(() => {
     const node = enumNode
@@ -162,11 +163,17 @@ onMounted(() => {
             options.value = toCascaderOptionInfos(await getEnumSubList(node.schemaName), 1, whiteTree)
         }
     }, true)
+
+    langHandler = subscribeLanguage(() => {
+        refrehOptions(options.value)
+        options.value = [...options.value]
+    })
 })
 
 onUnmounted(() => {
     if (dataHandler) dataHandler()
     if (stateHandler) stateHandler()
+    if (langHandler) langHandler()
 })
 
 //#region Helpers
@@ -204,7 +211,8 @@ const toCascaderOptionInfos = (values: IEnumValueInfo[], level: number, whitelis
 
     return values.map(e => ({
         value: e.value,
-        label: `${e.name}`,
+        name: e.name,
+        label: _L.value(e.name),
         disabled: e.disable,
         enumlevel: level,
         leaf: (!e.hasSubList && !e.subList?.length) || (state.cascade <= level),
@@ -238,14 +246,22 @@ const lazyLoad = (node: { value: any, level: number }, resolve: Function, reject
     }).catch(reject)
 }
 
+const refrehOptions = (options: ICascaderOptionInfo[]) => {
+    options.forEach(o => {
+        o.label = _L.value(o.name)
+        if (o.children?.length) refrehOptions(o.children)
+    })
+}
+
 interface ICascaderOptionInfo
 {
-  value: any
-  label: string
-  disabled?: boolean
-  enumlevel: number
-  leaf: boolean
-  children: ICascaderOptionInfo[] | undefined | null
+    value: any
+    name: ILocaleString
+    label: string
+    disabled?: boolean
+    enumlevel: number
+    leaf: boolean
+    children: ICascaderOptionInfo[] | undefined | null
 }
 
 //#endregion

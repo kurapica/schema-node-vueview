@@ -5,6 +5,7 @@
             :node="node"
             :field="field.name"
             :in-form="inForm" 
+            :skin="skin"
             v-bind="$attrs">
             <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
                 <component :is="slot" v-bind="slotProps" />
@@ -13,7 +14,8 @@
         <schema-view v-else
             :key="field.guid"
             :node="field"
-            :in-form="getSubNodeFormType(field, inForm)" 
+            :in-form="getSubNodeFormType(field, inForm, skin)"
+            :skin="skin" 
             v-bind="$attrs">
             <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
                 <component :is="slot" v-bind="slotProps" />
@@ -40,6 +42,11 @@ defineProps<{
      * In-form settings
      */
     inForm?: SchemaNodeFormType
+
+    /**
+     * Skin
+     */
+    skin?: string
 }>()
 
 // slots

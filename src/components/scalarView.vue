@@ -11,7 +11,7 @@
         :filterable="state.asSuggest"
         :allow-create="state.asSuggest"
         :default-first-option="state.asSuggest"
-        :placeholder="getSelectPlaceHolder(scalarNode)">
+        :placeholder="scalarNode.selectPlaceHolder">
         <el-option
             v-for="item in state.whiteList"
             :key="typeof(item) === 'object' ? item.value : item"
@@ -24,14 +24,13 @@
         v-model="data"
         :disabled="state.readonly || state.disable"
         style="width: 100%;"
-        :placeholder="!state.readonly && !isNull(state.default) && `${state.default}` || getInputPlaceHolder(scalarNode)">
+        :placeholder="!state.readonly && !isNull(state.default) && `${state.default}` || scalarNode.inputPlaceHolder">
     ></el-input>
 </template>
 
 <script lang="ts" setup>
 import { isNull, ScalarNode } from 'schema-node'
 import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
-import { getInputPlaceHolder, getSelectPlaceHolder } from '../locale';
 
 // Define props
 const props = defineProps<{
