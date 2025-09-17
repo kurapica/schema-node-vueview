@@ -6,7 +6,7 @@
         :rules="shouldShowError ? rule : null"
         :label-width="noLabel ? '0px' : ''">
         <template v-if="!noLabel" #label>
-            <el-tooltip v-if="node.config.desc" class="item" :content="_L(node.desc)">
+            <el-tooltip v-if="node.config.desc?.key" class="item" :content="_L(node.desc)">
                 <span>
                     <span v-if="node?.require" style="color: #f56c6c; font-size: 14px"> * </span>
                     {{ _L(node.display) }}
