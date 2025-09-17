@@ -24,7 +24,7 @@
 <script lang="ts" setup>
 import { _L } from '../locale'
 import { isNull, ScalarNode } from 'schema-node'
-import { computed, onMounted, onUnmounted, reactive, ref, toRaw } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
 
 // Define props
 const props = defineProps<{
