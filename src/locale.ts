@@ -1,6 +1,5 @@
-import { subscribeLanguage } from "schema-node"
+import { subscribeLanguage, isNull, type ILocaleString, LocaleFunction } from "schema-node"
 import { ref } from "vue"
-import { type ILocaleString, LocaleFunction } from "schema-node"
 
 export const _L = ref<LocaleFunction>(new Proxy(function(key: string | ILocaleString):string { return ""} as LocaleFunction, {}))
 
@@ -15,9 +14,9 @@ subscribeLanguage((lang: string, locale: {[key:string]: string}) => {
             }
         },
         apply(target, thisArg, args) {
-            let [key, prop] = args
+            let [key] = args
             
-            if (!key) return ""
+            if (isNull(key)) return ""
             if (typeof(key) === "string")
             {
                 if (key in locale) return locale[key]
@@ -26,8 +25,8 @@ subscribeLanguage((lang: string, locale: {[key:string]: string}) => {
             else if(typeof(key) === "object") 
             {
                 const l = key as ILocaleString
-                const tran = l.trans?.find(t => lang.startsWith(t.lang) || t.lang.startsWith(lang))
-                return tran?.tran || locale[l.key] || l.key
+                const tran = l.trans?.find((t:any) => lang.startsWith(t.lang) || t.lang.startsWith(lang))
+                return tran?.tran || locale[l.key] || l.key || ""
             }
         }
     })

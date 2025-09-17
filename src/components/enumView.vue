@@ -17,6 +17,7 @@
         :placeholder="enumNode.inputPlaceHolder"
         :disabled="state.readonly || state.disabled"
         :clearable="!state.require"
+        :filterable="enumNode.cascadeLevel === 1"
         v-bind="$attrs"
     ></el-cascader>
 </template>

@@ -312,7 +312,8 @@ const delRow = (arrayNode: ArrayNode, index: number) => {
 
 // gen columns
 const genColumn = async (field: IStructFieldConfig, skipSub?: boolean) => {
-    const column: IColumnInfo = { prop: field.name, display: field.display, unit: field.unit, label: `${_L.value(field.display) || field.name}${field.unit ? `(${_L.value(field.unit)})` : ''}`, require: field.require || false }
+    const unit = _L.value(field.unit)
+    const column: IColumnInfo = { prop: field.name, display: field.display, unit: field.unit, label: `${_L.value(field.display) || field.name}${unit ? `(${unit})` : ''}`, require: field.require || false }
     let schema = await getSchema(field.type)
     if (!schema) return null
 
@@ -345,7 +346,8 @@ const genColumn = async (field: IStructFieldConfig, skipSub?: boolean) => {
 
 const refrehColumn = (cols: IColumnInfo[]) => {
     cols.forEach(c => {
-        c.label = `${_L.value(c.display) || c.prop}${c.unit ? `(${_L.value(c.unit)})` : ''}`
+        const unit = _L.value(c.unit)
+        c.label = `${_L.value(c.display) || c.prop}${unit ? `(${unit})` : ''}`
         if (c.subCols?.length) refrehColumn(c.subCols)
     })
 }

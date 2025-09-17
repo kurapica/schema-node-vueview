@@ -72,7 +72,7 @@ onMounted(() => {
     stateWatcher = scalarNode.subscribeState(() => {
         state.default = scalarNode.rule.default
         state.disable = scalarNode.rule.disable
-        state.readonly = scalarNode.require
+        state.require = scalarNode.require
         state.readonly = scalarNode.readonly
     }, true)
 })
