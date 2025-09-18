@@ -11,11 +11,14 @@ const baseSchemaViews: {
 } = {}
 const schemaViews: { [key: string]: { [key: string]: any } } = {}
 const simpleType: SchemaTypeValue[] = [SchemaType.Scalar, SchemaType.Enum]
+const singleView = new Set<string>()
 
 /**
  * if node is single node or use a special schema view
  */
-export function useSingleView(node: INodeSchema) {
+export function useSingleView(node: INodeSchema, skinName: string = DEFAULT_SKIN) {
+    const key = `${node.name.toLowerCase()}-${skinName.toLowerCase()}`
+    if (singleView.has(key)) return true
     switch(node.type)
     {
         case SchemaType.Enum:
@@ -38,8 +41,8 @@ export function useSingleView(node: INodeSchema) {
 /**
  * gets the form type of the sub node
  */
-export function getSubNodeFormType(node: AnySchemaNode, type?: SchemaNodeFormType) {
-    return useSingleView(node.schemaInfo) || node instanceof ArrayNode
+export function getSubNodeFormType(node: AnySchemaNode, type?: SchemaNodeFormType, skinName: string = DEFAULT_SKIN) {
+    return useSingleView(node.schema, skinName) || node instanceof ArrayNode
         ? SchemaNodeFormType.Nest
         : type === SchemaNodeFormType.ExpandAll
             ? SchemaNodeFormType.ExpandAll
@@ -66,10 +69,16 @@ export function regBaseSchemaTypeView(type: SchemaType, view?: any, resolve?: Fu
 /**
  * Register the skin view for specific type
  */
-export function regSchemaTypeView(type: string, view: any, skinName: string = DEFAULT_SKIN) {
+export function regSchemaTypeView(type: string, view: any, skinName: string = DEFAULT_SKIN, asSingle: boolean = false) {
     type = type.toLowerCase()
+    skinName = skinName.toLowerCase()
     schemaViews[type] = schemaViews[type] || {}
-    schemaViews[type][skinName.toLowerCase()] = view
+    schemaViews[type][skinName] = view
+    const key = `${type}-${skinName}`
+    if (asSingle) 
+        singleView.add(key)
+    else
+        singleView.delete(key)
 }
 
 /**

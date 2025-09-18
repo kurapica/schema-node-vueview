@@ -1,10 +1,11 @@
 <template>
     <template v-for="field in node.fields">
-        <struct-field-view v-if="node.isFieldChangable((field.config as IStructFieldConfig).name)"
-            :key="node.getField((field.config as IStructFieldConfig).name).guid"
+        <struct-field-view v-if="node.isFieldChangable(field.name)"
+            :key="node.getField(field.name).guid"
             :node="node"
-            :field="(field.config as IStructFieldConfig).name"
+            :field="field.name"
             :in-form="inForm" 
+            :skin="skin"
             v-bind="$attrs">
             <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
                 <component :is="slot" v-bind="slotProps" />
@@ -13,7 +14,8 @@
         <schema-view v-else
             :key="field.guid"
             :node="field"
-            :in-form="getSubNodeFormType(field, inForm)" 
+            :in-form="getSubNodeFormType(field, inForm, skin)"
+            :skin="skin" 
             v-bind="$attrs">
             <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
                 <component :is="slot" v-bind="slotProps" />
@@ -40,6 +42,11 @@ defineProps<{
      * In-form settings
      */
     inForm?: SchemaNodeFormType
+
+    /**
+     * Skin
+     */
+    skin?: string
 }>()
 
 // slots

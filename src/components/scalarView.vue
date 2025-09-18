@@ -11,7 +11,7 @@
         :filterable="state.asSuggest"
         :allow-create="state.asSuggest"
         :default-first-option="state.asSuggest"
-        :placeholder="getSelectPlaceHolder(scalarNode)">
+        :placeholder="scalarNode.selectPlaceHolder">
         <el-option
             v-for="item in state.whiteList"
             :key="typeof(item) === 'object' ? item.value : item"
@@ -24,14 +24,17 @@
         v-model="data"
         :disabled="state.readonly || state.disable"
         style="width: 100%;"
-        :placeholder="!state.readonly && !isNull(state.default) && `${state.default}` || getInputPlaceHolder(scalarNode)">
-    ></el-input>
+        :placeholder="!state.readonly && !isNull(state.default) && `${state.default}` || scalarNode.inputPlaceHolder">
+    >
+        <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
+            <component :is="slot" v-bind="slotProps" />
+        </template>
+    </el-input>
 </template>
 
 <script lang="ts" setup>
 import { isNull, ScalarNode } from 'schema-node'
-import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
-import { getInputPlaceHolder, getSelectPlaceHolder } from '../locale';
+import { computed, onMounted, onUnmounted, reactive, toRaw, useSlots } from 'vue'
 
 // Define props
 const props = defineProps<{
@@ -46,6 +49,10 @@ const props = defineProps<{
     plainText?: any
 }>()
 const scalarNode = toRaw(props.node)
+
+// slots
+const slots = useSlots()
+const slotEntries = Object.entries(slots) as [string, (...args: any[]) => any][]
 
 // display state
 const state = reactive<{

@@ -14,7 +14,7 @@
         v-model="data" 
         style="width: 100%;" 
         clearable
-        :placeholder="getSelectPlaceHolder(scalarNode)"
+        :placeholder="scalarNode.selectPlaceHolder"
         :disabled="state.readonly || state.disable">
         <el-option :label="_L['YES']" :value="true" />
         <el-option :label="_L['NO']" :value="false" />
@@ -22,9 +22,9 @@
 </template>
 
 <script lang="ts" setup>
-import { _L, getSelectPlaceHolder } from '../locale'
+import { _L } from '../locale'
 import { isNull, ScalarNode } from 'schema-node'
-import { computed, onMounted, onUnmounted, reactive, ref, toRaw } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
 
 // Define props
 const props = defineProps<{
@@ -72,7 +72,7 @@ onMounted(() => {
     stateWatcher = scalarNode.subscribeState(() => {
         state.default = scalarNode.rule.default
         state.disable = scalarNode.rule.disable
-        state.readonly = scalarNode.require
+        state.require = scalarNode.require
         state.readonly = scalarNode.readonly
     }, true)
 })

@@ -24,7 +24,7 @@ regBaseSchemaTypeView(SchemaType.Scalar, scalarView)
 regBaseSchemaTypeView(SchemaType.Enum, enumView)
 regBaseSchemaTypeView(SchemaType.Struct, structView)
 regBaseSchemaTypeView(SchemaType.Array, arrayView, (node: ArrayNode, skin: string) => {
-    if (node.elementSchemaInfo.type === SchemaType.Struct) return tableView
+    if (node.elementSchema.type === SchemaType.Struct) return tableView
 })
 
 // type view

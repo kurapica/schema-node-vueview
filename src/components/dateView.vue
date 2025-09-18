@@ -6,7 +6,7 @@
     <el-select v-else-if="state.useWhiteList" 
         v-model="whiteListData"
         :disabled="state.readonly || disabled || state.disable"
-        :placeholder="getSelectPlaceHolder(scalarNode)"
+        :placeholder="scalarNode.selectPlaceHolder"
         :clearable="!state.require" 
         style="width: 100%">
         <el-option v-for="item in state.whiteList" 
@@ -17,7 +17,7 @@
     <el-date-picker v-else 
         v-model="data"
         :type="scalarNode.isYear && 'year' || scalarNode.isYearMonth && 'month' || scalarNode.isFullDate && 'datetime' || 'date'"
-        :placeholder="!state.readonly && state.default && dateFormat(state.default, scalarNode.isFullDate, scalarNode.isYear) || getSelectPlaceHolder(scalarNode)"
+        :placeholder="!state.readonly && state.default && dateFormat(state.default, scalarNode.isFullDate, scalarNode.isYear) || scalarNode.selectPlaceHolder"
         :disabled="state.readonly || disabled || state.disable"
         :value-format="scalarNode.isYear ? 'YYYY' : null" 
         :disabled-date="disabledDate" 
@@ -28,7 +28,6 @@
 <script lang="ts" setup>
 import { isNull, ScalarNode } from 'schema-node'
 import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
-import { getSelectPlaceHolder } from '../locale';
 
 // Define props
 const props = defineProps<{ node: ScalarNode, plainText?: any, disabled?: boolean }>()

@@ -119,7 +119,7 @@ onMounted(async () => {
 
     if (props.inForm === true) {
         // use default
-        inFormType.value = useSingleView(node.schemaInfo) ? SchemaNodeFormType.Nest : SchemaNodeFormType.Expand
+        inFormType.value = useSingleView(node.schema, props.skin) ? SchemaNodeFormType.Nest : SchemaNodeFormType.Expand
     }
     else if (props.inForm) {
         inFormType.value = props.inForm as SchemaNodeFormType

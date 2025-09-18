@@ -1,13 +1,13 @@
 <template>
-    <schema-view v-if="node.enumArrayNode"
+    <schema-view v-if="node.enumNode"
         :plain-text="plainText"
-        :node="node.enumArrayNode"
+        :node="node.enumNode"
         v-bind="$attrs"
     ></schema-view>
-    <span v-else-if="node.asSingleValue">
+    <span v-else-if="node.asSingle">
         No view for {{ node.schemaName }}
     </span>
-    <span v-else-if="state.readonly && plainText && node.elementSchemaInfo.type === SchemaType.Scalar"
+    <span v-else-if="state.readonly && plainText && node.elementSchema.type === SchemaType.Scalar"
         :style="{'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
         {{ state.display }}
     </span>
@@ -16,7 +16,8 @@
             :key="node.elements[i-1].guid"
             :node="node.elements[i-1]"
             :plain-text="plainText"
-            :in-form="getSubNodeFormType(node.elements[i-1], inForm)"
+            :skin="skin"
+            :in-form="getSubNodeFormType(node.elements[i-1], inForm, skin)"
             no-label
             v-bind="$attrs"
         >
@@ -38,7 +39,8 @@ import { getSubNodeFormType } from '../schemaView';
 const props = defineProps<{
     node: ArrayNode
     plainText?: any,
-    inForm?: SchemaNodeFormType
+    inForm?: SchemaNodeFormType,
+    skin?: string
 }>()
 const arrayNode = toRaw(props.node)
 

@@ -17,6 +17,7 @@
                                     :field="scol.prop"
                                     :in-form="inForm"
                                     :plain-text="plainText"
+                                    :skin="skin"
                                     no-label v-bind="$attrs"
                                 ></struct-field-view>
                             </template>
@@ -27,6 +28,7 @@
                                 :field="scol.prop"
                                 :in-form="inForm"
                                 :plain-text="plainText"
+                                :skin="skin"
                                 no-label v-bind="$attrs"
                             ></struct-field-view>
                         </template>
@@ -58,6 +60,7 @@
                             :field="col.prop"
                             :in-form="inForm"
                             :plain-text="plainText"
+                            :skin="skin"
                             no-label v-bind="$attrs"
                         ></struct-field-view>
                     </template>
@@ -79,14 +82,14 @@
         </el-table>
 
         <!-- page -->
-        <el-pagination v-if="node.isIncrUpdate && node.total > node.pageCount" :current-page="node.page + 1"
+        <el-pagination v-if="node.incrUpdate && node.total > node.pageCount" :current-page="node.page + 1"
             :page-size="node.pageCount" :total="node.total" :pager-count="11" layout="prev, pager, next"
             @current-change="handlePage"></el-pagination>
     </section>
 </template>
 
 <script lang="ts" setup>
-import { AnySchemaNode, ArrayNode, debounce, getSchema, IStructFieldConfig, SchemaType, StructNode } from 'schema-node'
+import { AnySchemaNode, ArrayNode, debounce, getSchema, ILocaleString, IStructFieldConfig, SchemaType, StructNode, subscribeLanguage } from 'schema-node'
 import { SchemaNodeFormType } from '../formType'
 import { onMounted, onUnmounted, reactive, toRaw, shallowRef, useSlots } from 'vue'
 import { useSingleView } from '../schemaView'
@@ -104,6 +107,11 @@ const props = defineProps<{
      * form settings
      */
     inForm?: SchemaNodeFormType
+
+    /**
+     * Skin
+     */
+    skin?: string
 
     /**
      * Display readon only value as plain text
@@ -164,7 +172,7 @@ const rows = shallowRef<ITableRow[]>([])
 // State
 const arrayNode: ArrayNode = toRaw(props.node)
 const state = reactive<{
-    columns: IColumnInfo[]              // column info
+    columns: IColumnInfo[]                  // column info
     spanCols: { [key: number]: boolean }    // column span info
     primaryFields: string[]
     readonly?: boolean
@@ -183,6 +191,7 @@ const headerAlign = typeof(props.plainText) === "string" ? props.plainText : "ce
 // data & state watcher
 let dataWatcher: Function | null = null
 let stateWatcher: Function | null = null
+let langWatcher: Function | null = null
 let rowCount = 0
 let rowWatches: { guid: string, array: Function[] }[] = []
 
@@ -190,8 +199,8 @@ onMounted(async () => {
     const node = arrayNode
 
     // column info
-    const primary = node.schemaInfo.array?.primary
-    const fields = node.elementSchemaInfo.struct?.fields
+    const primary = node.schema.array?.primary
+    const fields = node.elementSchema.struct?.fields
     const columnInfos: IColumnInfo[] = []
     let spanCols: { [key: number]: boolean } = {}
     let columnIndex = 0
@@ -275,12 +284,19 @@ onMounted(async () => {
         state.readonly = node.readonly
         state.disabled = node.rule.disable
     }, true)
+
+    // lang handler
+    langWatcher = subscribeLanguage(() => {
+        refrehColumn(state.columns)
+        state.columns = [...state.columns]
+    })
 })
 
 onUnmounted(() => {
     rowWatches.forEach(r => r.array.forEach(a => a()))
     if (dataWatcher) dataWatcher()
     if (stateWatcher) stateWatcher()
+    if (langWatcher) langWatcher()
 })
 
 // add row
@@ -296,23 +312,24 @@ const delRow = (arrayNode: ArrayNode, index: number) => {
 
 // gen columns
 const genColumn = async (field: IStructFieldConfig, skipSub?: boolean) => {
-    const column: IColumnInfo = { prop: field.name, label: `${field.display || field.name}${field.unit ? `(${field.unit})` : ''}`, require: field.require || false }
-    let schemaInfo = await getSchema(field.type)
-    if (!schemaInfo) return null
+    const unit = _L.value(field.unit)
+    const column: IColumnInfo = { prop: field.name, display: field.display, unit: field.unit, label: `${_L.value(field.display) || field.name}${unit ? `(${unit})` : ''}`, require: field.require || false }
+    let schema = await getSchema(field.type)
+    if (!schema) return null
 
     // gen sub columns
     if (!skipSub) {
-        if (!useSingleView(schemaInfo)) {
-            if (schemaInfo.type === SchemaType.Array) {
+        if (!useSingleView(schema, props.skin)) {
+            if (schema.type === SchemaType.Array) {
                 column.isArray = true
-                schemaInfo = await getSchema(schemaInfo.array!.element)
-                if (!schemaInfo) return null
+                schema = await getSchema(schema.array!.element)
+                if (!schema) return null
             }
 
-            if (schemaInfo.type === SchemaType.Struct) {
+            if (schema.type === SchemaType.Struct) {
                 const subCols: IColumnInfo[] = []
-                for (let i = 0; i < schemaInfo.struct!.fields.length; i++) {
-                    const f = schemaInfo.struct!.fields[i]
+                for (let i = 0; i < schema.struct!.fields.length; i++) {
+                    const f = schema.struct!.fields[i]
                     if (!f.invisible) {
                         const col = await genColumn(f, true)
                         if (!col) continue
@@ -325,6 +342,14 @@ const genColumn = async (field: IStructFieldConfig, skipSub?: boolean) => {
     }
 
     return column
+}
+
+const refrehColumn = (cols: IColumnInfo[]) => {
+    cols.forEach(c => {
+        const unit = _L.value(c.unit)
+        c.label = `${_L.value(c.display) || c.prop}${unit ? `(${unit})` : ''}`
+        if (c.subCols?.length) refrehColumn(c.subCols)
+    })
 }
 
 const spanMethod = (data: any) => {
@@ -368,7 +393,7 @@ const genRows = debounce(() => {
 }, 20)
 
 const handlePage = (page: number) => {
-    arrayNode.page = page - 1
+    arrayNode.setPage(page - 1)
 }
 
 /*const getrowclass = (data:any) =>{
@@ -383,6 +408,8 @@ const getincrrowclass = (data:any) =>{
 
 interface IColumnInfo {
     prop: string
+    display?: ILocaleString
+    unit?: ILocaleString
     label: string
     require: boolean
     isArray?: boolean

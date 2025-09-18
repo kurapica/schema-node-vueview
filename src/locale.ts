@@ -1,77 +1,33 @@
-import { AnySchemaNode, subscribeLanguage } from "schema-node"
+import { subscribeLanguage, isNull, type ILocaleString, LocaleFunction } from "schema-node"
 import { ref } from "vue"
 
-export const _L = ref<{[key:string]: string}>({})
-const _Label = ref<Map<AnySchemaNode, string>>(new Map())
-const _InputPlaceHolder = ref<Map<AnySchemaNode, string>>(new Map())
-const _SelectPlaceHolder = ref<Map<AnySchemaNode, string>>(new Map())
+export const _L = ref<LocaleFunction>(new Proxy(function(key: string | ILocaleString):string { return ""} as LocaleFunction, {}))
 
-subscribeLanguage((_: string, locale: {[key:string]: string}) => {
-    _L.value = new Proxy(locale, {
+subscribeLanguage((lang: string, locale: {[key:string]: string}) => {
+    // force reload
+    _L.value = new Proxy(function(key: string) { return locale[key] ?? key } as LocaleFunction, {
         get (target, prop) {
             if (typeof(prop) === "string")
             {
-                if (prop in target)
-                    return target[prop]
+                if (prop in locale) return locale[prop]
                 return prop
             }
-        }
-    })
-    _Label.value = new Proxy(new Map(), {
-        get (target, prop: any) {
-            if (prop === "get")
+        },
+        apply(target, thisArg, args) {
+            let [key] = args
+            
+            if (isNull(key)) return ""
+            if (typeof(key) === "string")
             {
-                return (key: AnySchemaNode) => {
-                    return `${key?.config.display}` + `${key?.unit ? `(${key.unit})` : ``}`
-                }
+                if (key in locale) return locale[key]
+                return key
             }
-            if (typeof(prop) === "object")
+            else if(typeof(key) === "object") 
             {
-                return prop?.display + `${prop?.unit ? `(${prop.unit})` : ``}`
-            }
-        }
-    })
-    _InputPlaceHolder.value = new Proxy(new Map(), {
-        get (target, prop: any) {
-            if (prop === "get")
-            {
-                return (key: AnySchemaNode) => {
-                    return key?.inputPlaceHolder
-                }
-            }
-            if (typeof(prop) === "object")
-            {
-                return prop?.inputPlaceHolder
-            }
-        }
-    })
-    _SelectPlaceHolder.value = new Proxy(new Map(), {
-        get (target, prop: any) {
-            if (prop === "get")
-            {
-                return (key: AnySchemaNode) => {
-                    return key?.selectPlaceHolder
-                }
-            }
-            if (typeof(prop) === "object")
-            {
-                return prop?.selectPlaceHolder
+                const l = key as ILocaleString
+                const tran = l.trans?.find((t:any) => lang.startsWith(t.lang) || t.lang.startsWith(lang))
+                return tran?.tran || locale[l.key] || l.key || ""
             }
         }
     })
 })
-
-export function getNodeLabel(node: AnySchemaNode)
-{
-    return _Label.value.get(node)
-}
-
-export function getInputPlaceHolder(node: AnySchemaNode)
-{
-    return _InputPlaceHolder.value.get(node)
-}
-
-export function getSelectPlaceHolder(node: AnySchemaNode)
-{
-    return _SelectPlaceHolder.value.get(node)
-}
