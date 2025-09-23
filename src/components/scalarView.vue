@@ -10,6 +10,8 @@
         :clearable="!state.require"
         :filterable="state.asSuggest"
         :allow-create="state.asSuggest"
+        :remote="state.asSuggest"
+        :remote-method="remoteHanlder"
         :default-first-option="state.asSuggest"
         :placeholder="scalarNode.selectPlaceHolder">
         <el-option
@@ -77,6 +79,10 @@ const data = computed({
     }
 })
 
+const remoteHanlder = (value:string) => {
+    if (value) data.value = value
+}
+
 // data & state watcher
 let dataWatcher: Function | null = null
 let stateWatcher: Function | null = null
@@ -96,10 +102,10 @@ onMounted(() => {
         state.asSuggest = node.rule.asSuggest || false
         state.readonly = node.readonly
 
-        if (node.rule.whiteList?.length)
+        if (node.rule.whiteList?.length || node.rule.asSuggest)
         {
             state.useWhiteList = true
-            let list = [...node.rule.whiteList]
+            let list = node.rule.whiteList?.length ? [...node.rule.whiteList] : node.rule.asSuggest ? [node.rawData] : []
             const blackList = node.rule.blackList
             if (blackList && blackList.length)
                 list = list.filter(w => typeof(w) === "object" ? blackList.findIndex(b => `${b}` === `${w.value}`) < 0 : blackList.findIndex(b => `${b}` === `${w}`) < 0) as any
