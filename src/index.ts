@@ -13,7 +13,7 @@ import structView from './components/structView.vue'
 import rangeDateView from './components/rangeDateView.vue'
 import tableView from './components/tableView.vue'
 import { App } from 'vue'
-import { getSubNodeFormType, regBaseSchemaTypeView, regSchemaTypeView } from './schemaView'
+import { getSubNodeFormType, regBaseSchemaTypeView, regSchemaTypeView, useSingleView } from './schemaView'
 import structFieldView from './components/structFieldView.vue'
 import { SchemaNodeFormType } from './formType'
 
@@ -24,7 +24,7 @@ regBaseSchemaTypeView(SchemaType.Scalar, scalarView)
 regBaseSchemaTypeView(SchemaType.Enum, enumView)
 regBaseSchemaTypeView(SchemaType.Struct, structView)
 regBaseSchemaTypeView(SchemaType.Array, arrayView, (node: ArrayNode, skin: string) => {
-    if (node.elementSchema.type === SchemaType.Struct) return tableView
+    if (node.elementSchema.type === SchemaType.Struct && !useSingleView(node.elementSchema, skin)) return tableView
 })
 
 // type view
