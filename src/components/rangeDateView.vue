@@ -10,8 +10,8 @@
     :disabled="state.readonly || state.disable"
     :disabled-date="disabledDate"
     range-separator="~"
-    :start-placeholder="node.getField('start')?.display"
-    :end-placeholder="node.getField('stop')?.display"
+    :start-placeholder="_L(node.getField('start')?.display)"
+    :end-placeholder="_L(node.getField('stop')?.display)"
   ></el-date-picker>
   <div v-else
     style="display: flex; justify-content: space-between;">
@@ -25,6 +25,7 @@
 import { NS_SYSTEM_RANGEDATE, NS_SYSTEM_RANGEFULLDATE, ScalarNode, StructNode } from 'schema-node'
 import { computed, isRef, onMounted, onUnmounted, reactive } from 'vue'
 import schemaView from './schemaView.vue'
+import { _L } from '../locale'
 
 // Properties
 const props = defineProps<{

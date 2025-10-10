@@ -12,19 +12,21 @@
         {{ state.display }}
     </span>
     <div v-else style="display: flex;">
-        <schema-view v-for="i in state.length"
-            :key="node.elements[i-1].guid"
-            :node="node.elements[i-1]"
-            :plain-text="plainText"
-            :skin="skin"
-            :in-form="getSubNodeFormType(node.elements[i-1], inForm, skin)"
-            no-label
-            v-bind="$attrs"
-        >
-            <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
-                <component :is="slot" v-bind="slotProps" />
-            </template>
-        </schema-view>
+        <template v-for="i in state.length">
+            <schema-view v-if="node.elements.length >= i"
+                :key="node.elements[i-1].guid"
+                :node="node.elements[i-1]"
+                :plain-text="plainText"
+                :skin="skin"
+                :in-form="getSubNodeFormType(node.elements[i-1], inForm, skin)"
+                no-label
+                v-bind="$attrs"
+            >
+                <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
+                    <component :is="slot" v-bind="slotProps" />
+                </template>
+            </schema-view>
+        </template>
         <template v-if="!state.simple">
             <a @click="node.addRow()" href="javascript:void(0)" style="font-size: xx-large;margin-right: 1rem;">+</a>
             <a v-if="state.length" @click="node.delRows(state.length - 1)" href="javascript:void(0)" style="font-size: xx-large;">-</a>

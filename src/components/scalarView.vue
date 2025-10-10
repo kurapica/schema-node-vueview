@@ -15,7 +15,7 @@
         :default-first-option="state.asSuggest"
         :placeholder="scalarNode.selectPlaceHolder">
         <el-option
-            v-for="item in state.whiteList"
+            v-for="item in state.whiteList?.filter(w => !isNull(typeof(w) === 'object' ? w.value : w))"
             :key="typeof(item) === 'object' ? item.value : item"
             :label="typeof(item) === 'object' ? item.label : item"
             :value="typeof(item) === 'object' ? item.value : item">
@@ -108,7 +108,7 @@ onMounted(() => {
             let list = node.rule.whiteList?.length ? [...node.rule.whiteList] : node.rule.asSuggest ? [node.rawData] : []
             const blackList = node.rule.blackList
             if (blackList && blackList.length)
-                list = list.filter(w => typeof(w) === "object" ? blackList.findIndex(b => `${b}` === `${w.value}`) < 0 : blackList.findIndex(b => `${b}` === `${w}`) < 0) as any
+                list = list.filter(w => typeof(w) === "object" ? blackList.findIndex((b:any) => `${b}` === `${w.value}`) < 0 : blackList.findIndex((b:any) => `${b}` === `${w}`) < 0) as any
             state.whiteList = list
         }
         else

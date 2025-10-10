@@ -68,7 +68,7 @@
             </template>
 
             <!-- Oper -->
-            <el-table-column v-if="$slots.operator || !state.readonly && !state.disabled && !(noAdd && noDel)" :label="_L['OPER']" align="center" fixed="right" :width="operWidth">
+            <el-table-column v-if="$slots.operator || !state.readonly && !state.disabled && !(noAdd && noDel)" :label="_L['OPER']" align="center" fixed="right" :width="operWidth || 100">
                 <template #header>
                     <a href="javascript:void(0)" v-if="!state.readonly && !noAdd" @click="arrayNode.addRow()" style="text-decoration: underline; color: lightseagreen;">{{ _L["ADD"] }}</a>
                     <p v-else>{{ _L['OPER'] }}</p>
