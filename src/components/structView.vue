@@ -25,7 +25,7 @@
 </template>
 
 <script lang="ts" setup>
-import { IStructFieldConfig, StructNode } from 'schema-node'
+import { StructNode } from 'schema-node'
 import { SchemaNodeFormType } from '../formType'
 import { getSubNodeFormType } from '../schemaView'
 import structFieldView from './structFieldView.vue'

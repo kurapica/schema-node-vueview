@@ -10,7 +10,7 @@
         :clearable="!state.require"
         :filterable="state.asSuggest"
         :allow-create="state.asSuggest"
-        :remote="state.asSuggest"
+        :remote="state.enableRemote"
         :remote-method="remoteHanlder"
         :default-first-option="state.asSuggest"
         :placeholder="scalarNode.selectPlaceHolder">
@@ -35,7 +35,7 @@
 </template>
 
 <script lang="ts" setup>
-import { isNull, ScalarNode } from 'schema-node'
+import { isNull, RelationType, ScalarNode, NODE_SELF } from 'schema-node'
 import { computed, onMounted, onUnmounted, reactive, toRaw, useSlots } from 'vue'
 
 // Define props
@@ -63,7 +63,9 @@ const state = reactive<{
     display?: any,
     disable?: boolean,
     require?: boolean,
+    changed?: boolean,
     asSuggest?: boolean,
+    enableRemote?: boolean,
     readonly?: boolean,
     useWhiteList?: boolean,
     whiteList?: any[]
@@ -93,16 +95,20 @@ onMounted(() => {
         const data = node.rawData
         state.data = data
         state.display = `${!isNull(data) ? data : ''}`
+        state.changed = node.changed
     }, true)
 
     stateWatcher = node.subscribeState(() => {
+        const whiteListPush = node.ruleSchema?.pushSchemas?.find((p:any) => p.type === RelationType.WhiteList)
+
         state.default = node.rule.default
         state.disable = node.rule.disable
         state.require = node.require
         state.asSuggest = node.rule.asSuggest || false
         state.readonly = node.readonly
+        state.enableRemote = state.asSuggest && whiteListPush?.args?.find((a:any) => a.field === NODE_SELF || a.field === node.name) ? true : false
 
-        if (node.rule.whiteList?.length || node.rule.asSuggest)
+        if (node.rule.whiteList?.length || whiteListPush)
         {
             state.useWhiteList = true
             let list = node.rule.whiteList?.length ? [...node.rule.whiteList] : node.rule.asSuggest ? [node.rawData] : []
