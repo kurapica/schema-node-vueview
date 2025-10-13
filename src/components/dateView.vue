@@ -43,7 +43,8 @@ const state = reactive<{
     asSuggest?: boolean,
     readonly?: boolean,
     useWhiteList?: boolean,
-    whiteList?: any[]
+    whiteList?: any[],
+    changed?: boolean
 }>({})
 
 // Data
@@ -87,6 +88,7 @@ onMounted(() => {
     dataWatcher = scalarNode.subscribe(() => {
         state.data = scalarNode.data
         state.display = display()
+        state.changed = scalarNode.changed
     }, true)
 
     stateWatcher = scalarNode.subscribeState(() => {

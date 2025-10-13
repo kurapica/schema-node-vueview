@@ -45,7 +45,8 @@ const state = reactive<{
     disable?: boolean,
     require?: boolean,
     readonly?: boolean,
-    display?: string
+    display?: string,
+    changed?: boolean
 }>({})
 
 // Data
@@ -70,6 +71,7 @@ onMounted(() => {
     dataWatcher = node.subscribe(() => {
         const data = node.data
         state.display = display()
+        state.changed = node.changed
     }, true)
 
     stateWatcher = node.subscribeState(() => {

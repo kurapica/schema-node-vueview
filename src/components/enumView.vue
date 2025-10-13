@@ -59,7 +59,8 @@ const state = reactive<{
     root?: any
     whiteList?: any[]
     blackList?: any[]
-    cascade: number
+    cascade: number,
+    changed?: boolean
 }>({
     display: "",
     cascade: 1,
@@ -88,6 +89,7 @@ onMounted(() => {
         state.data = node.view
         if (node.readonly && props.plainText)
             refreshDisplay()
+        state.changed = node.changed
     }, true)
 
     // state change
