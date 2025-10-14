@@ -27,7 +27,7 @@
                 </template>
             </schema-view>
         </template>
-        <template v-if="!state.simple">
+        <template v-if="!state.simple && !state.readonly" style="align-self: center; white-space: nowrap;">
             <a @click="node.addRow()" href="javascript:void(0)" style="font-size: xx-large;margin-right: 1rem;">+</a>
             <a v-if="state.length" @click="node.delRows(state.length - 1)" href="javascript:void(0)" style="font-size: xx-large;">-</a>
         </template>

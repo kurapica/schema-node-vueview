@@ -243,7 +243,7 @@ const lazyLoad = (node: { value: any, level: number }, resolve: Function, reject
     if (!vnode || vnode.leaf) return resolve([])
 
     getEnumSubList(enumNode.schemaName, value).then((values: IEnumValueInfo[]) => {
-        const map = toCascaderOptionInfos(value, vnode.enumlevel + 1)
+        const map = toCascaderOptionInfos(values, vnode.enumlevel + 1)
         vnode.children = map
         return resolve(map)
     }).catch(reject)
