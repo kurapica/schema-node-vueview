@@ -17,7 +17,7 @@
         <el-option
             v-for="item in state.whiteList?.filter(w => !isNull(typeof(w) === 'object' ? w.value : w))"
             :key="typeof(item) === 'object' ? item.value : item"
-            :label="typeof(item) === 'object' ? item.label : item"
+            :label="typeof(item) === 'object' ? _L(item.label) : item"
             :value="typeof(item) === 'object' ? item.value : item">
         </el-option>
     </el-select>
@@ -37,6 +37,7 @@
 <script lang="ts" setup>
 import { isNull, RelationType, ScalarNode, NODE_SELF } from 'schema-node'
 import { computed, onMounted, onUnmounted, reactive, toRaw, useSlots } from 'vue'
+import { _L } from '../locale';
 
 // Define props
 const props = defineProps<{
