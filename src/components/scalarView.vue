@@ -1,5 +1,5 @@
 <template>
-    <span v-if="state.readonly && plainText" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
+    <span v-if="state.readonly && plainText && !state.useWhiteList" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
         {{ state.display }}
     </span>
     <el-select
