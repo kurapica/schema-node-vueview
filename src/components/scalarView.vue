@@ -109,7 +109,7 @@ onMounted(() => {
         state.readonly = node.readonly
         state.enableRemote = state.asSuggest && whiteListPush?.args?.find((a:any) => a.field === NODE_SELF || a.field === node.name) ? true : false
 
-        if (node.rule.whiteList?.length || whiteListPush)
+        if (node.rule.whiteList?.length || whiteListPush && !state.asSuggest)
         {
             state.useWhiteList = true
             let list = node.rule.whiteList?.length ? [...node.rule.whiteList] : node.rule.asSuggest ? [node.rawData] : []
