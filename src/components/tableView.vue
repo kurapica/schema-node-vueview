@@ -297,6 +297,7 @@ onUnmounted(() => {
     if (dataWatcher) dataWatcher()
     if (stateWatcher) stateWatcher()
     if (langWatcher) langWatcher()
+    genRows.cancel()
 })
 
 // add row
@@ -390,7 +391,7 @@ const genRows = debounce(() => {
             rowDatas.push({ node: ele, eleIdx, index, count })
     })
     rows.value = rowDatas
-}, 20)
+}, 100)
 
 const handlePage = (page: number) => {
     arrayNode.setPage(page - 1)
