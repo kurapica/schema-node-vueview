@@ -59,7 +59,8 @@ const state = reactive<{
     root?: any
     whiteList?: any[]
     blackList?: any[]
-    cascade: number
+    cascade: number,
+    changed?: boolean
 }>({
     display: "",
     cascade: 1,
@@ -68,7 +69,7 @@ const state = reactive<{
 // data
 const data = computed({
     get (): any {
-        return state.data
+        return enumNode.view
     },
     set(value: any) {
         enumNode.data = value
@@ -88,6 +89,7 @@ onMounted(() => {
         state.data = node.view
         if (node.readonly && props.plainText)
             refreshDisplay()
+        state.changed = node.changed
     }, true)
 
     // state change
@@ -212,7 +214,7 @@ const toCascaderOptionInfos = (values: IEnumValueInfo[], level: number, whitelis
 
     return values.map(e => ({
         value: e.value,
-        name: e.name,
+        localename: e.name,
         label: _L.value(e.name),
         disabled: e.disable,
         enumlevel: level,
@@ -241,7 +243,7 @@ const lazyLoad = (node: { value: any, level: number }, resolve: Function, reject
     if (!vnode || vnode.leaf) return resolve([])
 
     getEnumSubList(enumNode.schemaName, value).then((values: IEnumValueInfo[]) => {
-        const map = toCascaderOptionInfos(value, vnode.enumlevel + 1)
+        const map = toCascaderOptionInfos(values, vnode.enumlevel + 1)
         vnode.children = map
         return resolve(map)
     }).catch(reject)
@@ -249,7 +251,7 @@ const lazyLoad = (node: { value: any, level: number }, resolve: Function, reject
 
 const refrehOptions = (options: ICascaderOptionInfo[]) => {
     options.forEach(o => {
-        o.label = _L.value(o.name)
+        o.label = _L.value(o.localename)
         if (o.children?.length) refrehOptions(o.children)
     })
 }
@@ -257,7 +259,7 @@ const refrehOptions = (options: ICascaderOptionInfo[]) => {
 interface ICascaderOptionInfo
 {
     value: any
-    name: ILocaleString
+    localename: ILocaleString
     label: string
     disabled?: boolean
     enumlevel: number

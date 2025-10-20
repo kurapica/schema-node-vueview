@@ -22,7 +22,7 @@
 
 <script setup lang="ts" name="SchemaView">
 import { isReactive, isRef, onMounted, onUnmounted, ref, shallowRef, toRaw, useSlots, watch, WatchHandle } from 'vue'
-import { AnySchemaNode, ISchemaConfig, getSchemaNode, isAbstractSchema } from 'schema-node'
+import { AnySchemaNode, ISchemaConfig, getSchemaNode, isAbstractSchema, isNull } from 'schema-node'
 import formView from './formView.vue'
 import { SchemaNodeFormType } from '../formType'
 import { getSchemaTypeView, useSingleView } from '../schemaView'
@@ -43,6 +43,11 @@ const props = defineProps<{
      * The schema node value(if node not provided)
      */
     modelValue?: any,
+
+    /**
+     * The value for display only, no model can be provided
+     */
+    value?: any,
 
     /**
      * The schema node config(if node not provided)
@@ -94,6 +99,10 @@ onMounted(async () => {
             if (isAbstractSchema(props.config.type)) return // no abstract schema node
 
             node = await getSchemaNode(toRaw(props.config), toRaw(props.modelValue))
+
+            if (!isNull(props.value)) {
+                node.data = toRaw(props.value)
+            }
 
             // update the rule schema with config
             if (node && (isRef(props.config) || isReactive(props.config))) {

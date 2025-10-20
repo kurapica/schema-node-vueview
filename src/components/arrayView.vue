@@ -7,24 +7,30 @@
     <span v-else-if="node.asSingle">
         No view for {{ node.schemaName }}
     </span>
-    <span v-else-if="state.readonly && plainText && node.elementSchema.type === SchemaType.Scalar"
+    <span v-else-if="state.simple && state.readonly && plainText && node.elementSchema.type === SchemaType.Scalar"
         :style="{'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
         {{ state.display }}
     </span>
     <div v-else style="display: flex;">
-        <schema-view v-for="i in state.length"
-            :key="node.elements[i-1].guid"
-            :node="node.elements[i-1]"
-            :plain-text="plainText"
-            :skin="skin"
-            :in-form="getSubNodeFormType(node.elements[i-1], inForm, skin)"
-            no-label
-            v-bind="$attrs"
-        >
-            <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
-                <component :is="slot" v-bind="slotProps" />
-            </template>
-        </schema-view>
+        <template v-for="i in state.length">
+            <schema-view v-if="node.elements.length >= i"
+                :key="node.elements[i-1].guid"
+                :node="node.elements[i-1]"
+                :plain-text="plainText"
+                :skin="skin"
+                :in-form="getSubNodeFormType(node.elements[i-1], inForm, skin)"
+                no-label
+                v-bind="$attrs"
+            >
+                <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
+                    <component :is="slot" v-bind="slotProps" />
+                </template>
+            </schema-view>
+        </template>
+        <template v-if="!state.simple && !state.readonly" style="align-self: center; white-space: nowrap;">
+            <a @click="node.addRow()" href="javascript:void(0)" style="font-size: xx-large;margin-right: 1rem;">+</a>
+            <a v-if="state.length" @click="node.delRows(state.length - 1)" href="javascript:void(0)" style="font-size: xx-large;">-</a>
+        </template>
     </div>
 </template>
 
@@ -52,7 +58,8 @@ const slotEntries = Object.entries(slots) as [string, (...args: any[]) => any][]
 const state = reactive<{
     readonly?: boolean
     display?: string
-    length: number
+    length: number,
+    simple?: boolean,
 }>({ length: 0 })
 
 // handler
@@ -61,9 +68,10 @@ let stateHandler: Function | null = null
 
 onMounted(() => {
     const node = arrayNode
+    state.simple = node.elementSchema.type !== SchemaType.Struct
 
     dataHandler = node.subscribe(() => {
-        if (!node.readonly)
+        if (!node.readonly && state.simple)
         {
             const length = node.elements.length
             if (length === 0 || !isNull(node.elements[length - 1].rawData))
@@ -77,7 +85,7 @@ onMounted(() => {
         }
         
         state.length = node.elements.length
-        state.display = (node.data || []).join()
+        if (state.simple) state.display = (node.data || []).join()
     }, true)
 
     stateHandler = node.subscribeState(() => {

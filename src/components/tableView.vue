@@ -6,7 +6,7 @@
                 <el-table-column v-if="col.subCols && col.subCols.length" :prop="col.prop" :label="col.label" :header-align="headerAlign">
                     <el-table-column v-for="scol in col.subCols" :prop="`${col.prop}.${scol.prop}`" :label="scol.label" min-width="120" :header-align="headerAlign">
                         <template #header v-if="scol.require">
-                            <span :class="{ require: true }">{{ scol.label }}</span>
+                            <span><span style="color:red;margin-right:4px;">*</span>{{ scol.label }}</span>
                         </template>
                         <template #default="scope">
                             <!-- multi row -->
@@ -51,7 +51,7 @@
                 <!-- Single row -->
                 <el-table-column v-else :prop="col.prop" :label="col.label" min-width="120" :header-align="headerAlign">
                     <template #header v-if="col.require">
-                        <span :class="{ require: true }">{{ col.label }}</span>
+                        <span><span style="color:red;margin-right:4px;">*</span>{{ col.label }}</span>
                     </template>
                     <template #default="scope">
                         <struct-field-view v-if="scope.row.index === 0" 
@@ -68,7 +68,7 @@
             </template>
 
             <!-- Oper -->
-            <el-table-column v-if="$slots.operator || !state.readonly && !state.disabled && !(noAdd && noDel)" :label="_L['OPER']" align="center" fixed="right" :width="operWidth">
+            <el-table-column v-if="$slots.operator || !state.readonly && !state.disabled && !(noAdd && noDel)" :label="_L['OPER']" align="center" fixed="right" :width="operWidth || 100">
                 <template #header>
                     <a href="javascript:void(0)" v-if="!state.readonly && !noAdd" @click="arrayNode.addRow()" style="text-decoration: underline; color: lightseagreen;">{{ _L["ADD"] }}</a>
                     <p v-else>{{ _L['OPER'] }}</p>
@@ -297,6 +297,7 @@ onUnmounted(() => {
     if (dataWatcher) dataWatcher()
     if (stateWatcher) stateWatcher()
     if (langWatcher) langWatcher()
+    genRows.cancel()
 })
 
 // add row
@@ -390,7 +391,7 @@ const genRows = debounce(() => {
             rowDatas.push({ node: ele, eleIdx, index, count })
     })
     rows.value = rowDatas
-}, 20)
+}, 100)
 
 const handlePage = (page: number) => {
     arrayNode.setPage(page - 1)
@@ -424,20 +425,3 @@ interface ITableRow {
 }
 
 </script>
-
-<style lang="scss" scoped>
-.require::before {
-    content: "*";
-    color: #f56c6c;
-    margin-right: 4px;
-}
-.link-button {
-    background: none;
-    border: none;
-    color: blue;
-    text-decoration: underline;
-    cursor: pointer;
-    padding: 0;
-    font: inherit;
-}
-</style>

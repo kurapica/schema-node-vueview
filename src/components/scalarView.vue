@@ -1,5 +1,5 @@
 <template>
-    <span v-if="state.readonly && plainText" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
+    <span v-if="state.readonly && plainText && !state.useWhiteList" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
         {{ state.display }}
     </span>
     <el-select
@@ -10,14 +10,14 @@
         :clearable="!state.require"
         :filterable="state.asSuggest"
         :allow-create="state.asSuggest"
-        :remote="state.asSuggest"
+        :remote="state.enableRemote"
         :remote-method="remoteHanlder"
         :default-first-option="state.asSuggest"
         :placeholder="scalarNode.selectPlaceHolder">
         <el-option
-            v-for="item in state.whiteList"
+            v-for="item in state.whiteList?.filter(w => !isNull(typeof(w) === 'object' ? w.value : w))"
             :key="typeof(item) === 'object' ? item.value : item"
-            :label="typeof(item) === 'object' ? item.label : item"
+            :label="typeof(item) === 'object' ? _L(item.label) : item"
             :value="typeof(item) === 'object' ? item.value : item">
         </el-option>
     </el-select>
@@ -35,8 +35,9 @@
 </template>
 
 <script lang="ts" setup>
-import { isNull, ScalarNode } from 'schema-node'
+import { isNull, RelationType, ScalarNode, NODE_SELF } from 'schema-node'
 import { computed, onMounted, onUnmounted, reactive, toRaw, useSlots } from 'vue'
+import { _L } from '../locale';
 
 // Define props
 const props = defineProps<{
@@ -63,7 +64,9 @@ const state = reactive<{
     display?: any,
     disable?: boolean,
     require?: boolean,
+    changed?: boolean,
     asSuggest?: boolean,
+    enableRemote?: boolean,
     readonly?: boolean,
     useWhiteList?: boolean,
     whiteList?: any[]
@@ -93,22 +96,26 @@ onMounted(() => {
         const data = node.rawData
         state.data = data
         state.display = `${!isNull(data) ? data : ''}`
+        state.changed = node.changed
     }, true)
 
     stateWatcher = node.subscribeState(() => {
+        const whiteListPush = node.ruleSchema?.pushSchemas?.find((p:any) => p.type === RelationType.WhiteList)
+
         state.default = node.rule.default
         state.disable = node.rule.disable
         state.require = node.require
         state.asSuggest = node.rule.asSuggest || false
         state.readonly = node.readonly
+        state.enableRemote = state.asSuggest && whiteListPush?.args?.find((a:any) => a.field === NODE_SELF || a.field === node.name) ? true : false
 
-        if (node.rule.whiteList?.length || node.rule.asSuggest)
+        if (node.rule.whiteList?.length || whiteListPush && !state.asSuggest)
         {
             state.useWhiteList = true
             let list = node.rule.whiteList?.length ? [...node.rule.whiteList] : node.rule.asSuggest ? [node.rawData] : []
             const blackList = node.rule.blackList
             if (blackList && blackList.length)
-                list = list.filter(w => typeof(w) === "object" ? blackList.findIndex(b => `${b}` === `${w.value}`) < 0 : blackList.findIndex(b => `${b}` === `${w}`) < 0) as any
+                list = list.filter(w => typeof(w) === "object" ? blackList.findIndex((b:any) => `${b}` === `${w.value}`) < 0 : blackList.findIndex((b:any) => `${b}` === `${w}`) < 0) as any
             state.whiteList = list
         }
         else

@@ -1,7 +1,7 @@
 export { regBaseSchemaTypeView, regSchemaTypeView } from './schemaView'
 export * from './locale'
 
-import { ArrayNode, NS_SYSTEM_BOOL, NS_SYSTEM_DATE, NS_SYSTEM_FULLDATE,  NS_SYSTEM_RANGEDATE, NS_SYSTEM_RANGEFULLDATE, NS_SYSTEM_RANGEMONTH, NS_SYSTEM_RANGEYEAR, NS_SYSTEM_YEAR, NS_SYSTEM_YEARMONTH, SchemaType } from 'schema-node'
+import { ArrayNode, NS_SYSTEM_BOOL, NS_SYSTEM_DATE, NS_SYSTEM_FULLDATE,  NS_SYSTEM_LOCALE_STRING,  NS_SYSTEM_RANGEDATE, NS_SYSTEM_RANGEFULLDATE, NS_SYSTEM_RANGEMONTH, NS_SYSTEM_RANGEYEAR, NS_SYSTEM_YEAR, NS_SYSTEM_YEARMONTH, SchemaType } from 'schema-node'
 
 import schemaView from './components/schemaView.vue'
 import scalarView from './components/scalarView.vue'
@@ -13,8 +13,9 @@ import structView from './components/structView.vue'
 import rangeDateView from './components/rangeDateView.vue'
 import tableView from './components/tableView.vue'
 import { App } from 'vue'
-import { getSubNodeFormType, regBaseSchemaTypeView, regSchemaTypeView } from './schemaView'
+import { getSubNodeFormType, regBaseSchemaTypeView, regSchemaTypeView, useSingleView } from './schemaView'
 import structFieldView from './components/structFieldView.vue'
+import localstringView from "./components/localstringView.vue"
 import { SchemaNodeFormType } from './formType'
 
 export { SchemaNodeFormType, schemaView, scalarView, boolView, dateView, enumView, arrayView, structView, rangeDateView, tableView, structFieldView, getSubNodeFormType }
@@ -24,7 +25,7 @@ regBaseSchemaTypeView(SchemaType.Scalar, scalarView)
 regBaseSchemaTypeView(SchemaType.Enum, enumView)
 regBaseSchemaTypeView(SchemaType.Struct, structView)
 regBaseSchemaTypeView(SchemaType.Array, arrayView, (node: ArrayNode, skin: string) => {
-    if (node.elementSchema.type === SchemaType.Struct) return tableView
+    if (node.elementSchema.type === SchemaType.Struct && !useSingleView(node.elementSchema, skin)) return tableView
 })
 
 // type view
@@ -37,6 +38,7 @@ regSchemaTypeView(NS_SYSTEM_RANGEYEAR, rangeDateView)
 regSchemaTypeView(NS_SYSTEM_RANGEMONTH, rangeDateView)
 regSchemaTypeView(NS_SYSTEM_RANGEDATE, rangeDateView)
 regSchemaTypeView(NS_SYSTEM_RANGEFULLDATE, rangeDateView)
+regSchemaTypeView(NS_SYSTEM_LOCALE_STRING, localstringView, undefined, true)
 
 schemaView.install = (app: App): void => { 
     app.component("SchemaView", schemaView)
