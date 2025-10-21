@@ -1,6 +1,9 @@
 <template>
     <template v-if="schemaNode && !invisible">
-        <form-view v-if="inFormType === SchemaNodeFormType.Nest"
+        <div v-if="!loaded" ref="mask" style="width: 100%;">
+            <el-skeleton animated></el-skeleton>
+        </div>
+        <form-view v-else-if="inFormType === SchemaNodeFormType.Nest"
             :node="(schemaNode as any)"
             :in-form="inFormType"
             v-bind="$attrs">
@@ -22,7 +25,7 @@
 
 <script setup lang="ts" name="SchemaView">
 import { isReactive, isRef, onMounted, onUnmounted, ref, shallowRef, toRaw, useSlots, watch, WatchHandle } from 'vue'
-import { AnySchemaNode, ISchemaConfig, getSchemaNode, isAbstractSchema, isNull } from 'schema-node'
+import { AnySchemaNode, AppNode, ISchemaConfig, getSchemaNode, isAbstractSchema, isNull } from 'schema-node'
 import formView from './formView.vue'
 import { SchemaNodeFormType } from '../formType'
 import { getSchemaTypeView, useSingleView } from '../schemaView'
@@ -63,6 +66,11 @@ const props = defineProps<{
      * The form item display style
      */
     inForm?: boolean | "nest" | "expand" | "expandall" | ""
+
+    /**
+     * The auto load container
+     */
+    rootDiv?: string | HTMLElement
 }>()
 
 // slots
@@ -77,6 +85,10 @@ const schemaNode = ref<AnySchemaNode | null>(null)
 const component = shallowRef<any>(null)
 const inFormType = ref<SchemaNodeFormType>(SchemaNodeFormType.None)
 const invisible = ref(false)
+const loaded = ref(true)
+const mask = ref(null)
+let observer: any = null
+
 let dataWatcher: Function | null = null
 let stateWatcher: Function | null = null
 let configWatcher: WatchHandle | null = null
@@ -117,6 +129,32 @@ onMounted(async () => {
         }
         else if (props.type) {
             node = await getSchemaNode({ type: props.type }, toRaw(props.modelValue))
+        }
+    }
+    else if(node.parent instanceof AppNode)
+    {
+        // check if the field is loaded
+        if (!node.parent.isFieldLoaded(node.name))
+        {
+            loaded.value = false
+            const root = typeof(props.rootDiv) === "string" ? document.querySelector(props.rootDiv) : props.rootDiv
+
+            observer = new IntersectionObserver(async ([entry]) => {
+                if(entry && entry.isIntersecting)
+                {
+                    observer?.disconnect()
+                    observer = null;
+
+                    await (node!.parent as AppNode).reload([node!], true)
+                    loaded.value = true
+                }
+            }, {
+                rootMargin: "0px 0px 100px 0px",
+                root,
+            })
+
+            await new Promise(r => setTimeout(r, 100))
+            observer.observe(mask.value)
         }
     }
 
