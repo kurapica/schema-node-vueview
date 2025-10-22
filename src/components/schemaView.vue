@@ -1,9 +1,9 @@
 <template>
-    <template v-if="schemaNode && !invisible">
-        <div v-if="!loaded" ref="mask" style="width: 100%;">
-            <el-skeleton animated></el-skeleton>
-        </div>
-        <form-view v-else-if="inFormType === SchemaNodeFormType.Nest"
+    <div v-if="!schemaNode || !loaded" ref="mask" style="width: 100%;height: 24px;">
+        <el-skeleton animated></el-skeleton>
+    </div>
+    <template v-else-if="schemaNode && !invisible">
+        <form-view v-if="inFormType === SchemaNodeFormType.Nest"
             :node="(schemaNode as any)"
             :in-form="inFormType"
             v-bind="$attrs">
@@ -153,8 +153,15 @@ onMounted(async () => {
                 root,
             })
 
-            await new Promise(r => setTimeout(r, 100))
-            observer.observe(mask.value)
+            while(!mask.value && !loaded.value)
+            {
+                console.log("wait mask", node.access, node.parent.getFieldState(node.name))
+                await new Promise(r => setTimeout(r, 100))
+            }
+            console.log("observe mask", mask.value)
+            if (!loaded.value){
+                observer?.observe(mask.value)
+            }
         }
     }
 
@@ -186,8 +193,11 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+    loaded.value = true
     if (dataWatcher) dataWatcher()
     if (configWatcher) configWatcher()
     if (stateWatcher) stateWatcher()
 })
+
+
 </script>
