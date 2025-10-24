@@ -1,22 +1,26 @@
 <template>
     <section style="width: 100%; min-width: 120px;">
+        <span v-if="keyNode.readonly && plainText" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
+            {{ _L(keyNode.rawData) }}
+        </span>
         <schema-view
+            v-else
             style="width: 100%;"
             :key="localeNode.guid"
             :node="keyNode"
             :plainText="plainText"
             v-bind="$attrs">
             <template #append>
-                <a href="javascript:void(0)" @click="openTrans">{{ _L["schema.designer.tran"] }}</a>
+                <a href="javascript:void(0)" @click="openTrans">{{ _L["frontend.view.tran"] }}</a>
             </template>
         </schema-view>
 
         <template v-if="keyNode.readonly && plainText">
-            <a href="javascript:void(0)" style="position: absolute; right: 1rem" @click="openTrans">{{ _L["schema.designer.tran"] }}</a>
+            <a href="javascript:void(0)" style="position: absolute; right: 1rem" @click="openTrans">{{ _L["frontend.view.tran"] }}</a>
         </template>
 
         <!-- show trans -->
-        <el-drawer v-model="showTrans" :title="_L['schema.designer.tran'] + ` ${keyNode.rawData || ''}`" direction="rtl" size="50%" append-to-body>
+        <el-drawer v-model="showTrans" :title="_L['frontend.view.tran'] + ` ${keyNode.rawData || ''}`" direction="rtl" size="50%" append-to-body>
             <el-container class="main" style="height: 80vh;">
                 <el-main>
                     <el-form :data="transNode">
@@ -25,7 +29,7 @@
                 </el-main>
                 <el-footer>
                     <br/>
-                    <el-button @click="showTrans = false">{{ _L["schema.designer.close"] }}</el-button>
+                    <el-button @click="showTrans = false">{{ _L["frontend.view.close"] }}</el-button>
                 </el-footer>
             </el-container>
         </el-drawer>
