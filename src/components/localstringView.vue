@@ -134,7 +134,6 @@ const saveTrans = () => {
 }
 
 const movetop = (lang: string) => {
-    if (keyNode.readonly) return
     const topOrders = localStorage["schema_node_locale_orders"] ? JSON.parse(localStorage["schema_node_locale_orders"]) : []
     const idx = topOrders.indexOf(lang)
     if (idx >= 0) topOrders.splice(idx, 1)
