@@ -1,6 +1,6 @@
 {
   "name": "schema-node-vueview",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Reusable Vue 3 components for visualizing schema-node data using Element Plus.",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
@@ -41,6 +41,6 @@
     "access": "public"
   },
   "dependencies": {
-    "schema-node": "^1.0.3"
+    "schema-node": "^1.0.6"
   }
 }

@@ -69,7 +69,7 @@ const state = reactive<{
 // data
 const data = computed({
     get (): any {
-        return enumNode.view
+        return state.data
     },
     set(value: any) {
         enumNode.data = value

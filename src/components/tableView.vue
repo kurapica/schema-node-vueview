@@ -1,6 +1,6 @@
 <template>
     <section style="width: 100%;">
-        <el-table :data="rows" :span-method="spanMethod" style="width: 100%;" v-bind="$attrs">
+        <el-table :data="rows" :span-method="spanMethod" :row-style="getRowStyle" style="width: 100%;" v-bind="$attrs">
             <template v-for="col in state.columns">
                 <!-- with sub cols -->
                 <el-table-column v-if="col.subCols && col.subCols.length" :prop="col.prop" :label="col.label" :header-align="headerAlign">
@@ -70,31 +70,55 @@
             <!-- Oper -->
             <el-table-column v-if="$slots.operator || !state.readonly && !state.disabled && !(noAdd && noDel)" :label="_L['OPER']" align="center" fixed="right" :width="operWidth || 100">
                 <template #header>
-                    <a href="javascript:void(0)" v-if="!state.readonly && !noAdd" @click="arrayNode.addRow()" style="text-decoration: underline; color: lightseagreen;">{{ _L["ADD"] }}</a>
+                    <a href="javascript:void(0)" v-if="!state.readonly && !noAdd" @click="addRow(arrayNode)" style="text-decoration: underline; color: lightseagreen;">{{ _L["ADD"] }}</a>
                     <p v-else>{{ _L['OPER'] }}</p>
                 </template>
                 <template #default="scope" v-if="$slots.operator || !noDel">
                     <slot name="operator" :row="scope.row.node" :index="scope.row.eleIdx">
-                        <a type="danger" v-if="!noDel" href="javascript:void(0)" style="padding-right: 1rem;" @click="arrayNode.delRows(scope.row.eleIdx)">{{ _L["DEL"] }}</a>
+                        <a type="danger" v-if="!noDel && !state.deleted[scope.row.eleIdx]" href="javascript:void(0)" style="padding-right: 1rem;" @click="delRow(arrayNode, scope.row.eleIdx)">{{ _L["DEL"] }}</a>
+                        <a type="primary" v-else-if="!noDel && state.deleted[scope.row.eleIdx]" href="javascript:void(0)" style="padding-right: 1rem;" @click="resumeRow(arrayNode, scope.row.eleIdx)">{{ _L["RESUME"] }}</a>
                     </slot>
                 </template>
             </el-table-column>
         </el-table>
 
+        <el-drawer v-model="showPrepareRow" :close-on-click-modal="false" size="50%" :title="_L['ADD']" append-to-body @closed="closePrepareRow">
+            <el-container class="main" style="height: 80vh;">
+                <el-main>
+                    <el-form v-if="prepareRow" ref="editorRef" :model="prepareRow.rawData" label-width="160"
+                        label-position="left" style="width: 100%; height: 90%;">
+                        <div class="draw-view">
+                            <schema-view
+                                :node="(prepareRow as StructNode)"
+                                in-form="expandall"
+                                plain-text="left"
+                            ></schema-view>
+                        </div>
+                    </el-form>
+                </el-main>
+                <el-footer>
+                    <br/>
+                    <el-button type="primary" @click="savePrepareRow">{{ _L["SAVE"] }}</el-button>
+                    <el-button @click="closePrepareRow">{{ _L["CANCEL"] }}</el-button>
+                </el-footer>
+            </el-container>
+        </el-drawer>
+
         <!-- page -->
-        <el-pagination v-if="node.incrUpdate && node.total > node.pageCount" :current-page="node.page + 1"
-            :page-size="node.pageCount" :total="node.total" :pager-count="11" layout="prev, pager, next"
+        <el-pagination v-if="state.pageCount && state.total && state.total > state.pageCount" :current-page="(state.page || 0) + 1"
+            :page-size="state.pageCount" :total="state.total" :pager-count="state.pageCount" layout="prev, pager, next"
             @current-change="handlePage"></el-pagination>
     </section>
 </template>
 
 <script lang="ts" setup>
-import { AnySchemaNode, ArrayNode, debounce, getSchema, ILocaleString, IStructFieldConfig, SchemaType, StructNode, subscribeLanguage } from 'schema-node'
+import { AnySchemaNode, ArrayNode, clearDebounce, debounce, getSchema, ILocaleString, IStructFieldConfig, SchemaType, StructNode, subscribeLanguage } from 'schema-node'
 import { SchemaNodeFormType } from '../formType'
-import { onMounted, onUnmounted, reactive, toRaw, shallowRef, useSlots } from 'vue'
+import { onMounted, onUnmounted, reactive, toRaw, shallowRef, ref } from 'vue'
 import { useSingleView } from '../schemaView'
 import structFieldView from './structFieldView.vue'
 import { _L } from '../locale'
+import schemaView from './schemaView.vue'
 
 // Properties
 const props = defineProps<{
@@ -165,8 +189,6 @@ const props = defineProps<{
 }>()
 
 // slots
-const slots = useSlots()
-const slotEntries = Object.entries(slots) as [string, (...args: any[]) => any][]
 const rows = shallowRef<ITableRow[]>([])
 
 // State
@@ -177,10 +199,15 @@ const state = reactive<{
     primaryFields: string[]
     readonly?: boolean
     disabled?: boolean
+    page?: number
+    pageCount?: number
+    total?: number
+    deleted: boolean[]
 }>({
     columns: [],
     spanCols: {},
-    primaryFields: []
+    primaryFields: [],
+    deleted: []
 })
 
 const newdatacolor = props.newColor || "#98d7eb"
@@ -194,6 +221,8 @@ let stateWatcher: Function | null = null
 let langWatcher: Function | null = null
 let rowCount = 0
 let rowWatches: { guid: string, array: Function[] }[] = []
+const showPrepareRow = ref(false)
+const prepareRow = ref<StructNode | null>(null)
 
 onMounted(async () => {
     const node = arrayNode
@@ -240,6 +269,10 @@ onMounted(async () => {
     // row change handler
     dataWatcher = node.subscribe((action: any) => {
         const count = node.elements.length
+        state.total = node.total
+        state.page = node.page
+        state.pageCount = node.pageCount
+
         if (count !== rowCount || action === "swap") {
             rowCount = count
 
@@ -297,18 +330,47 @@ onUnmounted(() => {
     if (dataWatcher) dataWatcher()
     if (stateWatcher) stateWatcher()
     if (langWatcher) langWatcher()
-    genRows.cancel()
+    clearDebounce(genRows)
 })
 
 // add row
 const addRow = (arrayNode: ArrayNode) => {
+    if (arrayNode.incrUpdate)
+    {
+        prepareRow.value = arrayNode.prepareRow() as StructNode
+        showPrepareRow.value = true
+        return
+    }
     toRaw(arrayNode).addRow()
     genRows()
 }
 
+// del row
 const delRow = (arrayNode: ArrayNode, index: number) => {
     toRaw(arrayNode).delRows(index)
-    genRows()
+    if (!arrayNode.incrUpdate)
+        genRows()
+    else
+        state.deleted[index] = true
+}
+
+// resume row
+const resumeRow = (arrayNode: ArrayNode, index: number) => {
+    toRaw(arrayNode).resumeRows(index)
+    state.deleted[index] = false
+}
+
+const savePrepareRow = async () => {
+    if (prepareRow.value && prepareRow.value.valid) {
+        await arrayNode.savePrepareRow(prepareRow.value as StructNode, true)
+        closePrepareRow()
+    }
+}
+
+const closePrepareRow = () => {
+    prepareRow.value?.dispose()
+    prepareRow.value = null
+    showPrepareRow.value = false
 }
 
 // gen columns
@@ -374,6 +436,7 @@ const genRows = debounce(() => {
     const node = arrayNode
     const rowDatas: ITableRow[] = []
     rowCount = node.elements.length
+    state.deleted.length = rowCount
     node.elements.forEach((ele, eleIdx) => {
         let count = 0;
         (ele as StructNode).fields
@@ -386,6 +449,8 @@ const genRows = debounce(() => {
 
         count = Math.max(1, count)
 
+        state.deleted[eleIdx] = node.isRowDeleted(ele)
+
         // gen row
         for (let index = 0; index < count; index++)
             rowDatas.push({ node: ele, eleIdx, index, count })
@@ -393,19 +458,18 @@ const genRows = debounce(() => {
     rows.value = rowDatas
 }, 100)
 
-const handlePage = (page: number) => {
-    arrayNode.setPage(page - 1)
+const handlePage = async (page: number) => {
+    await arrayNode.setPage(page - 1)
+
+    for(let i = 0; i < arrayNode.elements.length; i++)
+    {
+        state.deleted[i] = arrayNode.isRowDeleted(arrayNode.elements[i])
+    }
 }
 
-/*const getrowclass = (data:any) =>{
-  const row = data.row as StructNode
-  return row.deleted ? "del-row" : row.changed ? (primaryFields.find(p => row.getField(p)?.changed) ? "new-row" : "change-row") : ""
+const getRowStyle = (data:any) =>{
+  return state.deleted[data.row.eleIdx] ? { backgroundColor: deldatacolor } : null
 }
-
-const getincrrowclass = (data:any) =>{
-  const row = data.row as StructNode
-  return row.deleted ? "del-row" : ""
-}*/
 
 interface IColumnInfo {
     prop: string
