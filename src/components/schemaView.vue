@@ -155,10 +155,8 @@ onMounted(async () => {
 
             while(!mask.value && !loaded.value)
             {
-                console.log("wait mask", node.access, node.parent.getFieldState(node.name))
                 await new Promise(r => setTimeout(r, 100))
             }
-            console.log("observe mask", mask.value)
             if (!loaded.value){
                 observer?.observe(mask.value)
             }
