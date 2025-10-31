@@ -1,7 +1,7 @@
 <template>
     <section style="width: 100%; min-width: 120px;">
         <span v-if="keyNode.readonly && plainText" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
-            {{ _L(keyNode.rawData) }}
+            {{ _L(node.rawData) }}
         </span>
         <schema-view
             v-else

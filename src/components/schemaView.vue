@@ -1,5 +1,5 @@
 <template>
-    <div v-if="!schemaNode || !loaded" ref="mask" style="width: 100%;height: 24px;">
+    <div v-if="!loaded" ref="mask" style="width: 100%;height: 24px;">
         <el-skeleton animated></el-skeleton>
     </div>
     <template v-else-if="schemaNode && !invisible">
