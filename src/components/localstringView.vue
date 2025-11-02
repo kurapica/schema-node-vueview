@@ -1,7 +1,10 @@
 <template>
     <section style="width: 100%; min-width: 120px;">
-        <span v-if="keyNode.readonly && plainText" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
+        <span v-if="(keyNode.readonly && plainText)" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
             {{ _L(node.rawData) }}
+        </span>
+        <span v-else-if="isCombine && !showCombineKey" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
+            {{ _L(combineData) }}
         </span>
         <schema-view
             v-else
@@ -11,16 +14,20 @@
             :plainText="plainText"
             v-bind="$attrs">
             <template #append>
-                <a href="javascript:void(0)" @click="openTrans">{{ _L["frontend.view.tran"] }}</a>
+                <a v-if="isCombine" href="javascript:void(0)" @click="showCombineKey = false">{{ _L["CONFIRM"] }}</a>
+                <a v-else href="javascript:void(0)" @click="openTrans">{{ _L["system.localetran.tran"] }}</a>
             </template>
         </schema-view>
 
         <template v-if="keyNode.readonly && plainText">
-            <a href="javascript:void(0)" style="position: absolute; right: 1rem" @click="openTrans">{{ _L["frontend.view.tran"] }}</a>
+            <a href="javascript:void(0)" style="position: absolute; right: 1rem" @click="openTrans">{{ _L["system.localetran.tran"] }}</a>
+        </template>
+        <template v-else-if="isCombine && !showCombineKey">
+            <a href="javascript:void(0)" style="position: absolute; right: 1rem" @click="showCombineKey = true">{{ _L["EDIT"] }}</a>
         </template>
 
         <!-- show trans -->
-        <el-drawer v-model="showTrans" :title="_L['frontend.view.tran'] + ` ${keyNode.rawData || ''}`" direction="rtl" size="50%" append-to-body @close="saveTrans">
+        <el-drawer v-model="showTrans" :title="_L['system.localetran.tran'] + ` ${keyNode.rawData || ''}`" direction="rtl" size="50%" append-to-body @close="saveTrans">
             <el-container class="main" style="height: 80vh;">
                 <el-main>
                     <el-form :data="transNode">
@@ -32,9 +39,9 @@
                                     <span v-else>{{ scope.row.tran }}</span>
                                 </template>
                             </el-table-column>
-                            <el-table-column :label="_L['frontend.view.movetop']" min-width="120">
+                            <el-table-column :label="_L['MOVETOP']" min-width="120">
                                 <template #default="scope">
-                                    <a href="javascript:void(0)" @click="movetop(scope.row.lang)">{{ _L["frontend.view.movetop"] }}</a>
+                                    <a href="javascript:void(0)" @click="movetop(scope.row.lang)">{{ _L["MOVETOP"] }}</a>
                                 </template>
                             </el-table-column>
                         </el-table>
@@ -42,7 +49,7 @@
                 </el-main>
                 <el-footer>
                     <br/>
-                    <el-button @click="showTrans = false">{{ _L["frontend.view.close"] }}</el-button>
+                    <el-button @click="showTrans = false">{{ _L["CLOSE"] }}</el-button>
                 </el-footer>
             </el-container>
         </el-drawer>
@@ -51,7 +58,7 @@
 
 <script lang="ts" setup>
 import { ArrayNode, isNull, SCHEMA_LANGUAGES, StructNode } from 'schema-node'
-import { ref, toRaw } from 'vue'
+import {  onUnmounted, ref, toRaw } from 'vue'
 import schemaView from './schemaView.vue'
 import { _L } from '../locale'
 
@@ -70,6 +77,9 @@ const props = defineProps<{
 const localeNode = toRaw(props.node) as StructNode
 const keyNode = localeNode.getField("key")
 const transNode = localeNode.getField("trans") as ArrayNode
+const isCombine = ref(false)
+const showCombineKey = ref(false)
+const combineData = ref({ key: ""})
 
 interface TranItem {
     lang: string,
@@ -142,5 +152,16 @@ const movetop = (lang: string) => {
     refreshTrans()
 }
 
+const dataHandler = keyNode.subscribe(() => {
+    const data = keyNode.rawData
+    isCombine.value = typeof data === "string" && data.indexOf("{") >= 0
+    if (isCombine.value) {
+        combineData.value = { key: data }
+    }
+})
+
+onUnmounted(() => {
+    dataHandler()
+})
 
 </script>
