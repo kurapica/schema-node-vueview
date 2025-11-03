@@ -85,15 +85,38 @@ export function regSchemaTypeView(type: string, view: any, skinName: string = DE
  * Gets the view for the given schema node and skin
  */
 export function getSchemaTypeView(node: AnySchemaNode, skinName: string = DEFAULT_SKIN) {
-    skinName = skinName.toLowerCase()
-    const type = node.schemaName.toLowerCase()
-    const maps = schemaViews[type]
-    let template = maps ? (maps[skinName] || maps["default"]) : undefined
+    // try registered view
+    const template = getSchemaTypeViewBySchema(node.schema, skinName)
     if (template) return template
-
+    
     // Try base view
     const baseMap = baseSchemaViews[node.schemaType]
     return baseMap.customResolve && baseMap.customResolve(node, skinName) ||
         baseMap.resolve && baseMap.resolve(node, skinName) ||
         baseMap.view
+}
+
+function getSchemaTypeViewBySchema(schema: INodeSchema, skinName: string = DEFAULT_SKIN) {
+    skinName = skinName.toLowerCase()
+    const type = schema.name.toLowerCase()
+    const maps = schemaViews[type]
+    let template = maps ? (maps[skinName] || maps["default"]) : undefined
+    if (template) return template
+
+    switch(schema.type)
+    {
+        case SchemaType.Scalar:
+            if (schema.scalar?.base)
+                return getSchemaTypeViewBySchema(getCachedSchema(schema.scalar.base)!, skinName)
+            break
+        case SchemaType.Struct:
+            if (schema.struct?.base)
+            {
+                // If same fields count, use base struct view
+                const baseSchema = getCachedSchema(schema.struct.base)
+                if (baseSchema && baseSchema.struct?.fields.length === schema.struct.fields.length)
+                    return getSchemaTypeViewBySchema(baseSchema, skinName)
+            }
+            break
+    }
 }
