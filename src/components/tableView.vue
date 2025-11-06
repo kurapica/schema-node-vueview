@@ -437,7 +437,7 @@ const genRows = debounce(() => {
     const rowDatas: ITableRow[] = []
     rowCount = node.elements.length
     state.deleted.length = rowCount
-    node.elements.forEach((ele, eleIdx) => {
+    node.elements.forEach((ele: AnySchemaNode, eleIdx: number) => {
         let count = 0;
         (ele as StructNode).fields
         .filter(f => f.schemaType === SchemaType.Array)

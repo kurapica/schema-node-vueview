@@ -1,5 +1,5 @@
 <template>
-    <div v-if="!schemaNode || !loaded" ref="mask" style="width: 100%;height: 24px;">
+    <div v-if="!loaded" ref="mask" style="width: 100%;height: 24px;">
         <el-skeleton animated></el-skeleton>
     </div>
     <template v-else-if="schemaNode && !invisible">
@@ -155,10 +155,8 @@ onMounted(async () => {
 
             while(!mask.value && !loaded.value)
             {
-                console.log("wait mask", node.access, node.parent.getFieldState(node.name))
                 await new Promise(r => setTimeout(r, 100))
             }
-            console.log("observe mask", mask.value)
             if (!loaded.value){
                 observer?.observe(mask.value)
             }
