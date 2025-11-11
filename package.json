@@ -41,6 +41,6 @@
     "access": "public"
   },
   "dependencies": {
-    "schema-node": "^1.0.7"
+    "schema-node": "workspace:*"
   }
 }
