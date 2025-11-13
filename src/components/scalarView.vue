@@ -2,25 +2,41 @@
     <span v-if="state.readonly && plainText && !state.useWhiteList" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
         {{ state.display }}
     </span>
-    <el-select
-        v-else-if="state.useWhiteList"
-        v-model="data"
-        style="width: 100%;min-width: 120px;"
-        :disabled="state.readonly || state.disable"
-        :clearable="!state.require"
-        :filterable="state.asSuggest"
-        :allow-create="state.asSuggest"
-        :remote="state.enableRemote"
-        :remote-method="remoteHanlder"
-        :default-first-option="state.asSuggest"
-        :placeholder="scalarNode.selectPlaceHolder">
-        <el-option
-            v-for="item in state.whiteList?.filter(w => !isNull(typeof(w) === 'object' ? w.value : w))"
-            :key="typeof(item) === 'object' ? item.value : item"
-            :label="typeof(item) === 'object' ? _L(item.label) : item"
-            :value="typeof(item) === 'object' ? item.value : item">
-        </el-option>
-    </el-select>
+    <template v-else-if="state.useWhiteList">
+        <el-select
+            v-if="!state.cascade"
+            v-model="data"
+            style="width: 100%;min-width: 120px;"
+            :disabled="state.readonly || state.disable"
+            :clearable="!state.require"
+            :filterable="state.asSuggest"
+            :allow-create="state.asSuggest"
+            :remote="state.enableRemote"
+            :remote-method="remoteHanlder"
+            :default-first-option="state.asSuggest"
+            :placeholder="scalarNode.selectPlaceHolder">
+            <el-option
+                v-for="item in state.whiteList?.filter(w => !isNull(typeof(w) === 'object' ? w.value : w))"
+                :key="typeof(item) === 'object' ? item.value : item"
+                :label="typeof(item) === 'object' ? _L(item.label) : item"
+                :value="typeof(item) === 'object' ? item.value : item">
+            </el-option>
+        </el-select>
+        <el-cascader v-else
+            v-model="data"
+            style="width: 100%;min-width: 120px"
+            :options="state.whiteList"
+            :props="{
+                emitPath: false,
+                checkStrictly: false,
+                multiple: false,
+                lazy: false
+            }"
+            :placeholder="scalarNode.inputPlaceHolder"
+            :disabled="state.readonly"
+            :clearable="!state.require"
+        ></el-cascader>
+    </template>
     <el-input
         v-else
         v-model="data"
@@ -37,7 +53,7 @@
 <script lang="ts" setup>
 import { isNull, RelationType, ScalarNode, NODE_SELF } from 'schema-node'
 import { computed, onMounted, onUnmounted, reactive, toRaw, useSlots } from 'vue'
-import { _L } from '../locale';
+import { _L } from '../locale'
 
 // Define props
 const props = defineProps<{
@@ -69,7 +85,8 @@ const state = reactive<{
     enableRemote?: boolean,
     readonly?: boolean,
     useWhiteList?: boolean,
-    whiteList?: any[]
+    whiteList?: any[],
+    cascade?: boolean
 }>({})
 
 // Data
@@ -117,11 +134,13 @@ onMounted(() => {
             if (blackList && blackList.length)
                 list = list.filter(w => typeof(w) === "object" ? blackList.findIndex((b:any) => `${b}` === `${w.value}`) < 0 : blackList.findIndex((b:any) => `${b}` === `${w}`) < 0) as any
             state.whiteList = list
+            state.cascade = list.some(w => typeof(w) === "object" && w.children && Array.isArray(w.children) && w.children.length)
         }
         else
         {
             state.useWhiteList = false
             state.whiteList = []
+            state.cascade = false
         }
     }, true)
 })
