@@ -3,6 +3,7 @@ export * from './locale'
 
 import { ArrayNode, NS_SYSTEM_BOOL, NS_SYSTEM_DATE, NS_SYSTEM_FULLDATE,  NS_SYSTEM_LOCALE_STRING,  NS_SYSTEM_RANGEDATE, NS_SYSTEM_RANGEFULLDATE, NS_SYSTEM_RANGEMONTH, NS_SYSTEM_RANGEYEAR, NS_SYSTEM_YEAR, NS_SYSTEM_YEARMONTH, SchemaType } from 'schema-node'
 
+import anyView from './components/anyView.vue'
 import schemaView from './components/schemaView.vue'
 import scalarView from './components/scalarView.vue'
 import boolView from './components/boolView.vue'
@@ -39,6 +40,7 @@ regSchemaTypeView(NS_SYSTEM_RANGEMONTH, rangeDateView)
 regSchemaTypeView(NS_SYSTEM_RANGEDATE, rangeDateView)
 regSchemaTypeView(NS_SYSTEM_RANGEFULLDATE, rangeDateView)
 regSchemaTypeView(NS_SYSTEM_LOCALE_STRING, localstringView, undefined, true)
+regSchemaTypeView('system.schema.anyvalue', anyView)
 
 schemaView.install = (app: App): void => { 
     app.component("SchemaView", schemaView)

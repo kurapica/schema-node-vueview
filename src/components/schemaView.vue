@@ -1,6 +1,6 @@
 <template>
     <div v-if="!loaded" ref="mask" style="width: 100%;height: 24px;">
-        <el-skeleton animated></el-skeleton>
+        <el-skeleton animated v-bind="$attrs"></el-skeleton>
     </div>
     <template v-else-if="schemaNode && !invisible">
         <form-view v-if="inFormType === SchemaNodeFormType.Nest"

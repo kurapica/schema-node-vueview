@@ -158,7 +158,7 @@ const dataHandler = keyNode.subscribe(() => {
     if (isCombine.value) {
         combineData.value = { key: data }
     }
-})
+}, true)
 
 onUnmounted(() => {
     dataHandler()
