@@ -43,7 +43,6 @@
         :disabled="state.readonly || state.disable"
         style="width: 100%;"
         :placeholder="!state.readonly && !isNull(state.default) && `${state.default}` || scalarNode.inputPlaceHolder">
-    >
         <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
             <component :is="slot" v-bind="slotProps" />
         </template>
