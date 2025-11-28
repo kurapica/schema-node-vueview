@@ -95,7 +95,7 @@ const refreshTrans = () => {
     const topOrders = localStorage["schema_node_locale_orders"] ? JSON.parse(localStorage["schema_node_locale_orders"]) : []
     const translate: {[key:string]: string} = {}
 
-    transNode.submitData.forEach((item: any) => {
+    transNode.data.forEach((item: any) => {
         if (item.lang && item.tran)
             translate[item.lang] = item.tran
     })
@@ -130,17 +130,17 @@ const openTrans = async () => {
 const saveTrans = () => {
     if (keyNode.readonly) return
 
-    const submitData: any[] = []
+    const data: any[] = []
     trans.value.forEach(item => {
         if (!isNull(item.tran)) {
-            submitData.push({
+            data.push({
                 lang: item.lang,
                 tran: item.tran
             })
         }
     })
 
-    transNode.data = submitData
+    transNode.data = data
 }
 
 const movetop = (lang: string) => {
