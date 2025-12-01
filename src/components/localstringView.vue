@@ -1,5 +1,5 @@
 <template>
-    <section style="width: 100%; min-width: 120px;">
+    <section v-if="keyNode" style="width: 100%; min-width: 120px;">
         <span v-if="(keyNode.readonly && plainText)" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
             {{ _L(node.data) }}
         </span>
@@ -128,7 +128,7 @@ const openTrans = async () => {
 }
 
 const saveTrans = () => {
-    if (keyNode.readonly) return
+    if (keyNode!.readonly) return
 
     const data: any[] = []
     trans.value.forEach(item => {
@@ -152,8 +152,8 @@ const movetop = (lang: string) => {
     refreshTrans()
 }
 
-const dataHandler = keyNode.subscribe(() => {
-    const data = keyNode.rawData
+const dataHandler = keyNode!.subscribe(() => {
+    const data = keyNode!.rawData
     isCombine.value = typeof data === "string" && data.indexOf("{") >= 0
     if (isCombine.value) {
         combineData.value = { key: data }

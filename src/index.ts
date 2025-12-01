@@ -13,7 +13,7 @@ import arrayView from './components/arrayView.vue'
 import structView from './components/structView.vue'
 import rangeDateView from './components/rangeDateView.vue'
 import tableView from './components/tableView.vue'
-import { App } from 'vue'
+import { type App } from 'vue'
 import { getSubNodeFormType, regBaseSchemaTypeView, regSchemaTypeView, useSingleView } from './schemaView'
 import structFieldView from './components/structFieldView.vue'
 import localstringView from "./components/localstringView.vue"

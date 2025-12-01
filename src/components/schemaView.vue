@@ -24,8 +24,8 @@
 </template>
 
 <script setup lang="ts" name="SchemaView">
-import { isReactive, isRef, onMounted, onUnmounted, ref, shallowRef, toRaw, useSlots, watch, WatchHandle } from 'vue'
-import { AnySchemaNode, AppNode, ISchemaConfig, getSchemaNode, isAbstractSchema, isNull } from 'schema-node'
+import { isReactive, isRef, onMounted, onUnmounted, ref, shallowRef, toRaw, useSlots, watch, type WatchHandle } from 'vue'
+import { type AnySchemaNode, AppNode, type ISchemaConfig, getSchemaNode, isAbstractSchema, isNull } from 'schema-node'
 import formView from './formView.vue'
 import { SchemaNodeFormType } from '../formType'
 import { getSchemaTypeView, useSingleView } from '../schemaView'
@@ -104,7 +104,7 @@ if (!props.node)
 }
 
 onMounted(async () => {
-    let node = props.node ? toRaw(props.node) : null
+    let node = props.node ? toRaw(props.node) : undefined
     if (!node) {
         if (props.config) {
             if (!props.config.type && props.type) props.config.type = props.type
@@ -112,7 +112,7 @@ onMounted(async () => {
 
             node = await getSchemaNode(toRaw(props.config), toRaw(props.modelValue))
 
-            if (!isNull(props.value)) {
+            if (node && !isNull(props.value)) {
                 node.data = toRaw(props.value)
             }
 

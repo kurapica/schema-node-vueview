@@ -1,4 +1,4 @@
-import { AnySchemaNode, ArrayNode, getCachedSchema, INodeSchema, SchemaType, SchemaTypeValue } from "schema-node"
+import { type AnySchemaNode, ArrayNode, getCachedSchema, type INodeSchema, SchemaType, type SchemaTypeValue } from "schema-node"
 import { SchemaNodeFormType } from "./formType"
 
 export const DEFAULT_SKIN = "default"

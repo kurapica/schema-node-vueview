@@ -12,7 +12,7 @@
                             <!-- multi row -->
                             <template v-if="col.isArray && scope.row.node.getField(col.prop) && (scope.row.node.getField(col.prop) as ArrayNode).elements.length > scope.row.index">
                                 <struct-field-view
-                                    :key="((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode).getField(scol.prop).guid"
+                                    :key="((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode).getField(scol.prop)!.guid"
                                     :node="((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode)"
                                     :field="scol.prop"
                                     :in-form="inForm"
@@ -23,7 +23,7 @@
                             </template>
                             <!-- single row -->
                             <struct-field-view v-else-if="!col.isArray && scope.row.index === 0"
-                                :key="(scope.row.node.getField(col.prop) as StructNode).getField(scol.prop).guid"
+                                :key="(scope.row.node.getField(col.prop) as StructNode).getField(scol.prop)!.guid"
                                 :node="(scope.row.node.getField(col.prop) as StructNode)"
                                 :field="scol.prop"
                                 :in-form="inForm"
@@ -55,7 +55,7 @@
                     </template>
                     <template #default="scope">
                         <struct-field-view v-if="scope.row.index === 0" 
-                            :key="(scope.row.node as StructNode).getField(col.prop).guid"
+                            :key="(scope.row.node as StructNode).getField(col.prop)!.guid"
                             :node="scope.row.node"
                             :field="col.prop"
                             :in-form="inForm"
@@ -112,7 +112,7 @@
 </template>
 
 <script lang="ts" setup>
-import { AnySchemaNode, ArrayNode, clearDebounce, debounce, getSchema, ILocaleString, IStructFieldConfig, SchemaType, StructNode, subscribeLanguage } from 'schema-node'
+import { type AnySchemaNode, ArrayNode, clearDebounce, debounce, getSchema, type ILocaleString, type IStructFieldConfig, SchemaType, StructNode, subscribeLanguage } from 'schema-node'
 import { SchemaNodeFormType } from '../formType'
 import { onMounted, onUnmounted, reactive, toRaw, shallowRef, ref } from 'vue'
 import { useSingleView } from '../schemaView'

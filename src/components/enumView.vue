@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { EnumNode, getEnumAccessList, getEnumSubList, IEnumValueInfo, isEqual, IEnumValueAccess, isNull, ILocaleString, subscribeLanguage } from 'schema-node'
+import { EnumNode, getEnumAccessList, getEnumSubList, type IEnumValueInfo, isEqual, type IEnumValueAccess, isNull, type ILocaleString, subscribeLanguage } from 'schema-node'
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw } from 'vue'
 import { _L } from '../locale'
 
