@@ -14,7 +14,8 @@
             :remote="state.enableRemote"
             :remote-method="remoteHanlder"
             :default-first-option="state.asSuggest"
-            :placeholder="scalarNode.selectPlaceHolder">
+            :placeholder="scalarNode.selectPlaceHolder"
+            v-bind="$attrs">
             <el-option
                 v-for="item in state.whiteList?.filter(w => !isNull(typeof(w) === 'object' ? w.value : w))"
                 :key="typeof(item) === 'object' ? item.value : item"
@@ -28,13 +29,14 @@
             :options="state.whiteList"
             :props="{
                 emitPath: false,
-                checkStrictly: false,
+                checkStrictly: state.anyLevel,
                 multiple: false,
                 lazy: false
             }"
             :placeholder="scalarNode.inputPlaceHolder"
             :disabled="state.readonly"
             :clearable="!state.require"
+            v-bind="$attrs"
         ></el-cascader>
     </template>
     <el-input
@@ -42,7 +44,8 @@
         v-model="data"
         :disabled="state.readonly || state.disable"
         style="width: 100%;"
-        :placeholder="!state.readonly && !isNull(state.default) && `${state.default}` || scalarNode.inputPlaceHolder">
+        :placeholder="!state.readonly && !isNull(state.default) && `${state.default}` || scalarNode.inputPlaceHolder"
+        v-bind="$attrs">
         <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
             <component :is="slot" v-bind="slotProps" />
         </template>
@@ -86,6 +89,7 @@ const state = reactive<{
     useWhiteList?: boolean,
     whiteList?: any[],
     cascade?: boolean
+    anyLevel?: boolean
 }>({})
 
 // Data
@@ -134,12 +138,14 @@ onMounted(() => {
                 list = list.filter(w => typeof(w) === "object" ? blackList.findIndex((b:any) => `${b}` === `${w.value}`) < 0 : blackList.findIndex((b:any) => `${b}` === `${w}`) < 0) as any
             state.whiteList = list
             state.cascade = list.some(w => typeof(w) === "object" && w.children && Array.isArray(w.children) && w.children.length)
+            state.anyLevel = list.some(w => typeof(w) === "object" && w.children?.length && w.match)
         }
         else
         {
             state.useWhiteList = false
             state.whiteList = []
             state.cascade = false
+            state.anyLevel = false
         }
     }, true)
 })
