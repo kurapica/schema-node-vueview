@@ -231,6 +231,7 @@ onMounted(async () => {
     const primary = node.schema.array?.primary
     const fields = node.elementSchema.struct?.fields
     const columnInfos: IColumnInfo[] = []
+    const blackColumns = node.config.fieldInfo?.blackColumns || []
     let spanCols: { [key: number]: boolean } = {}
     let columnIndex = 0
     if (fields) {
@@ -239,7 +240,7 @@ onMounted(async () => {
             if (primary && primary.findIndex(p => p.toLowerCase() === f.name.toLowerCase()))
                 state.primaryFields.push(f.name)
 
-            if (!f.invisible) {
+            if (!f.invisible && blackColumns.indexOf(f.name) === -1) {
                 const columnInfo = await genColumn(f)
                 if (!columnInfo) continue
                 columnInfos.push(columnInfo)
