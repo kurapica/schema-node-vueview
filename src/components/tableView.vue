@@ -68,12 +68,12 @@
             </template>
 
             <!-- Oper -->
-            <el-table-column v-if="$slots.operator || !state.readonly && !state.disabled && !(noAdd && noDel)" :label="_L['OPER']" align="center" fixed="right" :width="operWidth || 100">
+            <el-table-column v-if="$slots.operator || !state.readonly && !state.disabled && (state.allowAdd || state.allowDel)" :label="_L['OPER']" align="center" fixed="right" :width="operWidth || 100">
                 <template #header>
-                    <a href="javascript:void(0)" v-if="!state.readonly && !noAdd" @click="addRow(arrayNode)" style="text-decoration: underline; color: lightseagreen;">{{ _L["ADD"] }}</a>
+                    <a href="javascript:void(0)" v-if="!state.readonly && state.allowAdd" @click="addRow(arrayNode)" style="text-decoration: underline; color: lightseagreen;">{{ _L["ADD"] }}</a>
                     <p v-else>{{ _L['OPER'] }}</p>
                 </template>
-                <template #default="scope" v-if="$slots.operator || !noDel">
+                <template #default="scope" v-if="$slots.operator || state.allowDel">
                     <slot name="operator" :row="scope.row.node" :index="scope.row.eleIdx">
                         <a type="danger" v-if="!noDel && !state.deleted[scope.row.eleIdx]" href="javascript:void(0)" style="padding-right: 1rem;" @click="delRow(arrayNode, scope.row.eleIdx)">{{ _L["DEL"] }}</a>
                         <a type="primary" v-else-if="!noDel && state.deleted[scope.row.eleIdx]" href="javascript:void(0)" style="padding-right: 1rem;" @click="resumeRow(arrayNode, scope.row.eleIdx)">{{ _L["RESUME"] }}</a>
@@ -202,12 +202,16 @@ const state = reactive<{
     page?: number
     pageCount?: number
     total?: number
-    deleted: boolean[]
+    deleted: boolean[],
+    allowAdd: boolean,
+    allowDel: boolean
 }>({
     columns: [],
     spanCols: {},
     primaryFields: [],
-    deleted: []
+    deleted: [],
+    allowAdd: props.noAdd ? false : true,
+    allowDel: props.noDel ? false : true
 })
 
 const newdatacolor = props.newColor || "#98d7eb"
@@ -317,6 +321,8 @@ onMounted(async () => {
     stateWatcher = node.subscribeState(() => {
         state.readonly = node.readonly
         state.disabled = node.rule.disable
+        state.allowAdd = !props.noAdd && node.allowAdd
+        state.allowDel = !props.noDel && node.allowDelete
     }, true)
 
     // lang handler
