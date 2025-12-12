@@ -49,20 +49,23 @@
                 </el-table-column>
 
                 <!-- Single row -->
-                <el-table-column v-else :prop="col.prop" :label="col.label" min-width="120" :header-align="headerAlign">
+                <el-table-column v-else :prop="col.prop" :label="col.label" min-width="120" :width="col.ref ? 120 : undefined" :header-align="headerAlign">
                     <template #header v-if="col.require">
                         <span><span style="color:red;margin-right:4px;">*</span>{{ col.label }}</span>
                     </template>
                     <template #default="scope">
-                        <struct-field-view v-if="scope.row.index === 0" 
-                            :key="(scope.row.node as StructNode).getField(col.prop)!.guid"
-                            :node="scope.row.node"
-                            :field="col.prop"
-                            :in-form="inForm"
-                            :plain-text="plainText"
-                            :skin="skin"
-                            no-label v-bind="$attrs"
-                        ></struct-field-view>
+                        <template v-if="scope.row.index === 0">
+                            <a href="javascript:void(0)" v-if="col.ref" @click="openRef(scope.row.node, col.prop)">{{ col.label }}</a>
+                            <struct-field-view v-else
+                                :key="(scope.row.node as StructNode).getField(col.prop)!.guid"
+                                :node="scope.row.node"
+                                :field="col.prop"
+                                :in-form="inForm"
+                                :plain-text="plainText"
+                                :skin="skin"
+                                no-label v-bind="$attrs"
+                            ></struct-field-view>
+                        </template>
                     </template>
                 </el-table-column>
             </template>
@@ -90,6 +93,29 @@
                         <div class="draw-view">
                             <schema-view
                                 :node="(prepareRow as StructNode)"
+                                in-form="expandall"
+                                plain-text="left"
+                            ></schema-view>
+                        </div>
+                    </el-form>
+                </el-main>
+                <el-footer>
+                    <br/>
+                    <el-button type="primary" @click="savePrepareRow">{{ _L["SAVE"] }}</el-button>
+                    <el-button @click="closePrepareRow">{{ _L["CANCEL"] }}</el-button>
+                </el-footer>
+            </el-container>
+        </el-drawer>
+
+        <el-drawer v-model="showRefNode" :close-on-click-modal="false" size="100%" :title="_L(refNode?.display?.key ? refNode.display : refNode?.name)" append-to-body @closed="closeRefNode">
+            <el-container class="main" style="height: 80vh;">
+                <el-main>
+                    <el-form  v-if="refNode" ref="editorRef" :model="refNode.rawData" label-width="160"
+                        label-position="left" style="width: 100%; height: 90%;">
+                        <div class="draw-view">
+                            <schema-view
+                                :key="refNode.guid"
+                                :node="refNode"
                                 in-form="expandall"
                                 plain-text="left"
                             ></schema-view>
@@ -245,7 +271,7 @@ onMounted(async () => {
                 state.primaryFields.push(f.name)
 
             if (!f.invisible && blackColumns.indexOf(f.name) === -1) {
-                const columnInfo = await genColumn(f)
+                const columnInfo = await genColumn(f, false, node.isReferenceField(f.name))
                 if (!columnInfo) continue
                 columnInfos.push(columnInfo)
 
@@ -381,14 +407,14 @@ const closePrepareRow = () => {
 }
 
 // gen columns
-const genColumn = async (field: IStructFieldConfig, skipSub?: boolean) => {
+const genColumn = async (field: IStructFieldConfig, skipSub?: boolean, ref?: boolean) => {
     const unit = _L.value(field.unit)
-    const column: IColumnInfo = { prop: field.name, display: field.display, unit: field.unit, label: `${_L.value(field.display) || field.name}${unit ? `(${unit})` : ''}`, require: field.require || false }
+    const column: IColumnInfo = { prop: field.name, display: field.display, unit: field.unit, label: `${_L.value(field.display) || field.name}${unit ? `(${unit})` : ''}`, require: field.require || false, ref }
     let schema = await getSchema(field.type)
     if (!schema) return null
 
     // gen sub columns
-    if (!skipSub) {
+    if (!skipSub && !ref) {
         if (!useSingleView(schema, props.skin)) {
             if (schema.type === SchemaType.Array) {
                 column.isArray = true
@@ -478,6 +504,24 @@ const getRowStyle = (data:any) =>{
   return state.deleted[data.row.eleIdx] ? { backgroundColor: deldatacolor } : null
 }
 
+const refRow = ref<StructNode | null>(null)
+const refNode = ref<ArrayNode | null>(null)
+const showRefNode = ref(false)
+const openRef = async (node: StructNode, prop: string) => {
+    const rnode = await arrayNode.getReferenceNode(node, prop) as ArrayNode
+    if (!rnode) return
+    refRow.value = node
+    refNode.value = rnode
+    showRefNode.value = true
+}
+
+const closeRefNode = () => {
+    showRefNode.value = false
+    refRow.value = null
+    refNode.value?.dispose()
+    refNode.value = null
+}
+
 interface IColumnInfo {
     prop: string
     display?: ILocaleString
@@ -486,6 +530,7 @@ interface IColumnInfo {
     require: boolean
     isArray?: boolean
     subCols?: IColumnInfo[]
+    ref?: boolean
 }
 
 interface ITableRow {

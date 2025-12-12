@@ -144,7 +144,6 @@ onMounted(async () => {
                 {
                     observer?.disconnect()
                     observer = null;
-
                     await (node!.parent as AppNode).reload([node!], true)
                     loaded.value = true
                 }
@@ -163,7 +162,6 @@ onMounted(async () => {
         }
     }
 
-    schemaNode.value = node || null
     if (!node) return
 
     // active rule when display
@@ -188,6 +186,7 @@ onMounted(async () => {
         setTimeout(() => updatevalue = false, 20)
     })
     stateWatcher = node.subscribeState(() => invisible.value = node.invisible, true)
+    schemaNode.value = node || null
 })
 
 onUnmounted(() => {
