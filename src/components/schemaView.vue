@@ -1,5 +1,5 @@
 <template>
-    <div v-if="!loaded" ref="mask" style="width: 100%;height: 24px;">
+    <div v-if="!loaded && !invisible" ref="mask" style="width: 100%;height: 24px;">
         <el-skeleton animated v-bind="$attrs"></el-skeleton>
     </div>
     <template v-else-if="schemaNode && !invisible">
@@ -93,6 +93,7 @@ let dataWatcher: Function | null = null
 let stateWatcher: Function | null = null
 let configWatcher: WatchHandle | null = null
 let updatevalue = false
+let timeOut: number | null = null
 
 if (!props.node)
 {
@@ -139,26 +140,34 @@ onMounted(async () => {
             loaded.value = false
             const root = typeof(props.rootDiv) === "string" ? document.querySelector(props.rootDiv) : props.rootDiv
 
-            observer = new IntersectionObserver(async ([entry]) => {
-                if(entry && entry.isIntersecting)
+            const buildObserver = async ([entry]: any) => {
+                observer?.disconnect()
+                observer = null;
+
+                if ((node?.parent as AppNode).isFieldLoaded(node!.name))
                 {
-                    observer?.disconnect()
-                    observer = null;
+                    loaded.value = true
+                    return
+                }
+
+                if(entry && entry.isIntersecting && !node?.invisible)
+                {
                     await (node!.parent as AppNode).reload([node!], true)
                     loaded.value = true
                 }
-            }, {
-                rootMargin: "0px 0px 100px 0px",
-                root,
-            })
-
-            while(!mask.value && !loaded.value)
-            {
-                await new Promise(r => setTimeout(r, 100))
+                else
+                {
+                    while(!mask.value && !loaded.value)
+                        await new Promise(r => timeOut = setTimeout(r, 100))
+                    
+                    observer = new IntersectionObserver(buildObserver, {
+                        rootMargin: "0px 0px 100px 0px",
+                        root,
+                    })
+                    observer.observe(mask.value)
+                }
             }
-            if (!loaded.value){
-                observer?.observe(mask.value)
-            }
+            buildObserver([])
         }
     }
 
@@ -184,6 +193,10 @@ onMounted(async () => {
         updatevalue = true
         emit('update:modelValue', node.data)
         setTimeout(() => updatevalue = false, 20)
+        if (!loaded.value && node.parent instanceof AppNode && node.parent.isFieldLoaded(node.name)) {
+            console.log("node loaded:", node.name)
+            loaded.value = true
+        }
     })
     stateWatcher = node.subscribeState(() => invisible.value = node.invisible, true)
     schemaNode.value = node || null
@@ -194,6 +207,7 @@ onUnmounted(() => {
     if (dataWatcher) dataWatcher()
     if (configWatcher) configWatcher()
     if (stateWatcher) stateWatcher()
+    if (timeOut) clearTimeout(timeOut)
 })
 
 
