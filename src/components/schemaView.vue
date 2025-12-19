@@ -29,6 +29,7 @@ import { type AnySchemaNode, AppNode, type ISchemaConfig, getSchemaNode, isAbstr
 import formView from './formView.vue'
 import { SchemaNodeFormType } from '../formType'
 import { getSchemaTypeView, useSingleView } from '../schemaView'
+import { _L } from '../locale'
 
 // props
 const props = defineProps<{
@@ -159,6 +160,7 @@ onMounted(async () => {
                 {
                     while(!mask.value && !loaded.value)
                         await new Promise(r => timeOut = setTimeout(r, 100))
+                    if (loaded.value) return
                     
                     observer = new IntersectionObserver(buildObserver, {
                         rootMargin: "0px 0px 100px 0px",
@@ -194,7 +196,6 @@ onMounted(async () => {
         emit('update:modelValue', node.data)
         setTimeout(() => updatevalue = false, 20)
         if (!loaded.value && node.parent instanceof AppNode && node.parent.isFieldLoaded(node.name)) {
-            console.log("node loaded:", node.name)
             loaded.value = true
         }
     })

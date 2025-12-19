@@ -1,5 +1,5 @@
 <template>
-    <span v-if="state.readonly && plainText && !state.useWhiteList" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
+    <span v-if="(disabled || state.readonly) && plainText && !state.useWhiteList" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
         {{ state.display }}
     </span>
     <template v-else-if="state.useWhiteList">
@@ -7,7 +7,7 @@
             v-if="!state.cascade"
             v-model="data"
             style="width: 100%;min-width: 120px;"
-            :disabled="state.readonly || state.disable"
+            :disabled="disabled || state.readonly || state.disable"
             :clearable="!state.require"
             :filterable="state.asSuggest"
             :allow-create="state.asSuggest"
@@ -34,7 +34,7 @@
                 lazy: false
             }"
             :placeholder="scalarNode.inputPlaceHolder"
-            :disabled="state.readonly"
+            :disabled="disabled || state.readonly"
             :clearable="!state.require"
             v-bind="$attrs"
         ></el-cascader>
@@ -42,7 +42,7 @@
     <el-input
         v-else
         v-model="data"
-        :disabled="state.readonly || state.disable"
+        :disabled="disabled || state.readonly || state.disable"
         style="width: 100%;"
         :placeholder="!state.readonly && !isNull(state.default) && `${state.default}` || scalarNode.inputPlaceHolder"
         v-bind="$attrs">
@@ -63,6 +63,11 @@ const props = defineProps<{
      * Scalar schema node
      */
     node: ScalarNode,
+
+    /**
+     * Display readon only value as plain text alignment. false - not use plain text display, 'left' | 'center' | 'right' - alignment
+     */
+    disabled?: boolean,
 
     /**
      * Display readon only value as plain text

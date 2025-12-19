@@ -1,11 +1,11 @@
 <template>
-    <span v-if="state.readonly && plainText" :style="{ 'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
+    <span v-if="(disabled || state.readonly) && plainText" :style="{ 'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
         {{ state.data ? _L['YES'] : _L['NO'] }}
     </span>
     <section v-else-if="state.require || !isNull(state.default)"  :style="{ 'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
         <el-switch 
             v-model="data" 
-            :disabled="state.readonly || state.disable"
+            :disabled="disabled || state.readonly || state.disable"
             active-color="#13ce66" 
             inactive-color="#ff4949">
         </el-switch>
@@ -15,7 +15,7 @@
         style="width: 100%;" 
         clearable
         :placeholder="scalarNode.selectPlaceHolder"
-        :disabled="state.readonly || state.disable">
+        :disabled="disabled || state.readonly || state.disable">
         <el-option :label="_L['YES']" :value="true" />
         <el-option :label="_L['NO']" :value="false" />
     </el-select>
@@ -32,6 +32,11 @@ const props = defineProps<{
      * Scalar schema node
      */
     node: ScalarNode,
+
+    /**
+     * Disable input
+     */
+    disabled?: boolean,
 
     /**
      * Display readon only value as plain text

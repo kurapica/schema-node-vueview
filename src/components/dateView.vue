@@ -1,5 +1,5 @@
 <template>
-    <span v-if="state.readonly && plainText"
+    <span v-if="(disabled || state.readonly) && plainText"
         :style="{ 'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
         {{ state.display }}
     </span>

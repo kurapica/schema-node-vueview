@@ -1,7 +1,7 @@
 <template>
     <section style="width: 100%;">
         <el-table :data="rows" :span-method="spanMethod" :row-style="getRowStyle" style="width: 100%;" v-bind="$attrs">
-            <template v-for="col in state.columns">
+            <template v-for="col in state.columns.filter(v => !v.invisible)" :key="col.prop">
                 <!-- with sub cols -->
                 <el-table-column v-if="col.subCols && col.subCols.length" :prop="col.prop" :label="col.label" :header-align="headerAlign">
                     <el-table-column v-for="scol in col.subCols" :prop="`${col.prop}.${scol.prop}`" :label="scol.label" min-width="120" :header-align="headerAlign">
@@ -18,6 +18,7 @@
                                     :in-form="inForm"
                                     :plain-text="plainText"
                                     :skin="skin"
+                                    :disabled="state.readonly || state.disabled"
                                     no-label v-bind="$attrs"
                                 ></struct-field-view>
                             </template>
@@ -29,6 +30,7 @@
                                 :in-form="inForm"
                                 :plain-text="plainText"
                                 :skin="skin"
+                                :disabled="state.readonly || state.disabled"
                                 no-label v-bind="$attrs"
                             ></struct-field-view>
                         </template>
@@ -63,6 +65,7 @@
                                 :in-form="inForm"
                                 :plain-text="plainText"
                                 :skin="skin"
+                                :disabled="state.readonly || state.disabled"
                                 no-label v-bind="$attrs"
                             ></struct-field-view>
                         </template>
@@ -112,6 +115,14 @@
                 <el-main>
                     <el-form  v-if="refNode" ref="editorRef" :model="refNode.rawData" label-width="160"
                         label-position="left" style="width: 100%; height: 90%;">
+                        <template v-for="col in state.columns.filter(c => !c.ref)" :key="col.name">
+                            <schema-view
+                                :node="(refRow as StructNode).getField(col.prop)"
+                                in-form="nest"
+                                :disabled="true"
+                                v-bind="$attrs"
+                            ></schema-view>
+                        </template>
                         <div class="draw-view">
                             <schema-view
                                 :key="refNode.guid"
@@ -124,8 +135,8 @@
                 </el-main>
                 <el-footer>
                     <br/>
-                    <el-button type="primary" @click="savePrepareRow">{{ _L["SAVE"] }}</el-button>
-                    <el-button @click="closePrepareRow">{{ _L["CANCEL"] }}</el-button>
+                    <el-button type="primary" v-if="!refNode?.readonly" @click="saveRefNode">{{ _L["SAVE"] }}</el-button>
+                    <el-button @click="closeRefNode">{{ _L["CANCEL"] }}</el-button>
                 </el-footer>
             </el-container>
         </el-drawer>
@@ -230,14 +241,16 @@ const state = reactive<{
     total?: number
     deleted: boolean[],
     allowAdd: boolean,
-    allowDel: boolean
+    allowDel: boolean,
+    filter: { [key: string]: any },
 }>({
     columns: [],
     spanCols: {},
     primaryFields: [],
     deleted: [],
     allowAdd: props.noAdd ? false : true,
-    allowDel: props.noDel ? false : true
+    allowDel: props.noDel ? false : true,
+    filter: {}
 })
 
 const newdatacolor = props.newColor || "#98d7eb"
@@ -262,6 +275,10 @@ onMounted(async () => {
     const fields = node.elementSchema.struct?.fields
     const columnInfos: IColumnInfo[] = []
     const blackColumns = node.config.fieldInfo?.blackColumns || []
+
+    // auto filter
+    state.filter = node.query || {}
+
     let spanCols: { [key: number]: boolean } = {}
     let columnIndex = 0
     if (fields) {
@@ -273,6 +290,7 @@ onMounted(async () => {
             if (!f.invisible && blackColumns.indexOf(f.name) === -1) {
                 const columnInfo = await genColumn(f, false, node.isReferenceField(f.name))
                 if (!columnInfo) continue
+                if (state.filter[columnInfo.prop]) columnInfo.invisible = true
                 columnInfos.push(columnInfo)
 
                 if (columnInfo.subCols) {
@@ -303,6 +321,30 @@ onMounted(async () => {
         state.total = node.total
         state.page = node.page
         state.pageCount = node.pageCount
+
+        state.disabled = node.rule.disable || !node.allowUpdate
+        state.allowAdd = !props.noAdd && node.allowAdd
+        state.allowDel = !props.noDel && node.allowDelete
+
+        const filter = node.query || {}
+        if (JSON.stringify(filter) !== JSON.stringify(state.filter))
+        {
+            state.filter = filter
+            let changed = false
+            const columns = state.columns.map(c => {
+                const ret = { ...c }
+                if (state.filter[ret.prop] && !ret.invisible) {
+                    ret.invisible = true
+                    changed = true
+                }
+                else if (ret.invisible) {
+                    ret.invisible = false
+                    changed = true
+                }
+                return ret
+            })
+            if (changed) state.columns = columns
+        }
 
         if (count !== rowCount || action === "swap") {
             rowCount = count
@@ -346,7 +388,7 @@ onMounted(async () => {
     // state handler
     stateWatcher = node.subscribeState(() => {
         state.readonly = node.readonly
-        state.disabled = node.rule.disable
+        state.disabled = node.rule.disable || !node.allowUpdate
         state.allowAdd = !props.noAdd && node.allowAdd
         state.allowDel = !props.noDel && node.allowDelete
     }, true)
@@ -374,7 +416,7 @@ const addRow = (arrayNode: ArrayNode) => {
         showPrepareRow.value = true
         return
     }
-    toRaw(arrayNode).addRow()
+    toRaw(arrayNode).addRow(undefined, {...state.filter})
     genRows()
 }
 
@@ -522,6 +564,13 @@ const closeRefNode = () => {
     refNode.value = null
 }
 
+const saveRefNode = async () => {
+    if (refNode.value && refNode.value.valid) {
+        await refNode.value.saveChanges()
+        closeRefNode()
+    }
+}
+
 interface IColumnInfo {
     prop: string
     display?: ILocaleString
@@ -530,7 +579,8 @@ interface IColumnInfo {
     require: boolean
     isArray?: boolean
     subCols?: IColumnInfo[]
-    ref?: boolean
+    ref?: boolean,
+    invisible?: boolean
 }
 
 interface ITableRow {

@@ -1,6 +1,6 @@
 <template>
     <section v-if="keyNode" style="width: 100%; min-width: 120px;">
-        <span v-if="(keyNode.readonly && plainText)" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
+        <span v-if="(disabled || keyNode.readonly) && plainText" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
             {{ _L(node.data) }}
         </span>
         <span v-else-if="isCombine && !showCombineKey" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
@@ -12,6 +12,7 @@
             :key="localeNode.guid"
             :node="keyNode"
             :plainText="plainText"
+            :disabled="disabled"
             v-bind="$attrs">
             <template #append>
                 <a v-if="isCombine" href="javascript:void(0)" @click="showCombineKey = false">{{ _L["CONFIRM"] }}</a>
@@ -19,7 +20,7 @@
             </template>
         </schema-view>
 
-        <template v-if="keyNode.readonly && plainText">
+        <template v-if="(disabled || keyNode.readonly) && plainText">
             <a href="javascript:void(0)" style="position: absolute; right: 1rem" @click="openTrans">{{ _L["system.localetran.tran"] }}</a>
         </template>
         <template v-else-if="isCombine && !showCombineKey">
@@ -35,7 +36,7 @@
                             <el-table-column :label="_L['system.localetran.lang']" prop="label" min-width="120" />
                             <el-table-column :label="_L['system.localetran.tran']" min-width="300">
                                 <template #default="scope">
-                                    <el-input v-if="!keyNode.readonly" v-model="scope.row.tran"></el-input>
+                                    <el-input v-if="!(disabled || keyNode.readonly)" v-model="scope.row.tran"></el-input>
                                     <span v-else>{{ scope.row.tran }}</span>
                                 </template>
                             </el-table-column>
@@ -67,6 +68,11 @@ const props = defineProps<{
      * Struct Schema node
      */
     node: StructNode,
+
+    /**
+     * Disable input
+     */
+    disabled?: boolean,
 
     /**
      * Display readon only value as plain text
