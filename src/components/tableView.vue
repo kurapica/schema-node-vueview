@@ -149,7 +149,7 @@
 </template>
 
 <script lang="ts" setup>
-import { type AnySchemaNode, ArrayNode, clearDebounce, debounce, getSchema, type ILocaleString, type IStructFieldConfig, SchemaType, StructNode, subscribeLanguage } from 'schema-node'
+import { type AnySchemaNode, AppNode, ArrayNode, clearDebounce, debounce, getSchema, type ILocaleString, type IStructFieldConfig, SchemaType, StructNode, subscribeLanguage } from 'schema-node'
 import { SchemaNodeFormType } from '../formType'
 import { onMounted, onUnmounted, reactive, toRaw, shallowRef, ref } from 'vue'
 import { useSingleView } from '../schemaView'
@@ -565,8 +565,12 @@ const closeRefNode = () => {
 }
 
 const saveRefNode = async () => {
-    if (refNode.value && refNode.value.valid) {
-        await refNode.value.saveChanges()
+    if (refNode.value && refNode.value.valid && refNode.value.changed) {
+        let appNode = arrayNode.parent
+        while (appNode && !(appNode instanceof AppNode))
+            appNode = appNode.parent
+        if (appNode)
+            await appNode.submit([refNode.value as ArrayNode])
         closeRefNode()
     }
 }
