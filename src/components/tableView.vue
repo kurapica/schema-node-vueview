@@ -115,7 +115,7 @@
                 <el-main>
                     <el-form  v-if="refNode" ref="editorRef" :model="refNode.rawData" label-width="160"
                         label-position="left" style="width: 100%; height: 90%;">
-                        <template v-for="col in state.columns.filter(c => !c.ref)" :key="col.name">
+                        <template v-for="col in state.columns.filter(c => !c.ref && c.require)" :key="col.name">
                             <schema-view
                                 :node="(refRow as StructNode).getField(col.prop)"
                                 in-form="nest"
@@ -242,7 +242,6 @@ const state = reactive<{
     deleted: boolean[],
     allowAdd: boolean,
     allowDel: boolean,
-    filter: { [key: string]: any },
 }>({
     columns: [],
     spanCols: {},
@@ -250,7 +249,6 @@ const state = reactive<{
     deleted: [],
     allowAdd: props.noAdd ? false : true,
     allowDel: props.noDel ? false : true,
-    filter: {}
 })
 
 const newdatacolor = props.newColor || "#98d7eb"
@@ -266,6 +264,8 @@ let rowCount = 0
 let rowWatches: { guid: string, array: Function[] }[] = []
 const showPrepareRow = ref(false)
 const prepareRow = ref<StructNode | null>(null)
+let queryFilter: { [key: string]: any } = {}
+let blackColumns: string[] = []
 
 onMounted(async () => {
     const node = arrayNode
@@ -274,10 +274,10 @@ onMounted(async () => {
     const primary = node.schema.array?.primary
     const fields = node.elementSchema.struct?.fields
     const columnInfos: IColumnInfo[] = []
-    const blackColumns = node.config.fieldInfo?.blackColumns || []
+    blackColumns = [...node.blackColumns]
 
     // auto filter
-    state.filter = node.query || {}
+    queryFilter = node.query || {}
 
     let spanCols: { [key: number]: boolean } = {}
     let columnIndex = 0
@@ -290,7 +290,7 @@ onMounted(async () => {
             if (!f.invisible && blackColumns.indexOf(f.name) === -1) {
                 const columnInfo = await genColumn(f, false, node.isReferenceField(f.name))
                 if (!columnInfo) continue
-                if (state.filter[columnInfo.prop]) columnInfo.invisible = true
+                if (queryFilter[columnInfo.prop] && !Array.isArray(queryFilter[columnInfo.prop])) columnInfo.invisible = true
                 columnInfos.push(columnInfo)
 
                 if (columnInfo.subCols) {
@@ -327,15 +327,18 @@ onMounted(async () => {
         state.allowDel = !props.noDel && node.allowDelete
 
         const filter = node.query || {}
-        if (JSON.stringify(filter) !== JSON.stringify(state.filter))
+        if (JSON.stringify(filter) !== JSON.stringify(queryFilter) || blackColumns.length !== node.blackColumns.length || blackColumns.some(c => node.blackColumns.indexOf(c) === -1))
         {
-            state.filter = filter
+            queryFilter = filter
+            blackColumns = [...node.blackColumns]
             let changed = false
             const columns = state.columns.map(c => {
                 const ret = { ...c }
-                if (state.filter[ret.prop] && !ret.invisible) {
-                    ret.invisible = true
-                    changed = true
+                if ((queryFilter[ret.prop] && !Array.isArray(queryFilter[ret.prop])) || blackColumns.indexOf(ret.prop) >= 0) {
+                    if (!ret.invisible){
+                        ret.invisible = true
+                        changed = true
+                    }
                 }
                 else if (ret.invisible) {
                     ret.invisible = false
@@ -416,7 +419,7 @@ const addRow = (arrayNode: ArrayNode) => {
         showPrepareRow.value = true
         return
     }
-    toRaw(arrayNode).addRow(undefined, {...state.filter})
+    toRaw(arrayNode).addRow(undefined, {...queryFilter})
     genRows()
 }
 
