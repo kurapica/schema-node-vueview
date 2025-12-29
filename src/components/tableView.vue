@@ -415,7 +415,7 @@ onUnmounted(() => {
 const addRow = (arrayNode: ArrayNode) => {
     if (arrayNode.incrUpdate)
     {
-        prepareRow.value = arrayNode.prepareRow() as StructNode
+        prepareRow.value = arrayNode.prepareRow({...queryFilter}) as StructNode
         showPrepareRow.value = true
         return
     }
