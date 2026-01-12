@@ -1,6 +1,6 @@
 <template>
-    <span v-if="(disabled || state.readonly) && plainText && !state.useWhiteList" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
-        {{ state.display }}
+    <span v-if="(disabled || state.readonly) && plainText" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
+        {{ state.whiteList ? _L(state.whiteList.find(w => typeof(w) == 'object' && w.value == state.display)?.label ?? state.display) : state.display }}
     </span>
     <template v-else-if="state.useWhiteList">
         <el-select

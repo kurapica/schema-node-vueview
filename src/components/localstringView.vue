@@ -160,7 +160,7 @@ const movetop = (lang: string) => {
 
 const dataHandler = keyNode!.subscribe(() => {
   const data = keyNode!.rawData
-  displayData.value = localeNode.rawData
+  displayData.value = localeNode.data
   isCombine.value = typeof data === "string" && data.indexOf("{") >= 0
   if (isCombine.value) {
     combineData.value = { key: data }
