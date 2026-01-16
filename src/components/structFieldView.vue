@@ -1,5 +1,5 @@
 <template>
-    <schema-view 
+    <schema-view v-if="fldnode && fldnode.guid"
         :key="fldnode.guid"
         :node="(fldnode as AnySchemaNode)"
         :in-form="getSubNodeFormType(fldnode as AnySchemaNode, inForm, skin)"
