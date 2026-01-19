@@ -1,230 +1,118 @@
 <template>
   <section style="width: 100%">
-    <el-form :inline="true"  v-if="filters.length">
-        <template v-for="filter in filters">
-            <template v-for="node in filter.nodes" :key="node.guid">
-                <schema-view
-                    :node="node"
-                    plain-text="left"
-                    :in-form="true"
-                </schema-view>
-            </template>
-        </template> 
-        <el-form-item v-if="!autoFilter">
-            <el-button @click="arrayNode.processFilter()" type="primary">{{ _L["QUERY"] }}</el-button>
-        </el-form-item>
+    <el-form :inline="true" style="text-align: left;" v-if="filters.length">
+      <template v-for="filter in filters">
+        <template v-for="node in filter.nodes" :key="node.guid">
+          <schema-view :node="node" plain-text="left" :in-form="true" </schema-view>
+        </template>
+      </template>
+      <el-form-item v-if="!autoFilter">
+        <el-button @click="arrayNode.processFilter()" type="primary">{{ _L["QUERY"] }}</el-button>
+      </el-form-item>
     </el-form>
-    <el-table
-      :data="rows"
-      :span-method="spanMethod"
-      :row-style="getRowStyle"
-      style="width: 100%"
-      v-bind="$attrs"
-    >
-      <template
-        v-for="col in state.columns.filter((v) => !v.invisible)"
-        :key="col.prop"
-      >
+    <el-table :data="rows" :span-method="spanMethod" :row-style="getRowStyle" style="width: 100%" v-bind="$attrs">
+      <template v-for="col in state.columns.filter((v) => !v.invisible)" :key="col.prop">
         <!-- with sub cols -->
-        <el-table-column
-          v-if="col.subCols && col.subCols.length"
-          :prop="col.prop"
-          :label="col.label"
-          :header-align="headerAlign"
-        >
-          <el-table-column
-            v-for="scol in col.subCols"
-            :prop="`${col.prop}.${scol.prop}`"
-            :label="scol.label"
-            min-width="120"
-            :header-align="headerAlign"
-          >
+        <el-table-column v-if="col.subCols && col.subCols.length" :prop="col.prop" :label="col.label"
+          :header-align="headerAlign">
+          <el-table-column v-for="scol in col.subCols" :prop="`${col.prop}.${scol.prop}`" :label="scol.label"
+            min-width="120" :header-align="headerAlign" show-overflow-tooltip>
             <template #header v-if="scol.require">
-              <span
-                ><span style="color: red; margin-right: 4px">*</span
-                >{{ scol.label }}</span
-              >
+              <span><span style="color: red; margin-right: 4px">*</span>{{ scol.label }}</span>
             </template>
             <template #default="scope">
               <!-- multi row -->
               <template
-                v-if="col.isArray && scope.row.node.getField(col.prop) && (scope.row.node.getField(col.prop) as ArrayNode).elements.length > scope.row.index"
-              >
+                v-if="col.isArray && scope.row.node.getField(col.prop) && (scope.row.node.getField(col.prop) as ArrayNode).elements.length > scope.row.index">
                 <struct-field-view
                   :key="((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode).getField(scol.prop)!.guid"
                   :node="((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode)"
-                  :field="scol.prop"
-                  :in-form="inForm"
-                  :plain-text="plainText"
-                  :skin="skin"
-                  :disabled="state.readonly || state.disabled"
-                  no-label
-                  v-bind="$attrs"
-                ></struct-field-view>
+                  :field="scol.prop" :in-form="inForm" :plain-text="plainText" :skin="skin"
+                  :disabled="state.readonly || state.disabled" no-label v-bind="$attrs"></struct-field-view>
               </template>
               <!-- single row -->
-              <struct-field-view
-                v-else-if="!col.isArray && scope.row.index === 0"
+              <struct-field-view v-else-if="!col.isArray && scope.row.index === 0"
                 :key="(scope.row.node.getField(col.prop) as StructNode).getField(scol.prop)!.guid"
-                :node="(scope.row.node.getField(col.prop) as StructNode)"
-                :field="scol.prop"
-                :in-form="inForm"
-                :plain-text="plainText"
-                :skin="skin"
-                :disabled="state.readonly || state.disabled"
-                no-label
-                v-bind="$attrs"
-              ></struct-field-view>
+                :node="(scope.row.node.getField(col.prop) as StructNode)" :field="scol.prop" :in-form="inForm"
+                :plain-text="plainText" :skin="skin" :disabled="state.readonly || state.disabled" no-label
+                v-bind="$attrs"></struct-field-view>
             </template>
           </el-table-column>
 
-          <el-table-column
-            v-if="
-              col.isArray &&
-              !state.readonly &&
-              !state.disabled &&
-              !(noSubAdd && noSubDel)
-            "
-            :label="_L['OPER']"
-            align="center"
-            width="100"
-          >
+          <el-table-column v-if="
+            col.isArray &&
+            !state.readonly &&
+            !state.disabled &&
+            !(noSubAdd && noSubDel)
+          " :label="_L['OPER']" align="center" width="100">
             <template #default="scope">
               <template v-if="scope.row.node.getField(col.prop)">
-                <a
-                  href="javascript:void(0)"
-                  style="color: lightseagreen"
+                <a href="javascript:void(0)" style="color: lightseagreen"
                   v-if="!noSubAdd && (scope.row.node.getField(col.prop) as ArrayNode).elements.length == scope.row.index"
                   @click="
                     addRow(scope.row.node.getField(col.prop) as ArrayNode)
-                  "
-                  >{{ _L["ADD"] }}</a
-                >
-                <a
-                  href="javascript:void(0)"
-                  style="color: red"
+                    ">{{ _L["ADD"] }}</a>
+                <a href="javascript:void(0)" style="color: red"
                   v-else-if="!noSubDel && (scope.row.node.getField(col.prop) as ArrayNode).elements.length > scope.row.index"
                   @click="
                     delRow(
                       scope.row.node.getField(col.prop) as ArrayNode,
                       scope.row.index
                     )
-                  "
-                  >{{ _L["DEL"] }}</a
-                >
+                    ">{{ _L["DEL"] }}</a>
               </template>
             </template>
           </el-table-column>
         </el-table-column>
 
         <!-- Single row -->
-        <el-table-column
-          v-else
-          :prop="col.prop"
-          :label="col.label"
-          min-width="120"
-          :width="col.ref ? 120 : undefined"
-          :header-align="headerAlign"
-        >
+        <el-table-column v-else :prop="col.prop" :label="col.label" min-width="120" :width="col.ref ? 120 : undefined"
+          :header-align="headerAlign" show-overflow-tooltip>
           <template #header v-if="col.require">
-            <span
-              ><span style="color: red; margin-right: 4px">*</span
-              >{{ col.label }}</span
-            >
+            <span><span style="color: red; margin-right: 4px">*</span>{{ col.label }}</span>
           </template>
           <template #default="scope">
             <template v-if="scope.row.index === 0">
-              <a
-                href="javascript:void(0)"
-                v-if="col.ref"
-                @click="openRef(scope.row.node, col.prop)"
-                >{{ col.label }}</a
-              >
-              <struct-field-view
-                v-else
-                :key="(scope.row.node as StructNode).getField(col.prop)!.guid"
-                :node="scope.row.node"
-                :field="col.prop"
-                :in-form="inForm"
-                :plain-text="plainText"
-                :skin="skin"
-                :disabled="state.readonly || state.disabled"
-                no-label
-                v-bind="$attrs"
-              ></struct-field-view>
+              <a href="javascript:void(0)" v-if="col.ref" @click="openRef(scope.row.node, col.prop)">{{ col.label }}</a>
+              <struct-field-view v-else :key="(scope.row.node as StructNode).getField(col.prop)!.guid"
+                :node="scope.row.node" :field="col.prop" :in-form="inForm" :plain-text="plainText" :skin="skin"
+                :disabled="state.readonly || state.disabled" no-label v-bind="$attrs"></struct-field-view>
             </template>
           </template>
         </el-table-column>
       </template>
 
       <!-- Oper -->
-      <el-table-column
-        v-if="
-          $slots.operator ||
-          (!state.readonly &&
-            !state.disabled &&
-            (state.allowAdd || state.allowDel))
-        "
-        :label="_L['OPER']"
-        align="center"
-        fixed="right"
-        :width="operWidth || 100"
-      >
+      <el-table-column v-if="
+        $slots.operator ||
+        (!state.readonly &&
+          !state.disabled &&
+          (state.allowAdd || state.allowDel))
+      " :label="_L['OPER']" align="center" fixed="right" :width="operWidth || 100">
         <template #header>
-          <!-- <a
-            href="javascript:void(0)"
-            v-if="!state.readonly && state.allowAdd"
-            @click="addRow(arrayNode)"
-            style="text-decoration: underline; color: lightseagreen"
-            >{{ _L["ADD"] }}</a
-          > -->
-          <p>{{ _L["OPER"] }}</p>
+          <a href="javascript:void(0)" v-if="!state.readonly && state.allowAdd" @click="addRow(arrayNode)"
+            style="text-decoration: underline; color: lightseagreen">{{ _L["ADD"] }}</a>
+          <p v-else>{{ _L["OPER"] }}</p>
         </template>
         <template #default="scope" v-if="$slots.operator || state.allowDel">
           <slot name="operator" :row="scope.row.node" :index="scope.row.eleIdx">
-            <a
-              type="danger"
-              v-if="!noDel && !state.deleted[scope.row.eleIdx]"
-              href="javascript:void(0)"
-              @click="delRow(arrayNode, scope.row.eleIdx)"
-              >{{ _L["DEL"] }}</a
-            >
-            <a
-              type="primary"
-              v-else-if="!noDel && state.deleted[scope.row.eleIdx]"
-              href="javascript:void(0)"
-              @click="resumeRow(arrayNode, scope.row.eleIdx)"
-              >{{ _L["RESUME"] }}</a
-            >
+            <a type="danger" v-if="!noDel && !state.deleted[scope.row.eleIdx]" href="javascript:void(0)"
+              @click="delRow(arrayNode, scope.row.eleIdx)">{{ _L["DEL"] }}</a>
+            <a type="primary" v-else-if="!noDel && state.deleted[scope.row.eleIdx]" href="javascript:void(0)"
+              @click="resumeRow(arrayNode, scope.row.eleIdx)">{{ _L["RESUME"] }}</a>
           </slot>
         </template>
       </el-table-column>
     </el-table>
 
-    <el-drawer
-      v-model="showPrepareRow"
-      :close-on-click-modal="false"
-      size="50%"
-      :title="_L['ADD']"
-      append-to-body
-      @closed="closePrepareRow"
-    >
+    <el-drawer v-model="showPrepareRow" :close-on-click-modal="false" size="50%" :title="_L['ADD']" append-to-body
+      @closed="closePrepareRow">
       <el-container class="main" style="height: 80vh">
         <el-main>
-          <el-form
-            v-if="prepareRow"
-            ref="editorRef"
-            :model="prepareRow.rawData"
-            label-width="160"
-            label-position="left"
-            style="width: 100%; height: 90%"
-          >
+          <el-form v-if="prepareRow" ref="editorRef" :model="prepareRow.rawData" label-width="160" label-position="left"
+            style="width: 100%; height: 90%">
             <div class="draw-view">
-              <schema-view
-                :node="(prepareRow as StructNode)"
-                in-form="expandall"
-                plain-text="left"
-              ></schema-view>
+              <schema-view :node="(prepareRow as StructNode)" in-form="expandall" plain-text="left"></schema-view>
             </div>
           </el-form>
         </el-main>
@@ -232,74 +120,41 @@
           <br />
           <el-button type="primary" @click="savePrepareRow">{{
             _L["SAVE"]
-          }}</el-button>
+            }}</el-button>
           <el-button @click="closePrepareRow">{{ _L["CANCEL"] }}</el-button>
         </el-footer>
       </el-container>
     </el-drawer>
 
-    <el-drawer
-      v-model="showRefNode"
-      :close-on-click-modal="false"
-      size="100%"
-      :title="_L(refNode?.display?.key ? refNode.display : refNode?.name)"
-      append-to-body
-      @closed="closeRefNode"
-    >
+    <el-drawer v-model="showRefNode" :close-on-click-modal="false" size="100%"
+      :title="_L(refNode?.display?.key ? refNode.display : refNode?.name)" append-to-body @closed="closeRefNode">
       <el-container class="main" style="height: 80vh">
         <el-main>
-          <el-form
-            v-if="refNode"
-            ref="editorRef"
-            :model="refNode.rawData"
-            label-width="160"
-            label-position="left"
-            style="width: 100%; height: 90%"
-          >
-            <template
-              v-for="col in state.columns.filter((c) => !c.ref && c.require)"
-              :key="col.name"
-            >
-              <schema-view
-                :node="(refRow as StructNode).getField(col.prop)"
-                in-form="nest"
-                :disabled="true"
-                v-bind="$attrs"
-              ></schema-view>
+          <el-form v-if="refNode" ref="editorRef" :model="refNode.rawData" label-width="160" label-position="left"
+            style="width: 100%; height: 90%">
+            <template v-for="col in state.columns.filter((c) => !c.ref && c.require)" :key="col.name">
+              <schema-view :node="(refRow as StructNode).getField(col.prop)" in-form="nest" :disabled="true"
+                v-bind="$attrs"></schema-view>
             </template>
             <div class="draw-view">
-              <schema-view
-                :key="refNode.guid"
-                :node="refNode"
-                in-form="expandall"
-                plain-text="left"
-              ></schema-view>
+              <schema-view :key="refNode.guid" :node="refNode" in-form="expandall" plain-text="left"></schema-view>
             </div>
           </el-form>
         </el-main>
         <el-footer>
           <br />
-          <el-button
-            type="primary"
-            v-if="!refNode?.readonly"
-            @click="saveRefNode"
-            >{{ _L["SAVE"] }}</el-button
-          >
+          <el-button type="primary" v-if="!refNode?.readonly" @click="saveRefNode">{{ _L["SAVE"] }}</el-button>
           <el-button @click="closeRefNode">{{ _L["CANCEL"] }}</el-button>
         </el-footer>
       </el-container>
     </el-drawer>
 
     <!-- page -->
-    <el-pagination
-      v-if="state.pageCount && state.total && state.total > state.pageCount"
-      :current-page="(state.page || 0) + 1"
-      :page-size="state.pageCount"
-      :total="state.total"
-      :pager-count="state.pageCount"
-      layout="prev, pager, next"
-      @current-change="handlePage"
-    ></el-pagination>
+    <el-pagination v-if="state.pageCount && state.total && state.total > state.pageCount"
+      :current-page="(state.page || 0) + 1" :page-size="state.pageCount" :total="state.total"
+      :pager-count="state.pageCount" layout="prev, pager, next"
+      :style="{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }"
+      @current-change="handlePage"></el-pagination>
   </section>
 </template>
 
@@ -465,7 +320,7 @@ onMounted(async () => {
       )
         state.primaryFields.push(f.name);
 
-    if (!f.invisible && blackColumns.indexOf(f.name) === -1) {
+      if (!f.invisible && blackColumns.indexOf(f.name) === -1) {
         const columnInfo = await genColumn(f, false, node.isReferenceField(f.name))
         if (!columnInfo) continue
         //if (queryFilter[columnInfo.prop] && !Array.isArray(queryFilter[columnInfo.prop])) columnInfo.invisible = true
@@ -576,7 +431,7 @@ onMounted(async () => {
     refrehColumn(state.columns);
     state.columns = [...state.columns];
   });
-  
+
   // auto filter
   arrayNode.enableAutoFilter(props.autoFilter ?? false)
 });
@@ -593,6 +448,13 @@ onUnmounted(() => {
 const addRow = (arrayNode: ArrayNode) => {
   if (arrayNode.incrUpdate) {
     prepareRow.value = arrayNode.prepareRow({ ...queryFilter }) as StructNode;
+
+    state.columns.forEach((col) => {
+      if (col.ref) {
+        prepareRow.value!.getField(col.prop).config.invisible = true;
+      }
+    });
+
     showPrepareRow.value = true;
     return;
   }
