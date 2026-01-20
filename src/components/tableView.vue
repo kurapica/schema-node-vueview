@@ -810,16 +810,9 @@ const spanMethod = (data: any) => {
   const { row, column, rowIndex, columnIndex } = data;
   if (state.spanCols[columnIndex]) {
     if (row.index === 0) {
-      return {
-        rowspan: row.count,
-        colspan: 1,
-      };
+      return { rowspan: row.count, colspan: 1, };
     }
-
-    return {
-      rowspan: 0,
-      colspan: 0,
-    };
+    return { rowspan: 0, colspan: 0 };
   }
 };
 
