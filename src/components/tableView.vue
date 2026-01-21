@@ -349,6 +349,7 @@ import {
   type AnySchemaNode,
   AppNode,
   ArrayNode,
+  ArrayNodeLayoutChange,
   clearDebounce,
   debounce,
   getSchema,
@@ -518,10 +519,6 @@ function resizefunc(event: any) {
   });
 }
 
-onUnmounted(() => {
-  window.removeEventListener("resize", resizefunc);
-});
-
 onMounted(async () => {
   window.addEventListener("resize", resizefunc);
   // resizefunc(null);
@@ -531,7 +528,12 @@ onMounted(async () => {
   await refreshColumns();
 
   // row change handler
-  dataWatcher = node.subscribe((action: any) => {
+  dataWatcher = node.subscribeLayoutChanged(async(action: ArrayNodeLayoutChange) => {
+    if (action === ArrayNodeLayoutChange.Column)
+      return await refreshColumns();
+    else if (action === ArrayNodeLayoutChange.All)
+      await refreshColumns();
+
     const count = node.elements.length;
     state.total = node.total;
     state.page = node.page;
@@ -565,43 +567,16 @@ onMounted(async () => {
       if (changed) state.columns = columns;
     }
 
-    if (count !== rowCount || action === "swap") {
-      rowCount = count;
+    rowCount = count;
 
-      // clear
-      for (let i = rowWatches.length - 1; i >= rowCount; i--) {
-        const w = rowWatches.pop();
-        w?.array.forEach((a) => a());
-      }
-
-      // check sub array
-      node.elements.forEach((e, i) => {
-        if (rowWatches.length > i) {
-          if (rowWatches[i].guid === e.guid) return;
-          rowWatches[i].array.forEach((a) => a());
-        }
-        const n = e as StructNode;
-        rowWatches[i] = {
-          guid: e.guid,
-          array:
-            n.fields
-              .filter((f) => f.schemaType === SchemaType.Array)
-              .map((f) => {
-                const arr = f as ArrayNode;
-                let len = arr.elements.length;
-                return arr.subscribe((a: any) => {
-                  const clen = arr.elements.length;
-                  if (clen !== len || a === "swap") {
-                    len = clen;
-                    return genRows();
-                  }
-                });
-              }) || [],
-        };
-      });
-
-      genRows();
+    // clear
+    for (let i = rowWatches.length - 1; i >= rowCount; i--) {
+      const w = rowWatches.pop();
+      w?.array.forEach((a) => a());
     }
+
+    // refresh rows
+    genRows();
   }, true);
 
   // state handler
@@ -623,11 +598,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  for(let i in schemaTypeResloves)
-  {
-    schemaTypeResloves[i].handler();
-    delete schemaTypeResloves[i];
-  }
+  window.removeEventListener("resize", resizefunc);
   rowWatches.forEach((r) => r.array.forEach((a) => a()));
   if (dataWatcher) dataWatcher();
   if (stateWatcher) stateWatcher();
@@ -731,7 +702,6 @@ const closePrepareRow = () => {
 };
 
 // gen columns
-const schemaTypeResloves: { [key: string]: { type: string, handler: Function } } = {};
 const genColumn = async (
   field: IStructFieldConfig,
   skipSub?: boolean,
@@ -752,22 +722,8 @@ const genColumn = async (
   if (schema.type === SchemaType.Json)
   {
     const template = arrayNode.getTemplateNode(field.name);
-    if (template && !schemaTypeResloves[field.name])
-    {
-      schemaTypeResloves[field.name] = {
-        type: template.rule.type,
-        handler: (template.parent! as StructNode).subscribeMemberChange(async () => {
-          const template = arrayNode.getTemplateNode(field.name);
-          if (template?.rule.type !== schemaTypeResloves[field.name]?.type)
-          {
-            schemaTypeResloves[field.name].type = template?.rule.type || "";
-            await refreshColumns();
-          }
-        })
-      }
-    }
-    const currType = template?.rule.type;
-    if (currType) schema = await getSchema(currType);
+    const replaceType = template?.rule.type
+    schema = replaceType ? await getSchema(replaceType) : schema;
     if (!schema || schema.type === SchemaType.Json) return null;
   }
 
