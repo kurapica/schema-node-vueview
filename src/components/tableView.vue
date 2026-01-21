@@ -1,28 +1,13 @@
 <template>
   <section style="width: 100%">
-    <div
-      v-if="filters.length"
-      :class="['filters', `filters-${filtersRow + 1}`]"
-    >
-      <el-form :inline="true">
-        <template v-for="filter in filters">
-          <template v-for="node in filter.nodes" :key="node.guid">
-            <schema-view
-              :node="node"
-              plain-text="left"
-              :in-form="true"
-            ></schema-view>
-          </template>
-        </template>
-        <el-form-item> </el-form-item>
-        <el-form-item v-if="!autoFilter" class="filters-actions">
-          <el-button>{{ _L["RESET"] }}</el-button>
-          <el-button @click="arrayNode.processFilter()" type="primary">{{
-            _L["QUERY"]
-          }}</el-button>
-        </el-form-item>
-      </el-form>
-    </div>
+    <table-filter
+      ref="filterRef"
+      :filters="filters"
+      :columnsPerRow="columnsPerRow"
+      :auto-filter="autoFilter"
+      :array-node="arrayNode"
+      @expand="handleExpand"
+    />
     <div
       v-if="
         (!state.readonly && state.allowAdd && addPosition === 'header') ||
@@ -374,6 +359,7 @@ import { useSingleView } from "../schemaView";
 import structFieldView from "./structFieldView.vue";
 import { _L } from "../locale";
 import schemaView from "./schemaView.vue";
+import tableFilter from "./tableFilter/index.vue";
 
 // Properties
 const props = defineProps<{
@@ -496,26 +482,41 @@ let blackColumns: string[] = [];
 const tableRef = ref();
 const pageRef = ref();
 const w = ref(window.innerWidth);
-
+const filterRef = ref();
 const filters = arrayNode.filters || [];
 
-const filtersRow = computed(() => {
-  if (w.value < 1080) {
+const columnsPerRow = computed(() => {
+  if (w.value < 800) {
     return 1;
-  } else if (w.value <= 1440) {
+  } else if (w.value < 1080) {
     return 2;
-  } else if (w.value <= 1920) {
+  } else if (w.value <= 1440) {
     return 3;
+  } else if (w.value <= 1920) {
+    return 4;
   }
-  return 4;
+  return 5;
 });
 
 function resizefunc(event: any) {
   w.value = window.innerWidth;
   nextTick(() => {
     if (props.resizeMethod) {
+      if (filterRef.value) {
+        filterRef.value.getFilterHeight();
+      }
       props.resizeMethod(event, tableRef.value, pageRef.value);
     }
+  });
+}
+
+function handleExpand(isExpand: boolean) {
+  nextTick(() => {
+    setTimeout(() => {
+      if (props.resizeMethod) {
+        props.resizeMethod(null, tableRef.value, pageRef.value);
+      }
+    }, 200);
   });
 }
 
@@ -860,70 +861,3 @@ interface ITableRow {
   count: number;
 }
 </script>
-
-<style lang="scss" scoped>
-.filters {
-  position: relative;
-  padding-bottom: 16px;
-  margin-bottom: 16px;
-  &:after {
-    position: absolute;
-    content: "";
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 1px;
-    background-color: #f0f0f0;
-  }
-  &-2 {
-    .el-form-item {
-      width: 50%;
-    }
-  }
-  &-3 {
-    .el-form-item {
-      width: 33.33%;
-    }
-  }
-  &-4 {
-    .el-form-item {
-      width: 25%;
-    }
-  }
-  &-5 {
-    .el-form-item {
-      width: 20%;
-    }
-  }
-  &-actions {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    .el-form-item__content {
-      justify-content: flex-end;
-    }
-    button {
-      min-width: 80px;
-    }
-  }
-  .el-form {
-    position: relative;
-    display: flex;
-    flex-wrap: wrap;
-    row-gap: 16px;
-    text-align: left;
-    margin-left: -24px;
-  }
-  .el-form--inline .el-form-item {
-    margin-right: 0;
-    margin-bottom: 0;
-    padding-left: 24px;
-    box-sizing: border-box;
-    min-height: 32px;
-  }
-  .el-form-item__label {
-    width: 90px;
-    padding-right: 4px;
-  }
-}
-</style>
