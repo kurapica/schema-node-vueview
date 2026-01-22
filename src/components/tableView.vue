@@ -290,7 +290,7 @@
             <div class="draw-view">
               <schema-view
                 :key="refNode.guid"
-                :node="refNode"
+                :node="refNode as any"
                 in-form="expandall"
                 plain-text="left"
               ></schema-view>
@@ -526,6 +526,7 @@ onMounted(async () => {
   const node = arrayNode;
   blackColumns = [...node.blackColumns];
 
+  queryFilter = node.query || {};
   await refreshColumns();
 
   // row change handler
@@ -549,7 +550,6 @@ onMounted(async () => {
       blackColumns.length !== node.blackColumns.length ||
       blackColumns.some((c) => node.blackColumns.indexOf(c) === -1)
     ) {
-      queryFilter = filter;
       blackColumns = [...node.blackColumns];
       let changed = false;
       const columns = state.columns.map((c) => {
@@ -614,9 +614,6 @@ const refreshColumns = async () => {
   const fields = node.elementSchema.struct?.fields;
   const columnInfos: IColumnInfo[] = [];
 
-  // auto filter
-  queryFilter = node.query || {};
-
   let spanCols: { [key: number]: boolean } = {};
   let columnIndex = 0;
   if (fields) {
@@ -635,7 +632,7 @@ const refreshColumns = async () => {
           node.isReferenceField(f.name)
         );
         if (!columnInfo) continue;
-        //if (queryFilter[columnInfo.prop] && !Array.isArray(queryFilter[columnInfo.prop])) columnInfo.invisible = true
+        if (queryFilter[columnInfo.prop] && !Array.isArray(queryFilter[columnInfo.prop])) columnInfo.invisible = true
         columnInfos.push(columnInfo);
 
         if (columnInfo.subCols) {
