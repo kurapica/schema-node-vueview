@@ -9,19 +9,30 @@
       @expand="handleExpand"
     />
     <div
-      v-if="
-        (!state.readonly && state.allowAdd && addPosition === 'header') ||
-        $slots.action
-      "
+      v-if="(!state.readonly && state.allowAdd && (addPosition === 'header' || state.template)) || $slots.action"
       :style="{ display: 'flex', marginBottom: '16px' }"
     >
-      <el-button
-        type="primary"
-        v-if="!state.readonly && state.allowAdd && addPosition === 'header'"
-        @click="addRow(arrayNode)"
-        :style="{ marginRight: '12px' }"
-        >{{ _L["ADD"] }}</el-button
-      >
+      <template v-if="!state.readonly && state.allowAdd">
+        <el-button
+          type="primary"
+          v-if="addPosition === 'header'"
+          @click="addRow(arrayNode)"
+          :style="{ marginRight: '12px' }"
+          >{{ _L["ADD"] }}</el-button
+        >
+        <el-button
+          type="success"
+          v-if="state.template"
+          @click="arrayNode.downloadTemplate()"
+          :style="{ marginRight: '12px' }"
+          >{{ _L["Download Template"] }}</el-button
+        >
+        <el-button
+          type="primary"
+          v-if="state.template"
+          @click="uploadData"
+          >{{ _L["Upload Data"] }}</el-button>
+      </template>
       <slot name="action" />
     </div>
     <el-table
@@ -193,7 +204,7 @@
         <template #header>
           <a
             href="javascript:void(0)"
-            v-if="!state.readonly && state.allowAdd && addPosition !== 'header'"
+            v-if="!state.readonly && state.allowAdd && (addPosition !== 'header' || state.template)"
             @click="addRow(arrayNode)"
             style="text-decoration: underline; color: lightseagreen"
             >{{ _L["ADD"] }}</a
@@ -454,6 +465,7 @@ const state = reactive<{
   deleted: boolean[];
   allowAdd: boolean;
   allowDel: boolean;
+  template?: boolean;
 }>({
   columns: [],
   spanCols: {},
@@ -527,6 +539,8 @@ onMounted(async () => {
   blackColumns = [...node.blackColumns];
 
   queryFilter = node.query || {};
+  state.template = node.enableTemplate;
+
   await refreshColumns();
 
   // row change handler
@@ -812,6 +826,8 @@ const getRowStyle = (data: any) => {
     : null;
 };
 
+//#region ref node
+
 const refRow = ref<StructNode | null>(null);
 const refNode = ref<ArrayNode | null>(null);
 const showRefNode = ref(false);
@@ -838,6 +854,29 @@ const saveRefNode = async () => {
     closeRefNode();
   }
 };
+
+//#endregion
+
+//#region Template data
+
+const uploadData = async () => {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".xlsx,.xls";
+  input.onchange = async (e: any) => {
+    const file = e.target.files[0];
+    if (file) {
+      const res = await arrayNode.uploadDataFile(file, true);
+      if (res && res.result) {
+        await arrayNode.setPage(0);
+      }
+    }
+  };
+  input.click();
+};
+
+//#endregion
+
 
 interface IColumnInfo {
   prop: string;

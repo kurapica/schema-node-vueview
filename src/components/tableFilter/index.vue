@@ -1,6 +1,10 @@
 <template>
   <div v-if="filters.length" :class="['filters', `filters-${columnsPerRow}`]">
-    <el-form :inline="true" ref="formRef">
+    <el-form
+      :inline="true"
+      ref="formRef"
+      :style="{ maxHeight: '80px', overflow: 'hidden' }"
+    >
       <template v-for="filter in filters">
         <template v-for="node in filter.nodes" :key="node.guid">
           <schema-view
@@ -106,7 +110,6 @@ function getFilterStyle() {
 }
 
 function getFilterHeight() {
-  // isExpand.value = false;
   const obj = getFilterStyle();
   if (!obj) {
     haveMoreBtn.value = false;
@@ -119,6 +122,7 @@ function getFilterHeight() {
   if (rows <= 2) {
     haveMoreBtn.value = false;
     isExpand.value = false;
+    // formEle.style.cssText = "";
     if (props.autoFilter) {
       childrens[childrens.length - 2].style.display = "none";
     }
@@ -129,23 +133,17 @@ function getFilterHeight() {
   const h = isExpand.value
     ? lastRect.bottom - firstRect.top
     : lastShowRect.bottom - firstRect.top;
-  const cssText = `max-height: ${h}px; overflow: hidden;`;
+  const cssText = `max-height: ${h}px; overflow: hidden;transition: max-height 0.2s ease-in-out;`;
   formEle.style.cssText = cssText;
 }
 
-async function expandHandler() {
+function expandHandler() {
   const obj = getFilterStyle();
   if (!obj) {
     return 0;
   }
   const { firstRect, lastRect, formEle, lastShowRect } = obj;
   const height = lastRect.bottom - firstRect.top;
-  formEle.style.transition = "max-height 0.2s ease-in-out";
-  await new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(true);
-    });
-  });
   formEle.style.maxHeight = `${
     isExpand.value ? lastShowRect.bottom - firstRect.top : height
   }px`;
