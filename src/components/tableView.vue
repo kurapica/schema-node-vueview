@@ -371,6 +371,7 @@ import structFieldView from "./structFieldView.vue";
 import { _L } from "../locale";
 import schemaView from "./schemaView.vue";
 import tableFilter from "./tableFilter/index.vue";
+import { ElMessage } from "element-plus";
 
 // Properties
 const props = defineProps<{
@@ -847,12 +848,19 @@ const closeRefNode = () => {
 };
 
 const saveRefNode = async () => {
-  if (refNode.value && refNode.value.valid && refNode.value.changed) {
-    let appNode = arrayNode.parent;
-    while (appNode && !(appNode instanceof AppNode)) appNode = appNode.parent;
-    if (appNode) await appNode.submit([refNode.value as ArrayNode]);
-    closeRefNode();
+  if (!refNode.value || !refNode.value.changed) return;
+
+  if (!refNode.value.valid)
+  {
+    console.log(refNode.value.fullerror)
+    ElMessage.error(_L.value["frontend.view.error"])
+    return
   }
+
+  let appNode = arrayNode.parent;
+  while (appNode && !(appNode instanceof AppNode)) appNode = appNode.parent;
+  if (appNode) await appNode.submit([refNode.value as ArrayNode]);
+  closeRefNode();
 };
 
 //#endregion
