@@ -53,7 +53,7 @@
 </template>
 
 <script lang="ts" setup>
-import { isNull, RelationType, ScalarNode, NODE_SELF } from 'schema-node'
+import { isNull, RelationType, ScalarNode, NODE_SELF, ScalarRule } from 'schema-node'
 import { computed, onMounted, onUnmounted, reactive, toRaw, useSlots } from 'vue'
 import { _L } from '../locale'
 
@@ -134,14 +134,14 @@ onMounted(() => {
         state.readonly = node.readonly
         state.enableRemote = state.asSuggest && whiteListPush?.args?.find((a:any) => a.field === NODE_SELF || a.field === node.name) ? true : false
 
-        if (node.rule.whiteList?.length || whiteListPush && !state.asSuggest)
+        if (node.rule.whiteList?.length || node.rule.entries?.length || whiteListPush && !state.asSuggest)
         {
             state.useWhiteList = true
-            let list = node.rule.whiteList?.length ? [...node.rule.whiteList] : node.rule.asSuggest ? [node.rawData] : []
+            let list = node.rule.whiteList?.length ? [...node.rule.whiteList] : node.rule.entries?.length ? [...node.rule.entries] : node.rule.asSuggest ? [node.rawData] : []
             const blackList = node.rule.blackList
             if (blackList && blackList.length)
                 list = list.filter(w => typeof(w) === "object" ? blackList.findIndex((b:any) => `${b}` === `${w.value}`) < 0 : blackList.findIndex((b:any) => `${b}` === `${w}`) < 0) as any
-            state.whiteList = list
+            state.whiteList = parseWhiteList(list)
             state.cascade = list.some(w => typeof(w) === "object" && w.children && Array.isArray(w.children) && w.children.length)
             state.anyLevel = list.some(w => typeof(w) === "object" && w.children?.length && w.match)
         }
@@ -154,6 +154,28 @@ onMounted(() => {
         }
     }, true)
 })
+
+const parseWhiteList = (entries: any[]) =>
+{
+    return entries.map(e => {
+        if (typeof(e) === 'object' && e !== null)
+        {
+            const item: any = {
+                value: e.value,
+                label: _L.value(e.label)
+            }
+            if (e.children && Array.isArray(e.children))
+                item.children = parseWhiteList(e.children)
+            if (e.match)
+                item.match = e.match
+            return item
+        }
+        else
+        {
+            return e
+        }
+    })
+}
 
 onUnmounted(() => {
     if (dataWatcher) dataWatcher()

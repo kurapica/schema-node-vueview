@@ -58,7 +58,7 @@
             v-for="scol in col.subCols"
             :prop="`${col.prop}.${scol.prop}`"
             :label="scol.label"
-            min-width="120"
+            min-width="140"
             :header-align="headerAlign"
             show-overflow-tooltip
           >
@@ -152,7 +152,7 @@
           v-else
           :prop="col.prop"
           :label="col.label"
-          min-width="120"
+          min-width="140"
           :width="col.ref ? 120 : undefined"
           :header-align="headerAlign"
           show-overflow-tooltip
