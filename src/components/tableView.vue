@@ -86,6 +86,7 @@
           <template #default="scope">
             <template v-if="scope.row.index === 0">
               <a href="javascript:void(0)" v-if="col.ref" @click="openRef(scope.row.node, col.prop)">{{ col.desc || col.label }}</a>
+              <a href="javascript:void(0)" v-else-if="col.json" @click="openDetail(scope.row.node, col.prop)">{{ col.desc || col.label }}</a>
               <template v-else-if="(scope.row.node as StructNode).getField(col.prop)">
                 <struct-field-view :key="(scope.row.node as StructNode).getField(col.prop)!.guid" :node="scope.row.node"
                   :field="col.prop" :in-form="inForm" :plain-text="plainText" :skin="skin"
@@ -164,6 +165,24 @@
       </el-container>
     </el-drawer>
 
+    <el-drawer v-model="showDetailNode" :close-on-click-modal="true" size="50%" :title="detailTitle" append-to-body
+      @closed="closeDetailNode">
+      <el-container class="main" style="height: 80vh">
+        <el-main>
+          <el-form v-if="detailNode" ref="editorRef" :model="detailNode.rawData" label-width="160" label-position="left"
+            style="width: 100%; height: 90%">
+            <div class="draw-view">
+              <schema-view :node="detailNode as any" in-form="expandall" plain-text="left"></schema-view>
+            </div>
+          </el-form>
+        </el-main>
+        <el-footer>
+          <br />
+          <el-button @click="closeDetailNode">{{ _L["CLOSE"] }}</el-button>
+        </el-footer>
+      </el-container>
+    </el-drawer>
+
     <!-- page -->
     <el-pagination v-if="state.pageCount && state.total && state.total > state.pageCount" ref="pageRef"
       :current-page="(state.page || 0) + 1" :page-size="state.pageCount" :total="state.total"
@@ -186,6 +205,7 @@ import {
   getSchema,
   type ILocaleString,
   type IStructFieldConfig,
+  RelationType,
   SchemaType,
   StructNode,
   subscribeLanguage,
@@ -576,7 +596,14 @@ const genColumn = async (
     const template = arrayNode.getTemplateNode(field.name);
     const replaceType = template?.rule.type
     schema = replaceType ? await getSchema(replaceType) : schema;
-    if (!schema || schema.type === SchemaType.Json) return null;
+    if (!schema || schema.type === SchemaType.Json) {
+      if (template?.ruleSchema?.pushSchemas?.some(p => p.type === RelationType.Type))
+      {
+        column.json = true;
+        return column;
+      }
+      return null;
+    }
   }
 
   // gen sub columns
@@ -703,6 +730,24 @@ const saveRefNode = async () => {
 
 //#endregion
 
+//#region openDetail
+const detailNode = ref<AnySchemaNode | null>(null);
+const showDetailNode = ref(false);
+const detailTitle = ref("");
+const openDetail = async (node: StructNode, prop: string) => {
+  const field = node.getField(prop);
+  if (!field) return;
+  
+  detailTitle.value = `${_L.value(field.display) || field.name}`;
+  detailNode.value = field;
+  showDetailNode.value = true;
+}
+
+const closeDetailNode = () => {
+  showDetailNode.value = false;
+  detailNode.value = null;
+}
+
 //#region Template data
 
 const uploadData = async () => {
@@ -735,6 +780,7 @@ interface IColumnInfo {
   subCols?: IColumnInfo[];
   ref?: boolean;
   invisible?: boolean;
+  json?: boolean;
 }
 
 interface ITableRow {

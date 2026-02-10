@@ -110,12 +110,12 @@ const refreshTrans = () => {
   topOrders.forEach((lang: string) => {
     _trans.push({
       lang: lang,
-      label: SCHEMA_LANGUAGES.find(l => l.value === lang)?.label || lang,
+      label: SCHEMA_LANGUAGES.find((l: any) => l.value === lang)?.label || lang,
       tran: translate[lang] || ''
     })
   })
 
-  SCHEMA_LANGUAGES.forEach(lang => {
+  SCHEMA_LANGUAGES.forEach((lang: any) => {
     if (topOrders.indexOf(lang.value) >= 0) return
 
     _trans.push({
