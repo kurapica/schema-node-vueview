@@ -78,15 +78,21 @@
         </el-table-column>
 
         <!-- Single row -->
-        <el-table-column v-else :prop="col.prop" :label="col.label" min-width="140" :width="col.ref ? 120 : undefined"
-          :header-align="headerAlign" show-overflow-tooltip>
+        <el-table-column v-else :prop="col.prop" :label="col.label" min-width="140" :width="(col.ref || col.json) ? 140 : undefined"
+          :header-align="headerAlign" :align="(col.ref || col.json) ? true : undefined" show-overflow-tooltip>
           <template #header v-if="col.require">
             <span><span style="color: red; margin-right: 4px">*</span>{{ col.label }}</span>
           </template>
           <template #default="scope">
             <template v-if="scope.row.index === 0">
-              <a href="javascript:void(0)" v-if="col.ref" @click="openRef(scope.row.node, col.prop)">{{ col.desc || col.label }}</a>
-              <a href="javascript:void(0)" v-else-if="col.json" @click="openDetail(scope.row.node, col.prop)">{{ col.desc || col.label }}</a>
+              <el-form-item v-if="col.ref || col.json" label-width="0px">
+                <a href="javascript:void(0)" v-if="col.ref" @click="openRef(scope.row.node, col.prop)">
+                    {{ col.desc || col.label }}
+                </a>
+                <a href="javascript:void(0)" v-else-if="col.json" @click="openDetail(scope.row.node, col.prop)">
+                    {{ col.desc || col.label }}
+                </a>
+              </el-form-item>
               <template v-else-if="(scope.row.node as StructNode).getField(col.prop)">
                 <struct-field-view :key="(scope.row.node as StructNode).getField(col.prop)!.guid" :node="scope.row.node"
                   :field="col.prop" :in-form="inForm" :plain-text="plainText" :skin="skin"
