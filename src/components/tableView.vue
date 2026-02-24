@@ -78,8 +78,9 @@
         </el-table-column>
 
         <!-- Single row -->
-        <el-table-column v-else :prop="col.prop" :label="col.label" min-width="140" :width="(col.ref || col.json) ? 140 : undefined"
-          :header-align="headerAlign" :align="(col.ref || col.json) ? true : undefined" show-overflow-tooltip>
+        <el-table-column v-else :prop="col.prop" :label="col.label" min-width="140"
+          :width="(col.ref || col.json) ? 140 : undefined" :header-align="headerAlign"
+          :align="(col.ref || col.json) ? true : undefined" show-overflow-tooltip>
           <template #header v-if="col.require">
             <span><span style="color: red; margin-right: 4px">*</span>{{ col.label }}</span>
           </template>
@@ -87,10 +88,10 @@
             <template v-if="scope.row.index === 0">
               <el-form-item v-if="col.ref || col.json" label-width="0px">
                 <a href="javascript:void(0)" v-if="col.ref" @click="openRef(scope.row.node, col.prop)">
-                    {{ col.desc || col.label }}
+                  {{ col.desc || col.label }}
                 </a>
                 <a href="javascript:void(0)" v-else-if="col.json" @click="openDetail(scope.row.node, col.prop)">
-                    {{ col.desc || col.label }}
+                  {{ col.desc || col.label }}
                 </a>
               </el-form-item>
               <template v-else-if="(scope.row.node as StructNode).getField(col.prop)">
@@ -142,7 +143,7 @@
           <br />
           <el-button type="primary" @click="savePrepareRow">{{
             _L["SAVE"]
-            }}</el-button>
+          }}</el-button>
           <el-button @click="closePrepareRow">{{ _L["CANCEL"] }}</el-button>
         </el-footer>
       </el-container>
@@ -159,7 +160,8 @@
                 v-bind="$attrs"></schema-view>
             </template>
             <div class="draw-view">
-              <schema-view :key="refNode.guid" :node="refNode as any" in-form="expandall" no-filter="true" plain-text="left"></schema-view>
+              <schema-view :key="refNode.guid" :node="refNode as any" in-form="expandall" no-filter="true"
+                plain-text="left"></schema-view>
             </div>
           </el-form>
         </el-main>
@@ -190,9 +192,18 @@
     </el-drawer>
 
     <!-- page -->
-    <el-pagination v-if="state.pageCount && state.total && state.total > state.pageCount" ref="pageRef"
-      :current-page="(state.page || 0) + 1" :page-size="state.pageCount" :total="state.total"
-      :pager-count="state.pageCount" layout="prev, pager, next" :style="{
+
+    <el-pagination v-if="state.pageCount && state.total" ref="pageRef" :current-page="(state.page || 0) + 1"
+      :page-size="state.pageCount" :total="state.total" :pager-count="state.pageCount" layout="total, prev, pager, next"
+      :style="{
+        display: 'flex',
+        justifyContent: 'flex-end',
+        marginTop: '16px',
+      }" @current-change="handlePage">
+      </el-pagination>
+    <el-pagination v-else-if="state.total" ref="pageRef" :current-page="(state.page || 0) + 1"
+      :page-size="state.pageCount" :total="state.total" :pager-count="state.total" layout="total, prev, pager, next"
+      :style="{
         display: 'flex',
         justifyContent: 'flex-end',
         marginTop: '16px',
@@ -603,8 +614,7 @@ const genColumn = async (
     const replaceType = template?.rule.type
     schema = replaceType ? await getSchema(replaceType) : schema;
     if (!schema || schema.type === SchemaType.Json) {
-      if (template?.ruleSchema?.pushSchemas?.some(p => p.type === RelationType.Type))
-      {
+      if (template?.ruleSchema?.pushSchemas?.some(p => p.type === RelationType.Type)) {
         column.json = true;
         return column;
       }
@@ -743,7 +753,7 @@ const detailTitle = ref("");
 const openDetail = async (node: StructNode, prop: string) => {
   const field = node.getField(prop);
   if (!field) return;
-  
+
   detailTitle.value = `${_L.value(field.display) || field.name}`;
   detailNode.value = field;
   showDetailNode.value = true;

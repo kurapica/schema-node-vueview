@@ -93,6 +93,7 @@ let observer: any = null
 let dataWatcher: Function | null = null
 let stateWatcher: Function | null = null
 let configWatcher: WatchHandle | null = null
+let buildObserver: Function | null = null
 let updatevalue = false
 let timeOut: number | null = null
 
@@ -135,40 +136,41 @@ onMounted(async () => {
     }
     else if(node.parent instanceof AppNode)
     {
+        const root = typeof(props.rootDiv) === "string" ? document.querySelector(props.rootDiv) : props.rootDiv
+
+        buildObserver = async ([entry]: any) => {
+            observer?.disconnect()
+            observer = null;
+
+            if ((node?.parent as AppNode).isFieldLoaded(node!.name))
+            {
+                loaded.value = true
+                return
+            }
+
+            if(entry && entry.isIntersecting && !node?.invisible)
+            {
+                await (node!.parent as AppNode).reload([node!], true)
+                loaded.value = true
+            }
+            else
+            {
+                while(!mask.value && !loaded.value)
+                    await new Promise(r => timeOut = setTimeout(r, 100))
+                if (loaded.value) return
+                
+                observer = new IntersectionObserver(buildObserver as any, {
+                    rootMargin: "0px 0px 100px 0px",
+                    root,
+                })
+                observer.observe(mask.value)
+            }
+        }
+
         // check if the field is loaded
         if (!node.parent.isFieldLoaded(node.name))
         {
             loaded.value = false
-            const root = typeof(props.rootDiv) === "string" ? document.querySelector(props.rootDiv) : props.rootDiv
-
-            const buildObserver = async ([entry]: any) => {
-                observer?.disconnect()
-                observer = null;
-
-                if ((node?.parent as AppNode).isFieldLoaded(node!.name))
-                {
-                    loaded.value = true
-                    return
-                }
-
-                if(entry && entry.isIntersecting && !node?.invisible)
-                {
-                    await (node!.parent as AppNode).reload([node!], true)
-                    loaded.value = true
-                }
-                else
-                {
-                    while(!mask.value && !loaded.value)
-                        await new Promise(r => timeOut = setTimeout(r, 100))
-                    if (loaded.value) return
-                    
-                    observer = new IntersectionObserver(buildObserver, {
-                        rootMargin: "0px 0px 100px 0px",
-                        root,
-                    })
-                    observer.observe(mask.value)
-                }
-            }
             buildObserver([])
         }
     }
@@ -199,7 +201,14 @@ onMounted(async () => {
             loaded.value = true
         }
     })
-    stateWatcher = node.subscribeState(() => invisible.value = node.invisible, true)
+    stateWatcher = node.subscribeState(() => {
+        invisible.value = node.invisible
+        // Re-trigger lazy load if the field was unloaded externally (e.g. activeWorkflow reload)
+        if (loaded.value && node.parent instanceof AppNode && !node.parent.isFieldLoaded(node.name)) {
+            loaded.value = false
+            buildObserver?.([])
+        }
+    }, true)
     schemaNode.value = node || null
 })
 
