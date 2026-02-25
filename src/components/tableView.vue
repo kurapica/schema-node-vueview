@@ -143,7 +143,7 @@
           <br />
           <el-button type="primary" @click="savePrepareRow">{{
             _L["SAVE"]
-          }}</el-button>
+            }}</el-button>
           <el-button @click="closePrepareRow">{{ _L["CANCEL"] }}</el-button>
         </el-footer>
       </el-container>
@@ -200,10 +200,10 @@
         justifyContent: 'flex-end',
         marginTop: '16px',
       }" @current-change="handlePage">
-      </el-pagination>
+    </el-pagination>
     <el-pagination v-else-if="state.total" ref="pageRef" :current-page="(state.page || 0) + 1"
-      :page-size="state.pageCount" :total="state.total" :pager-count="state.total" layout="total, prev, pager, next"
-      :style="{
+      :page-size="state.pageCount || state.total" :total="state.total" :pager-count="state.total"
+      layout="total, prev, pager, next" :style="{
         display: 'flex',
         justifyContent: 'flex-end',
         marginTop: '16px',
