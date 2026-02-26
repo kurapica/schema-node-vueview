@@ -14,7 +14,7 @@
       <slot name="action" />
     </div>
     <el-table ref="tableRef" :data="rows" :span-method="spanMethod" :row-style="getRowStyle" style="width: 100%"
-      v-bind="$attrs">
+      v-bind="$attrs" border>
       <template v-for="col in state.columns.filter((v) => !v.invisible)" :key="col.prop">
         <!-- with sub cols -->
         <el-table-column v-if="col.subCols && col.subCols.length" :prop="col.prop" :label="col.label"
@@ -128,7 +128,7 @@
       </el-table-column>
     </el-table>
 
-    <el-drawer v-model="showPrepareRow" :close-on-click-modal="false" size="50%" :title="_L['ADD']" append-to-body
+    <el-drawer v-model="showPrepareRow" :close-on-click-modal="false" size="1000px" :title="_L['ADD']" append-to-body
       @closed="closePrepareRow">
       <el-container class="main" style="height: 80vh">
         <el-main>
@@ -149,11 +149,11 @@
       </el-container>
     </el-drawer>
 
-    <el-drawer v-model="showRefNode" :close-on-click-modal="false" size="100%"
+    <el-drawer v-model="showRefNode" :close-on-click-modal="false" size="1000px"
       :title="_L(refNode?.display?.key ? refNode.display : refNode?.name)" append-to-body @closed="closeRefNode">
       <el-container class="main" style="height: 80vh">
         <el-main>
-          <el-form v-if="refNode" ref="editorRef" :model="refNode.rawData" label-width="160" label-position="left"
+          <el-form v-if="refNode" ref="refForm" :model="refNode.rawData" label-width="160" label-position="left"
             style="width: 100%; height: 90%">
             <template v-for="col in state.columns.filter((c) => !c.ref && c.require)" :key="col.name">
               <schema-view :node="(refRow as StructNode).getField(col.prop)" in-form="nest" :disabled="true"
@@ -161,19 +161,21 @@
             </template>
             <div class="draw-view">
               <schema-view :key="refNode.guid" :node="refNode as any" in-form="expandall" no-filter="true"
-                plain-text="left"></schema-view>
+                plain-text="left" hide-query-field></schema-view>
             </div>
           </el-form>
         </el-main>
         <el-footer>
           <br />
-          <el-button type="primary" v-if="!refNode?.readonly" @click="saveRefNode">{{ _L["SAVE"] }}</el-button>
+          <el-button type="primary" v-if="!refNode?.readonly && refChanged && refValid" @click="saveRefNode">{{
+            _L["SAVE"]
+            }}</el-button>
           <el-button @click="closeRefNode">{{ _L["CANCEL"] }}</el-button>
         </el-footer>
       </el-container>
     </el-drawer>
 
-    <el-drawer v-model="showDetailNode" :close-on-click-modal="true" size="50%" :title="detailTitle" append-to-body
+    <el-drawer v-model="showDetailNode" :close-on-click-modal="true" size="1000px" :title="detailTitle" append-to-body
       @closed="closeDetailNode">
       <el-container class="main" style="height: 80vh">
         <el-main>
@@ -224,6 +226,7 @@ import {
   type IStructFieldConfig,
   RelationType,
   SchemaType,
+  sformat,
   StructNode,
   subscribeLanguage,
 } from "schema-node";
@@ -243,7 +246,8 @@ import structFieldView from "./structFieldView.vue";
 import { _L } from "../locale";
 import schemaView from "./schemaView.vue";
 import tableFilter from "./tableFilter/index.vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { ElForm } from "byt-element-plus/es/components/index.mjs";
 
 // Properties
 const props = defineProps<{
@@ -322,6 +326,21 @@ const props = defineProps<{
    */
   noFilter?: boolean;
 
+  /**
+   * Auto confirm delete
+   */
+  autoDel?: boolean;
+
+  /**
+   * Whether to hide query field in add row form, default false
+   */
+  hideQueryField?: boolean;
+
+  /**
+   * Disable incr-update feature in reference, since the number will be low
+   */
+  disableRefIncr?: boolean;
+
   addPosition?: "header" | "tableHeader";
   resizeMethod?: (event: any, tableRef: any, pageRef: any) => void;
 }>();
@@ -343,6 +362,7 @@ const state = reactive<{
   deleted: boolean[];
   allowAdd: boolean;
   allowDel: boolean;
+  allReadonly?: boolean;
   template?: boolean;
 }>({
   columns: [],
@@ -434,8 +454,8 @@ onMounted(async () => {
     state.pageCount = node.pageCount;
 
     state.disabled = node.rule.disable || !node.allowUpdate;
-    state.allowAdd = !props.noAdd && node.allowAdd;
-    state.allowDel = !props.noDel && node.allowDelete;
+    state.allowAdd = !props.noAdd && node.allowAdd && !state.allReadonly;
+    state.allowDel = !props.noDel && node.allowDelete && !state.allReadonly;
 
     const filter = node.query || {};
     if (
@@ -476,8 +496,8 @@ onMounted(async () => {
   stateWatcher = node.subscribeState(() => {
     state.readonly = node.readonly;
     state.disabled = node.rule.disable || !node.allowUpdate;
-    state.allowAdd = !props.noAdd && node.allowAdd;
-    state.allowDel = !props.noDel && node.allowDelete;
+    state.allowAdd = !props.noAdd && node.allowAdd && !state.allReadonly;
+    state.allowDel = !props.noDel && node.allowDelete && !state.allReadonly;
   }, true);
 
   // lang handler
@@ -508,16 +528,18 @@ const refreshColumns = async () => {
 
   let spanCols: { [key: number]: boolean } = {};
   let columnIndex = 0;
+  let allReadonly = true;
   if (fields) {
     for (let i = 0; i < fields.length; i++) {
       const f = fields[i];
+      if (!f.readonly && !f.displayOnly) allReadonly = false;
       if (
         primary &&
         primary.findIndex((p) => p.toLowerCase() === f.name.toLowerCase())
       )
         state.primaryFields.push(f.name);
 
-      if (!f.invisible && blackColumns.indexOf(f.name) === -1) {
+      if (!f.invisible && blackColumns.indexOf(f.name) === -1 && (!props.hideQueryField || !node.query || node.query[f.name] === undefined)) {
         const columnInfo = await genColumn(
           f,
           false,
@@ -539,6 +561,7 @@ const refreshColumns = async () => {
       }
     }
   }
+  state.allReadonly = allReadonly;
   if (!node.readonly) spanCols[columnIndex++] = true;
 
   // update state
@@ -553,7 +576,7 @@ const addRow = (arrayNode: ArrayNode) => {
 
     state.columns.forEach((col) => {
       if (col.ref) {
-        prepareRow.value!.getField(col.prop).config.invisible = true;
+        prepareRow.value!.getField(col.prop)!.config.invisible = true;
       }
     });
 
@@ -565,10 +588,22 @@ const addRow = (arrayNode: ArrayNode) => {
 };
 
 // del row
-const delRow = (arrayNode: ArrayNode, index: number) => {
-  toRaw(arrayNode).delRows(index);
-  if (!arrayNode.incrUpdate) genRows();
-  else state.deleted[index] = true;
+const delRow = async (arrayNode: ArrayNode, index: number) => {
+  const array = toRaw(arrayNode)
+  const isnew = array.isNewRow(array.elements[index]);
+  if (props.autoDel && !isnew) {
+    try {
+      await ElMessageBox.confirm(sformat("DEL_CONFIRM", _L.value(arrayNode?.desc?.key ? arrayNode.desc : arrayNode.display)), { type: "warning" });
+    } catch {
+      return;
+    }
+    await toRaw(arrayNode).delRows(index, index, true);
+  }
+  else {
+    toRaw(arrayNode).delRows(index);
+    if (!arrayNode.incrUpdate) genRows();
+    else state.deleted[index] = true;
+  }
 };
 
 // resume row
@@ -711,15 +746,31 @@ const getRowStyle = (data: any) => {
 
 //#region ref node
 
+const refForm = ref<InstanceType<typeof ElForm>>();
 const refRow = ref<StructNode | null>(null);
 const refNode = ref<ArrayNode | null>(null);
 const showRefNode = ref(false);
+const refChanged = ref(false);
+const refValid = ref(true);
+let refDataWatcher: Function | null = null;
 const openRef = async (node: StructNode, prop: string) => {
-  const rnode = (await arrayNode.getReferenceNode(node, prop)) as ArrayNode;
+  const rnode = (await arrayNode.getReferenceNode(node, prop, props.disableRefIncr)) as ArrayNode;
   if (!rnode) return;
   refRow.value = node;
   refNode.value = rnode;
   showRefNode.value = true;
+
+  refChanged.value = rnode.changed;
+  refValid.value = rnode.valid;
+  let first = true;
+  refDataWatcher = rnode.subscribe(() => {
+    if (rnode.changed && first && refForm.value) {
+      refForm.value.validate();
+      first = false;
+    }
+    refChanged.value = rnode.changed;
+    refValid.value = rnode.valid;
+  });
 };
 
 const closeRefNode = () => {
@@ -727,6 +778,11 @@ const closeRefNode = () => {
   refRow.value = null;
   refNode.value?.dispose();
   refNode.value = null;
+
+  if (refDataWatcher) {
+    refDataWatcher();
+    refDataWatcher = null;
+  }
 };
 
 const saveRefNode = async () => {
