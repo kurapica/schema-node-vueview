@@ -247,7 +247,7 @@ import { _L } from "../locale";
 import schemaView from "./schemaView.vue";
 import tableFilter from "./tableFilter/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { ElForm } from "byt-element-plus/es/components/index.mjs";
+import { ElForm } from "element-plus";
 
 // Properties
 const props = defineProps<{
