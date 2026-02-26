@@ -143,7 +143,7 @@
           <br />
           <el-button type="primary" @click="savePrepareRow">{{
             _L["SAVE"]
-            }}</el-button>
+          }}</el-button>
           <el-button @click="closePrepareRow">{{ _L["CANCEL"] }}</el-button>
         </el-footer>
       </el-container>
@@ -169,7 +169,7 @@
           <br />
           <el-button type="primary" v-if="!refNode?.readonly && refChanged && refValid" @click="saveRefNode">{{
             _L["SAVE"]
-            }}</el-button>
+          }}</el-button>
           <el-button @click="closeRefNode">{{ _L["CANCEL"] }}</el-button>
         </el-footer>
       </el-container>
