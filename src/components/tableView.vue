@@ -17,10 +17,11 @@
       v-bind="$attrs" border>
       <template v-for="col in state.columns.filter((v) => !v.invisible)" :key="col.prop">
         <!-- with sub cols -->
-        <el-table-column v-if="col.subCols && col.subCols.length" :prop="col.prop" :label="col.label"
+        <el-table-column v-if="col.subCols && col.subCols.length && !singleHeader" :prop="col.prop" :label="col.label"
           :header-align="headerAlign">
           <el-table-column v-for="scol in col.subCols" :prop="`${col.prop}.${scol.prop}`" :label="scol.label"
-            min-width="140" :header-align="headerAlign" show-overflow-tooltip>
+            :min-width="scol.localString ? 200 : 140" :header-align="headerAlign"
+            :show-overflow-tooltip="!scol.localString">
             <template #header v-if="scol.require">
               <span><span style="color: red; margin-right: 4px">*</span>{{ scol.label }}</span>
             </template>
@@ -39,6 +40,25 @@
                 </template>
               </template>
               <!-- single row -->
+              <div v-if="
+                scol.localString &&
+                !col.isArray &&
+                scope.row.index === 0 &&
+                (scope.row.node.getField(col.prop) instanceof StructNode) &&
+                isReadonlyField((scope.row.node.getField(col.prop) as StructNode), scol.prop)
+              " class="localstring-readonly-tooltip"
+                v-overflow-title="getFieldTipKey((scope.row.node.getField(col.prop) as StructNode), scol.prop)">
+                <struct-field-view :key="(scope.row.node.getField(col.prop) as StructNode).getField(scol.prop)!.guid"
+                  :node="(scope.row.node.getField(col.prop) as StructNode)" :field="scol.prop" :in-form="inForm"
+                  :plain-text="plainText" :skin="skin" :disabled="state.readonly || state.disabled" no-label
+                  v-bind="$attrs"></struct-field-view>
+                <el-tooltip
+                  :content="localStringTipMap[getFieldTipKey((scope.row.node.getField(col.prop) as StructNode), scol.prop)] || ''"
+                  :disabled="!localStringOverflowMap[getFieldTipKey((scope.row.node.getField(col.prop) as StructNode), scol.prop)]"
+                  placement="top" effect="dark" :show-after="200">
+                  <div class="localstring-tip-trigger"></div>
+                </el-tooltip>
+              </div>
               <struct-field-view
                 v-else-if="!col.isArray && scope.row.index === 0 && (scope.row.node.getField(col.prop) instanceof StructNode)"
                 :key="(scope.row.node.getField(col.prop) as StructNode).getField(scol.prop)!.guid"
@@ -77,10 +97,91 @@
           </el-table-column>
         </el-table-column>
 
+        <template v-else-if="col.subCols && col.subCols.length && singleHeader">
+          <el-table-column v-for="scol in col.subCols" :key="`${col.prop}.${scol.prop}`"
+            :prop="`${col.prop}.${scol.prop}`" :label="mergeHeaderText(col.label, scol.label)"
+            :min-width="scol.localString ? 200 : 140" :header-align="headerAlign"
+            :show-overflow-tooltip="!scol.localString">
+            <template #header v-if="scol.require">
+              <span><span style="color: red; margin-right: 4px">*</span>{{ mergeHeaderText(col.label, scol.label)
+                }}</span>
+            </template>
+            <template #default="scope">
+              <!-- multi row -->
+              <template
+                v-if="col.isArray && scope.row.node.getField(col.prop) && (scope.row.node.getField(col.prop) as ArrayNode).elements.length > scope.row.index">
+                <struct-field-view
+                  v-if="(scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] instanceof StructNode"
+                  :key="((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode).getField(scol.prop)!.guid"
+                  :node="((scope.row.node.getField(col.prop) as ArrayNode).elements[scope.row.index] as StructNode)"
+                  :field="scol.prop" :in-form="inForm" :plain-text="plainText" :skin="skin"
+                  :disabled="state.readonly || state.disabled" no-label v-bind="$attrs"></struct-field-view>
+                <template v-else>
+                  <span></span>
+                </template>
+              </template>
+              <!-- single row -->
+              <div v-if="
+                scol.localString &&
+                !col.isArray &&
+                scope.row.index === 0 &&
+                (scope.row.node.getField(col.prop) instanceof StructNode) &&
+                isReadonlyField((scope.row.node.getField(col.prop) as StructNode), scol.prop)
+              " class="localstring-readonly-tooltip"
+                v-overflow-title="getFieldTipKey((scope.row.node.getField(col.prop) as StructNode), scol.prop)">
+                <struct-field-view :key="(scope.row.node.getField(col.prop) as StructNode).getField(scol.prop)!.guid"
+                  :node="(scope.row.node.getField(col.prop) as StructNode)" :field="scol.prop" :in-form="inForm"
+                  :plain-text="plainText" :skin="skin" :disabled="state.readonly || state.disabled" no-label
+                  v-bind="$attrs"></struct-field-view>
+                <el-tooltip
+                  :content="localStringTipMap[getFieldTipKey((scope.row.node.getField(col.prop) as StructNode), scol.prop)] || ''"
+                  :disabled="!localStringOverflowMap[getFieldTipKey((scope.row.node.getField(col.prop) as StructNode), scol.prop)]"
+                  placement="top" effect="dark" :show-after="200">
+                  <div class="localstring-tip-trigger"></div>
+                </el-tooltip>
+              </div>
+              <struct-field-view
+                v-else-if="!col.isArray && scope.row.index === 0 && (scope.row.node.getField(col.prop) instanceof StructNode)"
+                :key="(scope.row.node.getField(col.prop) as StructNode).getField(scol.prop)!.guid"
+                :node="(scope.row.node.getField(col.prop) as StructNode)" :field="scol.prop" :in-form="inForm"
+                :plain-text="plainText" :skin="skin" :disabled="state.readonly || state.disabled" no-label
+                v-bind="$attrs"></struct-field-view>
+              <template v-else>
+                <span></span>
+              </template>
+            </template>
+          </el-table-column>
+
+          <el-table-column v-if="
+            col.isArray &&
+            !state.readonly &&
+            !state.disabled &&
+            !(noSubAdd && noSubDel)
+          " :label="mergeHeaderText(col.label, _L['OPER'])" align="center" width="100">
+            <template #default="scope">
+              <template v-if="scope.row.node.getField(col.prop)">
+                <a href="javascript:void(0)" style="color: lightseagreen"
+                  v-if="!noSubAdd && (scope.row.node.getField(col.prop) as ArrayNode).elements.length == scope.row.index"
+                  @click="
+                    addRow(scope.row.node.getField(col.prop) as ArrayNode)
+                    ">{{ _L["ADD"] }}</a>
+                <a href="javascript:void(0)" style="color: red"
+                  v-else-if="!noSubDel && (scope.row.node.getField(col.prop) as ArrayNode).elements.length > scope.row.index"
+                  @click="
+                    delRow(
+                      scope.row.node.getField(col.prop) as ArrayNode,
+                      scope.row.index
+                    )
+                    ">{{ _L["DEL"] }}</a>
+              </template>
+            </template>
+          </el-table-column>
+        </template>
+
         <!-- Single row -->
-        <el-table-column v-else :prop="col.prop" :label="col.label" min-width="140"
-          :width="(col.ref || col.json) ? 140 : undefined" :header-align="headerAlign"
-          :align="(col.ref || col.json) ? true : undefined" show-overflow-tooltip>
+        <el-table-column v-else :prop="col.prop" :label="col.label" :min-width="col.localString ? 200 : 140"
+          :width="(col.ref || col.json) ? (col.localString ? 200 : 140) : undefined" :header-align="headerAlign"
+          :align="(col.ref || col.json) ? true : undefined" :show-overflow-tooltip="!col.localString">
           <template #header v-if="col.require">
             <span><span style="color: red; margin-right: 4px">*</span>{{ col.label }}</span>
           </template>
@@ -95,8 +196,21 @@
                 </a>
               </el-form-item>
               <template v-else-if="(scope.row.node as StructNode).getField(col.prop)">
-                <struct-field-view :key="(scope.row.node as StructNode).getField(col.prop)!.guid" :node="scope.row.node"
-                  :field="col.prop" :in-form="inForm" :plain-text="plainText" :skin="skin"
+                <div v-if="col.localString && isReadonlyField((scope.row.node as StructNode), col.prop)"
+                  class="localstring-readonly-tooltip"
+                  v-overflow-title="getFieldTipKey((scope.row.node as StructNode), col.prop)">
+                  <struct-field-view :key="(scope.row.node as StructNode).getField(col.prop)!.guid"
+                    :node="scope.row.node" :field="col.prop" :in-form="inForm" :plain-text="plainText" :skin="skin"
+                    :disabled="state.readonly || state.disabled" no-label v-bind="$attrs"></struct-field-view>
+                  <el-tooltip
+                    :content="localStringTipMap[getFieldTipKey((scope.row.node as StructNode), col.prop)] || ''"
+                    :disabled="!localStringOverflowMap[getFieldTipKey((scope.row.node as StructNode), col.prop)]"
+                    placement="top" effect="dark" :show-after="200">
+                    <div class="localstring-tip-trigger"></div>
+                  </el-tooltip>
+                </div>
+                <struct-field-view v-else :key="(scope.row.node as StructNode).getField(col.prop)!.guid"
+                  :node="scope.row.node" :field="col.prop" :in-form="inForm" :plain-text="plainText" :skin="skin"
                   :disabled="state.readonly || state.disabled" no-label v-bind="$attrs"></struct-field-view>
               </template>
             </template>
@@ -143,8 +257,8 @@
           <br />
           <el-button type="primary" @click="savePrepareRow">{{
             _L["SAVE"]
-          }}</el-button>
-          <el-button @click="closePrepareRow">{{ _L["CANCEL"] }}</el-button>
+            }}</el-button>
+          <el-button @click="closePrepareRow">{{ _L["CLOSE"] }}</el-button>
         </el-footer>
       </el-container>
     </el-drawer>
@@ -155,13 +269,13 @@
         <el-main>
           <el-form v-if="refNode" ref="refForm" :model="refNode.rawData" label-width="160" label-position="left"
             style="width: 100%; height: 90%">
-            <template v-for="col in state.columns.filter((c) => !c.ref && c.require)" :key="col.name">
+            <!--template v-for="col in state.columns.filter((c) => !c.ref && c.require)" :key="col.name">
               <schema-view :node="(refRow as StructNode).getField(col.prop)" in-form="nest" :disabled="true"
                 v-bind="$attrs"></schema-view>
-            </template>
+            </template-->
             <div class="draw-view">
               <schema-view :key="refNode.guid" :node="refNode as any" in-form="expandall" no-filter="true"
-                plain-text="left" hide-query-field></schema-view>
+                plain-text="left" hide-query-field :addPosition="addPosition" :autoDel="autoDel"></schema-view>
             </div>
           </el-form>
         </el-main>
@@ -169,8 +283,8 @@
           <br />
           <el-button type="primary" v-if="!refNode?.readonly && refChanged && refValid" @click="saveRefNode">{{
             _L["SAVE"]
-          }}</el-button>
-          <el-button @click="closeRefNode">{{ _L["CANCEL"] }}</el-button>
+            }}</el-button>
+          <el-button @click="closeRefNode">{{ _L["CLOSE"] }}</el-button>
         </el-footer>
       </el-container>
     </el-drawer>
@@ -224,6 +338,7 @@ import {
   getSchema,
   type ILocaleString,
   type IStructFieldConfig,
+  NS_SYSTEM_LOCALE_STRING,
   RelationType,
   SchemaType,
   sformat,
@@ -332,6 +447,11 @@ const props = defineProps<{
   autoDel?: boolean;
 
   /**
+   * Keep reference field open when click, default false
+   */
+  keepRefOpen?: boolean;
+
+  /**
    * Whether to hide query field in add row form, default false
    */
   hideQueryField?: boolean;
@@ -340,6 +460,11 @@ const props = defineProps<{
    * Disable incr-update feature in reference, since the number will be low
    */
   disableRefIncr?: boolean;
+
+  /**
+   * Render grouped headers in single line by merging parent and child labels
+   */
+  singleHeader?: boolean;
 
   addPosition?: "header" | "tableHeader";
   resizeMethod?: (event: any, tableRef: any, pageRef: any) => void;
@@ -378,6 +503,71 @@ const changedatacolor = props.changeColor || "#c7f3b1";
 const deldatacolor = props.delColor || "grey";
 const headerAlign =
   typeof props.plainText === "string" ? props.plainText : "center";
+const currentLang = ref((navigator.language || "").toLowerCase());
+
+const mergeHeaderText = (upper: string, lower: string) =>
+  currentLang.value.startsWith("zh")
+    ? `${upper}${lower}`
+    : `${upper} ${lower}`;
+
+const isReadonlyField = (node: StructNode, field: string) => {
+  const f = node.getField(field);
+  if (!f) return false;
+  return !!(f.readonly || (f as any).displayOnly || state.readonly || state.disabled);
+};
+
+const getFieldTipKey = (node: StructNode, field: string) => {
+  const f = node.getField(field);
+  return f?.guid || `${node.guid}:${field}`;
+};
+
+const localStringTipMap = reactive<{ [key: string]: string }>({});
+const localStringOverflowMap = reactive<{ [key: string]: boolean }>({});
+
+const getLocalStringTextEl = (el: HTMLElement) => {
+  return (el.querySelector("section > span") || el.querySelector("span")) as HTMLElement | null;
+};
+
+const setOverflowTitle = (el: HTMLElement, key?: string) => {
+  const textEl = getLocalStringTextEl(el);
+  if (!textEl) {
+    if (key) {
+      localStringTipMap[key] = "";
+      localStringOverflowMap[key] = false;
+    }
+    return;
+  }
+  const text = (textEl.innerText || "").trim();
+  const style = window.getComputedStyle(textEl);
+  const lineHeight = Number.parseFloat(style.lineHeight || "0");
+  const wrapped = lineHeight > 0 && textEl.clientHeight > lineHeight * 1.5;
+  const overflow = wrapped || textEl.scrollWidth > textEl.clientWidth || textEl.scrollHeight > textEl.clientHeight;
+  if (key) {
+    localStringTipMap[key] = text;
+    localStringOverflowMap[key] = overflow && !!text;
+  }
+};
+
+const vOverflowTitle = {
+  mounted(el: HTMLElement, binding: any) {
+    const key = typeof binding?.value === "string" ? binding.value : "";
+    const onEnter = () => setOverflowTitle(el, key);
+    (el as any).__overflowTitleEnter__ = onEnter;
+    el.addEventListener("mouseenter", onEnter);
+    nextTick(() => setOverflowTitle(el, key));
+  },
+  updated(el: HTMLElement, binding: any) {
+    const key = typeof binding?.value === "string" ? binding.value : "";
+    nextTick(() => setOverflowTitle(el, key));
+  },
+  unmounted(el: HTMLElement) {
+    const onEnter = (el as any).__overflowTitleEnter__;
+    if (onEnter) {
+      el.removeEventListener("mouseenter", onEnter);
+      delete (el as any).__overflowTitleEnter__;
+    }
+  },
+};
 
 // data & state watcher
 let dataWatcher: Function | null = null;
@@ -501,7 +691,8 @@ onMounted(async () => {
   }, true);
 
   // lang handler
-  langWatcher = subscribeLanguage(() => {
+  langWatcher = subscribeLanguage((lang: string) => {
+    currentLang.value = (lang || navigator.language || "").toLowerCase();
     refrehColumn(state.columns);
     state.columns = [...state.columns];
   });
@@ -593,11 +784,11 @@ const delRow = async (arrayNode: ArrayNode, index: number) => {
   const isnew = array.isNewRow(array.elements[index]);
   if (props.autoDel && !isnew) {
     try {
-      await ElMessageBox.confirm(sformat("DEL_CONFIRM", _L.value(arrayNode?.desc?.key ? arrayNode.desc : arrayNode.display)), { type: "warning" });
+      await ElMessageBox.confirm(sformat("DEL_CONFIRM", _L.value(arrayNode?.desc?.key ? arrayNode.desc : arrayNode.display)), _L.value("NOTIFY"), { type: "warning", dangerouslyUseHTMLString: true });
     } catch {
       return;
     }
-    await toRaw(arrayNode).delRows(index, index, true);
+    await toRaw(arrayNode).delRows(index, 1, true);
   }
   else {
     toRaw(arrayNode).delRows(index);
@@ -640,6 +831,7 @@ const genColumn = async (
     desc: `${_L.value(field.desc) || ""}`,
     require: field.require || false,
     ref,
+    localString: field.type === NS_SYSTEM_LOCALE_STRING,
   };
   let schema = await getSchema(field.type);
   if (!schema) return null;
@@ -797,7 +989,8 @@ const saveRefNode = async () => {
   let appNode = arrayNode.parent;
   while (appNode && !(appNode instanceof AppNode)) appNode = appNode.parent;
   if (appNode) await appNode.submit([refNode.value as ArrayNode]);
-  closeRefNode();
+  if (!props.keepRefOpen)
+    closeRefNode();
 };
 
 //#endregion
@@ -853,6 +1046,7 @@ interface IColumnInfo {
   ref?: boolean;
   invisible?: boolean;
   json?: boolean;
+  localString?: boolean;
 }
 
 interface ITableRow {
@@ -862,3 +1056,33 @@ interface ITableRow {
   count: number;
 }
 </script>
+
+<style scoped>
+.localstring-readonly-tooltip {
+  position: relative;
+  width: 100%;
+  min-height: 24px;
+}
+
+.localstring-readonly-tooltip :deep(section) {
+  position: relative;
+}
+
+.localstring-readonly-tooltip :deep(section > a) {
+  position: absolute;
+  right: 1rem;
+  top: 0;
+  z-index: 4;
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+.localstring-tip-trigger {
+  position: absolute;
+  left: -12px;
+  top: -12px;
+  bottom: -12px;
+  right: 32px;
+  z-index: 3;
+}
+</style>
