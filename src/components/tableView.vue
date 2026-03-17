@@ -2,14 +2,11 @@
   <section style="width: 100%">
     <table-filter ref="filterRef" :filters="filters" :columnsPerRow="columnsPerRow" :auto-filter="autoFilter"
       :array-node="arrayNode" @expand="handleExpand" />
-    <div v-if="(!state.readonly && state.allowAdd && (addPosition === 'header' || state.template)) || $slots.action"
+    <div v-if="(!state.readonly && state.allowAdd && addPosition === 'header') || $slots.action"
       :style="{ display: 'flex', marginBottom: '16px' }">
       <template v-if="!state.readonly && state.allowAdd">
         <el-button type="primary" v-if="addPosition === 'header'" @click="addRow(arrayNode)"
           :style="{ marginRight: '12px' }">{{ _L["ADD"] }}</el-button>
-        <el-button type="success" v-if="state.template" @click="arrayNode.downloadTemplate()"
-          :style="{ marginRight: '12px' }">{{ _L["Download Template"] }}</el-button>
-        <el-button type="primary" v-if="state.template" @click="uploadData">{{ _L["Upload Data"] }}</el-button>
       </template>
       <slot name="action" />
     </div>
@@ -40,13 +37,8 @@
                 </template>
               </template>
               <!-- single row -->
-              <div v-if="
-                scol.localString &&
-                !col.isArray &&
-                scope.row.index === 0 &&
-                (scope.row.node.getField(col.prop) instanceof StructNode) &&
-                isReadonlyField((scope.row.node.getField(col.prop) as StructNode), scol.prop)
-              " class="localstring-readonly-tooltip"
+              <div v-if="scol.localString && !col.isArray && scope.row.index === 0 && (scope.row.node.getField(col.prop) instanceof StructNode) && isReadonlyField((scope.row.node.getField(col.prop) as StructNode), scol.prop)" 
+                class="localstring-readonly-tooltip"
                 v-overflow-title="getFieldTipKey((scope.row.node.getField(col.prop) as StructNode), scol.prop)">
                 <struct-field-view :key="(scope.row.node.getField(col.prop) as StructNode).getField(scol.prop)!.guid"
                   :node="(scope.row.node.getField(col.prop) as StructNode)" :field="scol.prop" :in-form="inForm"
@@ -71,27 +63,16 @@
             </template>
           </el-table-column>
 
-          <el-table-column v-if="
-            col.isArray &&
-            !state.readonly &&
-            !state.disabled &&
-            !(noSubAdd && noSubDel)
-          " :label="_L['OPER']" align="center" width="100">
+          <el-table-column v-if="col.isArray && !state.readonly && !state.disabled && !(noSubAdd && noSubDel)" 
+            :label="_L['OPER']" align="center" width="100">
             <template #default="scope">
               <template v-if="scope.row.node.getField(col.prop)">
                 <a href="javascript:void(0)" style="color: lightseagreen"
                   v-if="!noSubAdd && (scope.row.node.getField(col.prop) as ArrayNode).elements.length == scope.row.index"
-                  @click="
-                    addRow(scope.row.node.getField(col.prop) as ArrayNode)
-                    ">{{ _L["ADD"] }}</a>
+                  @click="addRow(scope.row.node.getField(col.prop) as ArrayNode)">{{ _L["ADD"] }}</a>
                 <a href="javascript:void(0)" style="color: red"
                   v-else-if="!noSubDel && (scope.row.node.getField(col.prop) as ArrayNode).elements.length > scope.row.index"
-                  @click="
-                    delRow(
-                      scope.row.node.getField(col.prop) as ArrayNode,
-                      scope.row.index
-                    )
-                    ">{{ _L["DEL"] }}</a>
+                  @click="delRow(scope.row.node.getField(col.prop) as ArrayNode, scope.row.index)">{{ _L["DEL"] }}</a>
               </template>
             </template>
           </el-table-column>
@@ -121,13 +102,8 @@
                 </template>
               </template>
               <!-- single row -->
-              <div v-if="
-                scol.localString &&
-                !col.isArray &&
-                scope.row.index === 0 &&
-                (scope.row.node.getField(col.prop) instanceof StructNode) &&
-                isReadonlyField((scope.row.node.getField(col.prop) as StructNode), scol.prop)
-              " class="localstring-readonly-tooltip"
+              <div v-if="scol.localString && !col.isArray && scope.row.index === 0 && (scope.row.node.getField(col.prop) instanceof StructNode) && isReadonlyField((scope.row.node.getField(col.prop) as StructNode), scol.prop)" 
+                class="localstring-readonly-tooltip"
                 v-overflow-title="getFieldTipKey((scope.row.node.getField(col.prop) as StructNode), scol.prop)">
                 <struct-field-view :key="(scope.row.node.getField(col.prop) as StructNode).getField(scol.prop)!.guid"
                   :node="(scope.row.node.getField(col.prop) as StructNode)" :field="scol.prop" :in-form="inForm"
@@ -152,27 +128,16 @@
             </template>
           </el-table-column>
 
-          <el-table-column v-if="
-            col.isArray &&
-            !state.readonly &&
-            !state.disabled &&
-            !(noSubAdd && noSubDel)
-          " :label="mergeHeaderText(col.label, _L['OPER'])" align="center" width="100">
+          <el-table-column v-if="col.isArray && !state.readonly && !state.disabled && !(noSubAdd && noSubDel)" 
+            :label="mergeHeaderText(col.label, _L['OPER'])" align="center" width="100">
             <template #default="scope">
               <template v-if="scope.row.node.getField(col.prop)">
                 <a href="javascript:void(0)" style="color: lightseagreen"
                   v-if="!noSubAdd && (scope.row.node.getField(col.prop) as ArrayNode).elements.length == scope.row.index"
-                  @click="
-                    addRow(scope.row.node.getField(col.prop) as ArrayNode)
-                    ">{{ _L["ADD"] }}</a>
+                  @click="addRow(scope.row.node.getField(col.prop) as ArrayNode)">{{ _L["ADD"] }}</a>
                 <a href="javascript:void(0)" style="color: red"
                   v-else-if="!noSubDel && (scope.row.node.getField(col.prop) as ArrayNode).elements.length > scope.row.index"
-                  @click="
-                    delRow(
-                      scope.row.node.getField(col.prop) as ArrayNode,
-                      scope.row.index
-                    )
-                    ">{{ _L["DEL"] }}</a>
+                  @click="delRow(scope.row.node.getField(col.prop) as ArrayNode, scope.row.index)">{{ _L["DEL"] }}</a>
               </template>
             </template>
           </el-table-column>
@@ -181,7 +146,7 @@
         <!-- Single row -->
         <el-table-column v-else :prop="col.prop" :label="col.label" :min-width="col.localString ? 200 : 140"
           :width="(col.ref || col.json) ? (col.localString ? 200 : 140) : undefined" :header-align="headerAlign"
-          :align="(col.ref || col.json) ? true : undefined" :show-overflow-tooltip="!col.localString">
+          :align="(col.ref || col.json) ? 'center' : undefined" :show-overflow-tooltip="!col.localString">
           <template #header v-if="col.require">
             <span><span style="color: red; margin-right: 4px">*</span>{{ col.label }}</span>
           </template>
@@ -219,15 +184,11 @@
       </template>
 
       <!-- Oper -->
-      <el-table-column v-if="
-        $slots.operator ||
-        (!state.readonly &&
-          !state.disabled &&
-          (state.allowAdd || state.allowDel))
-      " :label="_L['OPER']" align="center" fixed="right" :width="operWidth || 100">
+      <el-table-column v-if="$slots.operator || (!state.readonly && !state.disabled && (state.allowAdd || state.allowDel))" 
+        :label="_L['OPER']" align="center" fixed="right" :width="operWidth || 100">
         <template #header>
           <a href="javascript:void(0)"
-            v-if="!state.readonly && state.allowAdd && (addPosition !== 'header' || state.template)"
+            v-if="!state.readonly && state.allowAdd && addPosition !== 'header'"
             @click="addRow(arrayNode)" style="text-decoration: underline; color: lightseagreen">{{ _L["ADD"] }}</a>
           <p v-else>{{ _L["OPER"] }}</p>
         </template>
@@ -269,10 +230,6 @@
         <el-main>
           <el-form v-if="refNode" ref="refForm" :model="refNode.rawData" label-width="160" label-position="left"
             style="width: 100%; height: 90%">
-            <!--template v-for="col in state.columns.filter((c) => !c.ref && c.require)" :key="col.name">
-              <schema-view :node="(refRow as StructNode).getField(col.prop)" in-form="nest" :disabled="true"
-                v-bind="$attrs"></schema-view>
-            </template-->
             <div class="draw-view">
               <schema-view :key="refNode.guid" :node="refNode as any" in-form="expandall" no-filter="true"
                 plain-text="left" hide-query-field :addPosition="addPosition" :autoDel="autoDel"></schema-view>
@@ -308,22 +265,10 @@
     </el-drawer>
 
     <!-- page -->
-
     <el-pagination v-if="state.pageCount && state.total" ref="pageRef" :current-page="(state.page || 0) + 1"
       :page-size="state.pageCount" :total="state.total" :pager-count="state.pageCount" layout="total, prev, pager, next"
-      :style="{
-        display: 'flex',
-        justifyContent: 'flex-end',
-        marginTop: '16px',
-      }" @current-change="handlePage">
+      :style="{display: 'flex', justifyContent: 'flex-end', marginTop: '16px',}" @current-change="handlePage">
     </el-pagination>
-    <el-pagination v-else-if="state.total" ref="pageRef" :current-page="(state.page || 0) + 1"
-      :page-size="state.pageCount || state.total" :total="state.total" :pager-count="state.total"
-      layout="total, prev, pager, next" :style="{
-        display: 'flex',
-        justifyContent: 'flex-end',
-        marginTop: '16px',
-      }" @current-change="handlePage"></el-pagination>
   </section>
 </template>
 
@@ -337,7 +282,7 @@ import {
   debounce,
   getSchema,
   type ILocaleString,
-  type IStructFieldConfig,
+  type IStructFieldSchema,
   NS_SYSTEM_LOCALE_STRING,
   RelationType,
   SchemaType,
@@ -457,11 +402,6 @@ const props = defineProps<{
   hideQueryField?: boolean;
 
   /**
-   * Disable incr-update feature in reference, since the number will be low
-   */
-  disableRefIncr?: boolean;
-
-  /**
    * Render grouped headers in single line by merging parent and child labels
    */
   singleHeader?: boolean;
@@ -488,7 +428,6 @@ const state = reactive<{
   allowAdd: boolean;
   allowDel: boolean;
   allReadonly?: boolean;
-  template?: boolean;
 }>({
   columns: [],
   spanCols: {},
@@ -627,7 +566,6 @@ onMounted(async () => {
   blackColumns = [...node.blackColumns];
 
   queryFilter = node.query || {};
-  state.template = node.enableTemplate;
 
   await refreshColumns();
 
@@ -818,7 +756,7 @@ const closePrepareRow = () => {
 
 // gen columns
 const genColumn = async (
-  field: IStructFieldConfig,
+  field: IStructFieldSchema,
   skipSub?: boolean,
   ref?: boolean
 ) => {
@@ -903,8 +841,7 @@ const genRows = debounce(() => {
     let count = 0;
     (ele as StructNode).fields
       .filter((f) => f.schemaType === SchemaType.Array)
-      .forEach(
-        (f) => (count = Math.max(count, (f as ArrayNode).elements.length))
+      .forEach((f: AnySchemaNode) => (count = Math.max(count, (f as ArrayNode).elements.length))
       );
 
     // for add
@@ -946,7 +883,7 @@ const refChanged = ref(false);
 const refValid = ref(true);
 let refDataWatcher: Function | null = null;
 const openRef = async (node: StructNode, prop: string) => {
-  const rnode = (await arrayNode.getReferenceNode(node, prop, props.disableRefIncr)) as ArrayNode;
+  const rnode = (await arrayNode.getReferenceNode(node, prop)) as ArrayNode;
   if (!rnode) return;
   refRow.value = node;
   refNode.value = rnode;
@@ -1012,27 +949,6 @@ const closeDetailNode = () => {
   showDetailNode.value = false;
   detailNode.value = null;
 }
-
-//#region Template data
-
-const uploadData = async () => {
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = ".xlsx,.xls";
-  input.onchange = async (e: any) => {
-    const file = e.target.files[0];
-    if (file) {
-      const res = await arrayNode.uploadDataFile(file, true);
-      if (res && res.result) {
-        await arrayNode.setPage(0);
-      }
-    }
-  };
-  input.click();
-};
-
-//#endregion
-
 
 interface IColumnInfo {
   prop: string;

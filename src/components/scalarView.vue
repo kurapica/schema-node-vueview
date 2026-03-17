@@ -14,7 +14,7 @@
             :remote="state.enableRemote"
             :remote-method="remoteHanlder"
             :default-first-option="state.asSuggest"
-            :placeholder="scalarNode.selectPlaceHolder"
+            :placeholder="state.selectPlaceHolder"
             v-bind="$attrs">
             <el-option
                 v-for="item in state.whiteList?.filter(w => !isNull(typeof(w) === 'object' ? w.value : w))"
@@ -33,7 +33,7 @@
                 multiple: false,
                 lazy: false
             }"
-            :placeholder="scalarNode.inputPlaceHolder"
+            :placeholder="state.selectPlaceHolder"
             :disabled="disabled || state.readonly"
             :clearable="!state.require"
             v-bind="$attrs"
@@ -44,7 +44,7 @@
         v-model="data"
         :disabled="disabled || state.readonly || state.disable"
         style="width: 100%;"
-        :placeholder="!state.readonly && !isNull(state.default) && `${state.default}` || scalarNode.inputPlaceHolder"
+        :placeholder="!state.readonly && !isNull(state.default) && `${state.default}` || state.inputPlaceHolder"
         v-bind="$attrs">
         <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
             <component :is="slot" v-bind="slotProps" />
@@ -53,7 +53,7 @@
 </template>
 
 <script lang="ts" setup>
-import { isNull, RelationType, ScalarNode, NODE_SELF, ScalarRule } from 'schema-node'
+import { isNull, RelationType, ScalarNode, NODE_SELF, ScalarRule, subscribeLanguage } from 'schema-node'
 import { computed, onMounted, onUnmounted, reactive, toRaw, useSlots } from 'vue'
 import { _L } from '../locale'
 
@@ -93,8 +93,10 @@ const state = reactive<{
     readonly?: boolean,
     useWhiteList?: boolean,
     whiteList?: any[],
-    cascade?: boolean
-    anyLevel?: boolean
+    cascade?: boolean,
+    anyLevel?: boolean,
+    inputPlaceHolder?: string
+    selectPlaceHolder?: string
 }>({})
 
 // Data
@@ -114,6 +116,7 @@ const remoteHanlder = (value:string) => {
 // data & state watcher
 let dataWatcher: Function | null = null
 let stateWatcher: Function | null = null
+let langWatcher: Function | null = null
 
 onMounted(() => {
     const node = scalarNode
@@ -153,6 +156,11 @@ onMounted(() => {
             state.anyLevel = false
         }
     }, true)
+
+    langWatcher = subscribeLanguage(() => {
+        state.inputPlaceHolder = scalarNode.inputPlaceHolder
+        state.selectPlaceHolder = scalarNode.selectPlaceHolder
+    }, true)
 })
 
 const parseWhiteList = (entries: any[]) =>
@@ -180,6 +188,7 @@ const parseWhiteList = (entries: any[]) =>
 onUnmounted(() => {
     if (dataWatcher) dataWatcher()
     if (stateWatcher) stateWatcher()
+    if (langWatcher) langWatcher()
 })
 
 </script>
