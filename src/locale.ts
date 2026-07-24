@@ -1,4 +1,4 @@
-import { subscribeLanguage, isNull, type ILocaleString, LocaleFunction, localeStringToString } from "schema-node"
+import { subscribeLanguage, type ILocaleString, type LocaleFunction, localeStringToString } from "schema-node"
 import { ref } from "vue"
 
 export const _L = ref<LocaleFunction>(new Proxy(function(key: string | ILocaleString):string { return ""} as LocaleFunction, {}))

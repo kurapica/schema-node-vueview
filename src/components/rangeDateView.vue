@@ -1,5 +1,5 @@
 <template>
-  <span v-if="state.readonly && plainText" :style="{'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
+  <span v-if="(disabled || state.readonly) && plainText" :style="{'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
     {{ state.display }}
   </span>
   <el-date-picker v-else-if="node.schemaName === NS_SYSTEM_RANGEDATE || node.schemaName === NS_SYSTEM_RANGEFULLDATE" 
@@ -7,7 +7,7 @@
     :type="node.schemaName === NS_SYSTEM_RANGEDATE ? 'daterange' : 'datetimerange'"
     :placeholder="node.selectPlaceHolder"
     :clearable="!state.require"
-    :disabled="state.readonly || state.disable"
+    :disabled="disabled || state.readonly || state.disable"
     :disabled-date="disabledDate"
     range-separator="~"
     :start-placeholder="_L(node.getField('start')?.display)"
@@ -15,9 +15,9 @@
   ></el-date-picker>
   <div v-else
     style="display: flex; justify-content: space-between;">
-    <schema-view :node="node.getField('start')" :disabled="state.disable"></schema-view>
+    <schema-view :node="node.getField('start')" :disabled="disabled || state.disable"></schema-view>
     ~
-    <schema-view :node="node.getField('stop')" :disabled="state.disable"></schema-view>
+    <schema-view :node="node.getField('stop')" :disabled="disabled || state.disable"></schema-view>
   </div>
 </template>
 
@@ -33,6 +33,11 @@ const props = defineProps<{
      * The range date node
      */
     node: StructNode
+
+    /**
+     * Disable input
+     */
+    disabled?: boolean,
 
     /**
      * Display readon only value as plain text

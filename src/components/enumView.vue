@@ -1,5 +1,5 @@
 <template>
-    <span v-if="state.readonly && plainText" :style="{'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
+    <span v-if="(disabled || state.readonly) && plainText" :style="{'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
         {{ _L(state.display) }}
     </span>
     <el-cascader v-else
@@ -15,7 +15,7 @@
         }"
         :show-all-levels="showAllLevels || false"
         :placeholder="enumNode.inputPlaceHolder"
-        :disabled="state.readonly || state.disabled"
+        :disabled="disabled || state.readonly || state.disabled"
         :clearable="!state.require"
         :filterable="enumNode.cascadeLevel === 1"
         v-bind="$attrs"
@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { EnumNode, getEnumAccessList, getEnumSubList, IEnumValueInfo, isEqual, IEnumValueAccess, isNull, ILocaleString, subscribeLanguage } from 'schema-node'
+import { EnumNode, getEnumAccessList, getEnumSubList, type IEnumValueInfo, isEqual, type IEnumValueAccess, isNull, type ILocaleString, subscribeLanguage } from 'schema-node'
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw } from 'vue'
 import { _L } from '../locale'
 
@@ -33,6 +33,11 @@ const props = defineProps<{
      * The schema node
      */
     node: EnumNode
+
+    /**
+     * Disable input
+     */
+    disabled?: boolean,
 
     /**
      * Display readon only value as plain text

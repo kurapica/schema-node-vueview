@@ -1,5 +1,5 @@
 <template>
-    <schema-view 
+    <schema-view v-if="fldnode && fldnode.guid"
         :key="fldnode.guid"
         :node="(fldnode as AnySchemaNode)"
         :in-form="getSubNodeFormType(fldnode as AnySchemaNode, inForm, skin)"
@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import { AnySchemaNode, StructNode } from 'schema-node'
+import { type AnySchemaNode, StructNode } from 'schema-node'
 import { onMounted, onUnmounted, ref, useSlots } from 'vue'
 import schemaView from './schemaView.vue'
 import { SchemaNodeFormType } from '../formType'
@@ -44,7 +44,7 @@ const slots = useSlots()
 const slotEntries = Object.entries(slots) as [string, (...args: any[]) => any][]
 
 let memberWatch: Function | null = null
-const fldnode = ref<AnySchemaNode>(props.node.getField(props.field))
+const fldnode = ref<AnySchemaNode>(props.node.getField(props.field)!)
 
 onMounted(() => {
     const node = props.node
@@ -54,7 +54,7 @@ onMounted(() => {
     {
         memberWatch = node.subscribeMemberChange((name: string) => {
             if (name == field)
-                fldnode.value = node.getField(field)
+                fldnode.value = node.getField(field)!
         })
     }
 })

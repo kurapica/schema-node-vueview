@@ -1,5 +1,5 @@
 <template>
-    <span v-if="state.readonly && plainText"
+    <span v-if="(disabled || state.readonly) && plainText"
         :style="{ 'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
         {{ state.display }}
     </span>
@@ -35,7 +35,7 @@ const scalarNode = toRaw(props.node)
 
 // display state
 const state = reactive<{
-    data?: Date,
+    data?: any,
     default?: any,
     display?: any,
     disable?: boolean,
@@ -50,7 +50,7 @@ const state = reactive<{
 // Data
 const data = computed({
     get(): any {
-        return state.data
+        return scalarNode.isYear ? `${state.data}` : state.data
     },
     set(value: any) {
         scalarNode.data = value
@@ -86,7 +86,8 @@ let stateWatcher: Function | null = null
 
 onMounted(() => {
     dataWatcher = scalarNode.subscribe(() => {
-        state.data = scalarNode.data
+        const data = scalarNode.rawData
+        state.data = data
         state.display = display()
         state.changed = scalarNode.changed
     }, true)

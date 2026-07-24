@@ -1,7 +1,7 @@
 <template>
     <template v-for="field in node.fields">
         <struct-field-view v-if="node.isFieldChangable(field.name)"
-            :key="node.getField(field.name).guid"
+            :key="node.getField(field.name)!.guid"
             :node="node"
             :field="field.name"
             :in-form="inForm" 

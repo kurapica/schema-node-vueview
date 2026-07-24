@@ -14,6 +14,7 @@
     <div v-else style="display: flex;">
         <template v-for="i in state.length">
             <schema-view v-if="node.elements.length >= i"
+                style="min-width: 120px;"
                 :key="node.elements[i-1].guid"
                 :node="node.elements[i-1]"
                 :plain-text="plainText"

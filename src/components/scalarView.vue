@@ -1,20 +1,21 @@
 <template>
-    <span v-if="state.readonly && plainText && !state.useWhiteList" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
-        {{ state.display }}
+    <span v-if="(disabled || state.readonly) && plainText" :style="{'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
+        {{ state.whiteList ? _L(state.whiteList.find(w => typeof(w) == 'object' && w.value == state.display)?.label ?? state.display) : state.display }}
     </span>
     <template v-else-if="state.useWhiteList">
         <el-select
             v-if="!state.cascade"
             v-model="data"
             style="width: 100%;min-width: 120px;"
-            :disabled="state.readonly || state.disable"
+            :disabled="disabled || state.readonly || state.disable"
             :clearable="!state.require"
             :filterable="state.asSuggest"
             :allow-create="state.asSuggest"
             :remote="state.enableRemote"
             :remote-method="remoteHanlder"
             :default-first-option="state.asSuggest"
-            :placeholder="scalarNode.selectPlaceHolder">
+            :placeholder="state.selectPlaceHolder"
+            v-bind="$attrs">
             <el-option
                 v-for="item in state.whiteList?.filter(w => !isNull(typeof(w) === 'object' ? w.value : w))"
                 :key="typeof(item) === 'object' ? item.value : item"
@@ -28,21 +29,23 @@
             :options="state.whiteList"
             :props="{
                 emitPath: false,
-                checkStrictly: false,
+                checkStrictly: state.anyLevel,
                 multiple: false,
                 lazy: false
             }"
-            :placeholder="scalarNode.inputPlaceHolder"
-            :disabled="state.readonly"
+            :placeholder="state.selectPlaceHolder"
+            :disabled="disabled || state.readonly"
             :clearable="!state.require"
+            v-bind="$attrs"
         ></el-cascader>
     </template>
     <el-input
         v-else
         v-model="data"
-        :disabled="state.readonly || state.disable"
+        :disabled="disabled || state.readonly || state.disable"
         style="width: 100%;"
-        :placeholder="!state.readonly && !isNull(state.default) && `${state.default}` || scalarNode.inputPlaceHolder">
+        :placeholder="!state.readonly && !isNull(state.default) && `${state.default}` || state.inputPlaceHolder"
+        v-bind="$attrs">
         <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
             <component :is="slot" v-bind="slotProps" />
         </template>
@@ -50,7 +53,7 @@
 </template>
 
 <script lang="ts" setup>
-import { isNull, RelationType, ScalarNode, NODE_SELF } from 'schema-node'
+import { isNull, RelationType, ScalarNode, NODE_SELF, ScalarRule, subscribeLanguage } from 'schema-node'
 import { computed, onMounted, onUnmounted, reactive, toRaw, useSlots } from 'vue'
 import { _L } from '../locale'
 
@@ -60,6 +63,11 @@ const props = defineProps<{
      * Scalar schema node
      */
     node: ScalarNode,
+
+    /**
+     * Display readon only value as plain text alignment. false - not use plain text display, 'left' | 'center' | 'right' - alignment
+     */
+    disabled?: boolean,
 
     /**
      * Display readon only value as plain text
@@ -85,7 +93,10 @@ const state = reactive<{
     readonly?: boolean,
     useWhiteList?: boolean,
     whiteList?: any[],
-    cascade?: boolean
+    cascade?: boolean,
+    anyLevel?: boolean,
+    inputPlaceHolder?: string
+    selectPlaceHolder?: string
 }>({})
 
 // Data
@@ -105,6 +116,7 @@ const remoteHanlder = (value:string) => {
 // data & state watcher
 let dataWatcher: Function | null = null
 let stateWatcher: Function | null = null
+let langWatcher: Function | null = null
 
 onMounted(() => {
     const node = scalarNode
@@ -125,28 +137,58 @@ onMounted(() => {
         state.readonly = node.readonly
         state.enableRemote = state.asSuggest && whiteListPush?.args?.find((a:any) => a.field === NODE_SELF || a.field === node.name) ? true : false
 
-        if (node.rule.whiteList?.length || whiteListPush && !state.asSuggest)
+        if (node.rule.whiteList?.length || node.rule.entries?.length || whiteListPush && !state.asSuggest)
         {
             state.useWhiteList = true
-            let list = node.rule.whiteList?.length ? [...node.rule.whiteList] : node.rule.asSuggest ? [node.rawData] : []
+            let list = node.rule.whiteList?.length ? [...node.rule.whiteList] : node.rule.entries?.length ? [...node.rule.entries] : node.rule.asSuggest ? [node.rawData] : []
             const blackList = node.rule.blackList
             if (blackList && blackList.length)
                 list = list.filter(w => typeof(w) === "object" ? blackList.findIndex((b:any) => `${b}` === `${w.value}`) < 0 : blackList.findIndex((b:any) => `${b}` === `${w}`) < 0) as any
-            state.whiteList = list
+            state.whiteList = parseWhiteList(list)
             state.cascade = list.some(w => typeof(w) === "object" && w.children && Array.isArray(w.children) && w.children.length)
+            state.anyLevel = list.some(w => typeof(w) === "object" && w.children?.length && w.match)
         }
         else
         {
             state.useWhiteList = false
             state.whiteList = []
             state.cascade = false
+            state.anyLevel = false
         }
     }, true)
+
+    langWatcher = subscribeLanguage(() => {
+        state.inputPlaceHolder = scalarNode.inputPlaceHolder
+        state.selectPlaceHolder = scalarNode.selectPlaceHolder
+    }, true)
 })
+
+const parseWhiteList = (entries: any[]) =>
+{
+    return entries.map(e => {
+        if (typeof(e) === 'object' && e !== null)
+        {
+            const item: any = {
+                value: e.value,
+                label: _L.value(e.label)
+            }
+            if (e.children && Array.isArray(e.children))
+                item.children = parseWhiteList(e.children)
+            if (e.match)
+                item.match = e.match
+            return item
+        }
+        else
+        {
+            return e
+        }
+    })
+}
 
 onUnmounted(() => {
     if (dataWatcher) dataWatcher()
     if (stateWatcher) stateWatcher()
+    if (langWatcher) langWatcher()
 })
 
 </script>

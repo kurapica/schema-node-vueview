@@ -1,5 +1,5 @@
 <template>
-    <div v-if="!loaded" ref="mask" style="width: 100%;height: 24px;">
+    <div v-if="!loaded && !invisible" ref="mask" style="width: 100%;height: 24px;">
         <el-skeleton animated v-bind="$attrs"></el-skeleton>
     </div>
     <template v-else-if="schemaNode && !invisible">
@@ -24,11 +24,12 @@
 </template>
 
 <script setup lang="ts" name="SchemaView">
-import { isReactive, isRef, onMounted, onUnmounted, ref, shallowRef, toRaw, useSlots, watch, WatchHandle } from 'vue'
-import { AnySchemaNode, AppNode, ISchemaConfig, getSchemaNode, isAbstractSchema, isNull } from 'schema-node'
+import { isReactive, isRef, onMounted, onUnmounted, ref, shallowRef, toRaw, useSlots, watch, type WatchHandle } from 'vue'
+import { type AnySchemaNode, AppNode, type ISchemaConfig, getSchemaNode, isAbstractSchema, isNull } from 'schema-node'
 import formView from './formView.vue'
 import { SchemaNodeFormType } from '../formType'
 import { getSchemaTypeView, useSingleView } from '../schemaView'
+import { _L } from '../locale'
 
 // props
 const props = defineProps<{
@@ -92,7 +93,9 @@ let observer: any = null
 let dataWatcher: Function | null = null
 let stateWatcher: Function | null = null
 let configWatcher: WatchHandle | null = null
+let buildObserver: Function | null = null
 let updatevalue = false
+let timeOut: number | null = null
 
 if (!props.node)
 {
@@ -104,7 +107,7 @@ if (!props.node)
 }
 
 onMounted(async () => {
-    let node = props.node ? toRaw(props.node) : null
+    let node = props.node ? toRaw(props.node) : undefined
     if (!node) {
         if (props.config) {
             if (!props.config.type && props.type) props.config.type = props.type
@@ -112,7 +115,7 @@ onMounted(async () => {
 
             node = await getSchemaNode(toRaw(props.config), toRaw(props.modelValue))
 
-            if (!isNull(props.value)) {
+            if (node && !isNull(props.value)) {
                 node.data = toRaw(props.value)
             }
 
@@ -133,37 +136,45 @@ onMounted(async () => {
     }
     else if(node.parent instanceof AppNode)
     {
+        const root = typeof(props.rootDiv) === "string" ? document.querySelector(props.rootDiv) : props.rootDiv
+
+        buildObserver = async ([entry]: any) => {
+            observer?.disconnect()
+            observer = null;
+
+            if ((node?.parent as AppNode).isFieldLoaded(node!.name))
+            {
+                loaded.value = true
+                return
+            }
+
+            if(entry && entry.isIntersecting && !node?.invisible)
+            {
+                await (node!.parent as AppNode).reload([node!], true)
+                loaded.value = true
+            }
+            else
+            {
+                while(!mask.value && !loaded.value)
+                    await new Promise(r => timeOut = setTimeout(r, 100))
+                if (loaded.value) return
+                
+                observer = new IntersectionObserver(buildObserver as any, {
+                    rootMargin: "0px 0px 100px 0px",
+                    root,
+                })
+                observer.observe(mask.value)
+            }
+        }
+
         // check if the field is loaded
         if (!node.parent.isFieldLoaded(node.name))
         {
             loaded.value = false
-            const root = typeof(props.rootDiv) === "string" ? document.querySelector(props.rootDiv) : props.rootDiv
-
-            observer = new IntersectionObserver(async ([entry]) => {
-                if(entry && entry.isIntersecting)
-                {
-                    observer?.disconnect()
-                    observer = null;
-
-                    await (node!.parent as AppNode).reload([node!], true)
-                    loaded.value = true
-                }
-            }, {
-                rootMargin: "0px 0px 100px 0px",
-                root,
-            })
-
-            while(!mask.value && !loaded.value)
-            {
-                await new Promise(r => setTimeout(r, 100))
-            }
-            if (!loaded.value){
-                observer?.observe(mask.value)
-            }
+            buildObserver([])
         }
     }
 
-    schemaNode.value = node || null
     if (!node) return
 
     // active rule when display
@@ -186,8 +197,19 @@ onMounted(async () => {
         updatevalue = true
         emit('update:modelValue', node.data)
         setTimeout(() => updatevalue = false, 20)
+        if (!loaded.value && node.parent instanceof AppNode && node.parent.isFieldLoaded(node.name)) {
+            loaded.value = true
+        }
     })
-    stateWatcher = node.subscribeState(() => invisible.value = node.invisible, true)
+    stateWatcher = node.subscribeState(() => {
+        invisible.value = node.invisible
+        // Re-trigger lazy load if the field was unloaded externally (e.g. activeWorkflow reload)
+        if (loaded.value && node.parent instanceof AppNode && !node.parent.isFieldLoaded(node.name)) {
+            loaded.value = false
+            buildObserver?.([])
+        }
+    }, true)
+    schemaNode.value = node || null
 })
 
 onUnmounted(() => {
@@ -195,6 +217,7 @@ onUnmounted(() => {
     if (dataWatcher) dataWatcher()
     if (configWatcher) configWatcher()
     if (stateWatcher) stateWatcher()
+    if (timeOut) clearTimeout(timeOut)
 })
 
 
