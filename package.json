@@ -43,6 +43,7 @@
   },
   "dependencies": {
     "less": "^4.5.1",
-    "schema-node": "workspace:*"
+    "schema-node-core": "workspace:*",
+    "schema-node-app": "workspace:*"
   }
 }
