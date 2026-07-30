@@ -26,7 +26,7 @@
     "visualization"
   ],
   "author": "kurapica125@outlook.com",
-  "license": "MIT",
+  "license": "Apache License 2.0",
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.3",
     "sass-embedded": "^1.89.0",

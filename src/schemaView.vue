@@ -13,7 +13,7 @@
         </form-view>
         <component v-else-if="component"
             :is="component"
-            :key="schemaNode.guid"
+            :key="schemaNode.id"
             :node="schemaNode"
             v-bind="{ ...$attrs, ...(inFormType ? { 'in-form': inFormType } : {})}">
             <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
@@ -25,18 +25,18 @@
 
 <script setup lang="ts" name="SchemaView">
 import { isReactive, isRef, onMounted, onUnmounted, ref, shallowRef, toRaw, useSlots, watch, type WatchHandle } from 'vue'
-import { type AnySchemaNode, AppNode, type ISchemaConfig, getSchemaNode, isAbstractSchema, isNull } from 'schema-node'
-import formView from './formView.vue'
-import { SchemaNodeFormType } from '../formType'
-import { getSchemaTypeView, useSingleView } from '../schemaView'
-import { _L } from '../locale'
+import formView from './components/formView.vue'
+import { SchemaNodeFormType } from './enum/formType'
+import { getSchemaTypeView, useSingleView } from './schemaView'
+import { _L } from './utility/locale'
+import { DataNode } from 'schema-node-core'
 
 // props
 const props = defineProps<{
     /**
      * The schema node
      */
-    node?: AnySchemaNode
+    node?: DataNode,
 
     /**
      * The schema node type(if node not provided)
@@ -56,7 +56,7 @@ const props = defineProps<{
     /**
      * The schema node config(if node not provided)
      */
-    config?: ISchemaConfig
+    props?: Record<string, unknown>
 
     /**
      * The skin to be use
@@ -82,7 +82,7 @@ const slotEntries = Object.entries(slots) as [string, (...args: any[]) => any][]
 const emit = defineEmits(['update:modelValue'])
 
 // node
-const schemaNode = ref<AnySchemaNode | null>(null)
+const schemaNode = ref<DataNode | null>(null)
 const component = shallowRef<any>(null)
 const inFormType = ref<SchemaNodeFormType>(SchemaNodeFormType.None)
 const invisible = ref(false)
@@ -102,7 +102,7 @@ if (!props.node)
     watch(() => props.modelValue, () => {
         if (updatevalue) return
         if (schemaNode.value)
-            schemaNode.value!.data = toRaw(props.modelValue)
+            schemaNode.value!.value = toRaw(props.modelValue)
     })
 }
 

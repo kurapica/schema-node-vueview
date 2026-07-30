@@ -1,5 +1,5 @@
-import { type AnySchemaNode, ArrayNode, getCachedSchema, type INodeSchema, SchemaType, type SchemaTypeValue } from "schema-node"
-import { SchemaNodeFormType } from "./formType"
+import { ArrayNode, ArrayType, DataNode, NodeType, ScalarType, SCHEMA_KIND_BOOL, SCHEMA_KIND_DATE, SCHEMA_KIND_DECIMAL, SCHEMA_KIND_ENUM, SCHEMA_KIND_INT, SCHEMA_KIND_STRING, StructType } from "schema-node-core"
+import { SchemaNodeFormType } from "./enum/formType"
 
 export const DEFAULT_SKIN = "default"
 const baseSchemaViews: {
@@ -9,40 +9,28 @@ const baseSchemaViews: {
         customResolve?: Function
     }
 } = {}
-const schemaViews: { [key: string]: { [key: string]: any } } = {}
-const simpleType: SchemaTypeValue[] = [SchemaType.Scalar, SchemaType.Enum]
+const schemaViews: { [key: string]: { [key: string]: any } } = {};
+const simpleType: string[] = [SCHEMA_KIND_ENUM, SCHEMA_KIND_INT, SCHEMA_KIND_DECIMAL, SCHEMA_KIND_BOOL, SCHEMA_KIND_STRING, SCHEMA_KIND_DATE];
 const singleView = new Set<string>()
 
 /**
  * if node is single node or use a special schema view
  */
-export function useSingleView(node: INodeSchema, skinName: string = DEFAULT_SKIN) {
-    const key = `${node.name.toLowerCase()}-${skinName.toLowerCase()}`
-    if (singleView.has(key)) return true
-    switch(node.type)
-    {
-        case SchemaType.Enum:
-        case SchemaType.Scalar:
-            return true
-        case SchemaType.Struct:
-            if (!schemaViews[node.name.toLowerCase()]) return false
-            for(let i = 0; i < (node.struct?.fields?.length || 0); i++)
-            {
-                const s = getCachedSchema(node.struct!.fields[i].type)
-               if (s?.type === SchemaType.Struct) return false
-               if (s?.type === SchemaType.Array) return false
-            }
-            return true
-        case SchemaType.Array:
-            return node.array!.single || simpleType.includes(getCachedSchema(node.array!.element)!.type)
-    }
+export function useSingleView(node: NodeType, skinName: string = DEFAULT_SKIN) {
+  const key = `${node.name.toLowerCase()}-${skinName.toLowerCase()}`
+  if (singleView.has(key)) return true
+  if (node instanceof StructType)
+    return !(!schemaViews[node.name.toLowerCase()] || node.getFields().some(f => f.type instanceof StructType || f.type instanceof ArrayType));
+  else if (node instanceof ArrayType)
+    return simpleType.includes(node.element!.name);
+  return true;
 }
 
 /**
  * gets the form type of the sub node
  */
-export function getSubNodeFormType(node: AnySchemaNode, type?: SchemaNodeFormType, skinName: string = DEFAULT_SKIN) {
-    return useSingleView(node.schema, skinName) || node instanceof ArrayNode
+export function getSubNodeFormType(node: DataNode, type?: SchemaNodeFormType, skinName: string = DEFAULT_SKIN) {
+    return useSingleView(node.type, skinName) || node instanceof ArrayNode
         ? SchemaNodeFormType.Nest
         : type === SchemaNodeFormType.ExpandAll
             ? SchemaNodeFormType.ExpandAll
@@ -54,7 +42,7 @@ export function getSubNodeFormType(node: AnySchemaNode, type?: SchemaNodeFormTyp
 /**
  * register view as default for any node of the given schema type
  */
-export function regBaseSchemaTypeView(type: SchemaType, view?: any, resolve?: Function) {
+export function regBaseSchemaTypeView(type: string, view?: any, resolve?: Function) {
     const map = baseSchemaViews[type]
     if (map) {
         // override the default
@@ -84,40 +72,27 @@ export function regSchemaTypeView(type: string, view: any, skinName: string = DE
 /**
  * Gets the view for the given schema node and skin
  */
-export function getSchemaTypeView(node: AnySchemaNode, skinName: string = DEFAULT_SKIN) {
+export function getSchemaTypeView(node: DataNode, skinName: string = DEFAULT_SKIN) {
     // try registered view
-    const template = getSchemaTypeViewBySchema(node.schema, skinName)
+    const template = getSchemaTypeViewBySchema(node.type, skinName)
     if (template) return template
     
     // Try base view
-    const baseMap = baseSchemaViews[node.schemaType]
+    const baseMap = baseSchemaViews[node.type.name]
     if (!baseMap) return undefined
     return baseMap.customResolve && baseMap.customResolve(node, skinName) ||
         baseMap.resolve && baseMap.resolve(node, skinName) ||
         baseMap.view
 }
 
-function getSchemaTypeViewBySchema(schema: INodeSchema, skinName: string = DEFAULT_SKIN) {
+function getSchemaTypeViewBySchema(schema: NodeType, skinName: string = DEFAULT_SKIN): any | undefined {
     skinName = skinName.toLowerCase()
     const type = schema.name.toLowerCase()
     const maps = schemaViews[type]
     let template = maps ? (maps[skinName] || maps["default"]) : undefined
     if (template) return template
 
-    switch(schema.type)
-    {
-        case SchemaType.Scalar:
-            if (schema.scalar?.base)
-                return getSchemaTypeViewBySchema(getCachedSchema(schema.scalar.base)!, skinName)
-            break
-        case SchemaType.Struct:
-            if (schema.struct?.base)
-            {
-                // If same fields count, use base struct view
-                const baseSchema = getCachedSchema(schema.struct.base)
-                if (baseSchema && baseSchema.struct?.fields.length === schema.struct.fields.length)
-                    return getSchemaTypeViewBySchema(baseSchema, skinName)
-            }
-            break
-    }
+    if (schema instanceof ScalarType)
+      return schema.baseType ? getSchemaTypeViewBySchema(schema.baseType, skinName) : undefined
+    return undefined;
 }
