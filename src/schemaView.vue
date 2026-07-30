@@ -29,7 +29,9 @@ import formView from './components/formView.vue'
 import { SchemaNodeFormType } from './enum/formType'
 import { getSchemaTypeView, useSingleView } from './schemaView'
 import { _L } from './utility/locale'
-import { DataNode } from 'schema-node-core'
+import { DataNode, getNodeType, InVisible, ValueType, Visible } from 'schema-node-core'
+import { AppNode, Loaded } from 'schema-node-app'
+import { fa } from 'element-plus/es/locale/index.js'
 
 // props
 const props = defineProps<{
@@ -90,133 +92,132 @@ const loaded = ref(true)
 const mask = ref(null)
 let observer: any = null
 
-let dataWatcher: Function | null = null
-let stateWatcher: Function | null = null
 let configWatcher: WatchHandle | null = null
-let buildObserver: Function | null = null
 let updatevalue = false
 let timeOut: number | null = null
+let buildObserver: Function | null = null
+let subscribes: Function[] = []
 
 if (!props.node)
 {
-    watch(() => props.modelValue, () => {
-        if (updatevalue) return
-        if (schemaNode.value)
-            schemaNode.value!.value = toRaw(props.modelValue)
-    })
+  watch(() => props.modelValue, () => {
+    if (updatevalue) return
+    if (schemaNode.value)
+        schemaNode.value!.value = toRaw(props.modelValue)
+  })
 }
 
 onMounted(async () => {
-    let node = props.node ? toRaw(props.node) : undefined
-    if (!node) {
-        if (props.config) {
-            if (!props.config.type && props.type) props.config.type = props.type
-            if (isAbstractSchema(props.config.type)) return // no abstract schema node
+  let node = props.node ? toRaw(props.node) : undefined
 
-            node = await getSchemaNode(toRaw(props.config), toRaw(props.modelValue))
-
-            if (node && !isNull(props.value)) {
-                node.data = toRaw(props.value)
-            }
-
-            // update the rule schema with config
-            if (node && (isRef(props.config) || isReactive(props.config))) {
-                configWatcher = watch(props.config, () => {
-                    const rawConfig = toRaw(props.config)
-                    if (!rawConfig) return
-                    node?.ruleSchema.loadConfig(rawConfig)
-                    node?.ruleSchema.initNode(node)
-                    node?.validation().finally(node.notifyState)
-                })
-            }
+  // create the node if not provided
+  if (!node) {
+    if (props.type) {
+      const type = await getNodeType(props.type) as ValueType
+      node = type?.create(props.modelValue)
+      if (node && props.props)
+      {
+        if (isRef(props.props) || isReactive(props.props)) {
+            configWatcher = watch(props.props, () => {
+                const rawConfig = toRaw(props.props)
+                if (!rawConfig) return
+                node?.setPropertyValues(rawConfig)
+            })
         }
-        else if (props.type) {
-            node = await getSchemaNode({ type: props.type }, toRaw(props.modelValue))
-        }
+        else
+          node.setPropertyValues(props.props)
+      }
     }
-    else if(node.parent instanceof AppNode)
-    {
-        const root = typeof(props.rootDiv) === "string" ? document.querySelector(props.rootDiv) : props.rootDiv
+  }
+  if (!node) return
 
-        buildObserver = async ([entry]: any) => {
-            observer?.disconnect()
-            observer = null;
 
-            if ((node?.parent as AppNode).isFieldLoaded(node!.name))
-            {
-                loaded.value = true
-                return
-            }
+  // check if the node is the root node
+  if(node.parent instanceof AppNode)
+  {
+      const root = typeof(props.rootDiv) === "string" ? document.querySelector(props.rootDiv) : props.rootDiv
+      buildObserver = async ([entry]: any) => {
+          observer?.disconnect()
+          observer = null;
 
-            if(entry && entry.isIntersecting && !node?.invisible)
-            {
-                await (node!.parent as AppNode).reload([node!], true)
-                loaded.value = true
-            }
-            else
-            {
-                while(!mask.value && !loaded.value)
-                    await new Promise(r => timeOut = setTimeout(r, 100))
-                if (loaded.value) return
-                
-                observer = new IntersectionObserver(buildObserver as any, {
-                    rootMargin: "0px 0px 100px 0px",
-                    root,
-                })
-                observer.observe(mask.value)
-            }
-        }
+          if (node?.getPropertyValue<boolean>(Loaded) ?? false)
+          {
+              loaded.value = true
+              return
+          }
 
-        // check if the field is loaded
-        if (!node.parent.isFieldLoaded(node.name))
-        {
-            loaded.value = false
-            buildObserver([])
-        }
+          if(entry && entry.isIntersecting && node?.visible)
+          {
+              await (node!.parent as AppNode).reload([node!], true)
+              loaded.value = true
+          }
+          else
+          {
+              while(!mask.value && !loaded.value)
+                  await new Promise(r => timeOut = setTimeout(r, 100))
+              if (loaded.value) return
+              
+              observer = new IntersectionObserver(buildObserver as any, {
+                  rootMargin: "0px 0px 100px 0px",
+                  root,
+              })
+              observer.observe(mask.value)
+          }
+      }
+
+      // check if the field is loaded
+      loaded.value = node?.getPropertyValue<boolean>(Loaded) ?? false;
+      if (!loaded.value) buildObserver([])
+  }
+  else
+  {
+    loaded.value = true
+  }
+
+  if (props.inForm === true) {
+      // use default
+      inFormType.value = useSingleView(node.type, props.skin) ? SchemaNodeFormType.Nest : SchemaNodeFormType.Expand
+  }
+  else if (props.inForm) {
+      inFormType.value = props.inForm as SchemaNodeFormType
+  }
+  else {
+      inFormType.value = SchemaNodeFormType.None
+  }
+
+  // gets the schema view
+  component.value = getSchemaTypeView(node, props.skin)
+  subscribes.push(node.subscribe(() => {
+    updatevalue = true
+    emit('update:modelValue', node.value)
+    setTimeout(() => updatevalue = false, 20)
+    if (!loaded.value && node.getPropertyValue<boolean>(Loaded)) {
+        loaded.value = true
     }
+  }))
+  
+  // visible change
+  subscribes.push(node.subscribeProperty(Visible, () => invisible.value = !node.visible))
+  subscribes.push(node.subscribeProperty(InVisible, () => invisible.value = !node.visible, true))
 
-    if (!node) return
-
-    // active rule when display
-    node.activeRule()
-
-    if (props.inForm === true) {
-        // use default
-        inFormType.value = useSingleView(node.schema, props.skin) ? SchemaNodeFormType.Nest : SchemaNodeFormType.Expand
-    }
-    else if (props.inForm) {
-        inFormType.value = props.inForm as SchemaNodeFormType
-    }
-    else {
-        inFormType.value = SchemaNodeFormType.None
-    }
-
-    // gets the schema view
-    component.value = getSchemaTypeView(node, props.skin)
-    dataWatcher = node.subscribe(() => {
-        updatevalue = true
-        emit('update:modelValue', node.data)
-        setTimeout(() => updatevalue = false, 20)
-        if (!loaded.value && node.parent instanceof AppNode && node.parent.isFieldLoaded(node.name)) {
-            loaded.value = true
-        }
-    })
-    stateWatcher = node.subscribeState(() => {
-        invisible.value = node.invisible
-        // Re-trigger lazy load if the field was unloaded externally (e.g. activeWorkflow reload)
-        if (loaded.value && node.parent instanceof AppNode && !node.parent.isFieldLoaded(node.name)) {
-            loaded.value = false
-            buildObserver?.([])
-        }
-    }, true)
-    schemaNode.value = node || null
+  // loaded change
+  if (node.parent instanceof AppNode)
+  {
+    subscribes.push(node.subscribeProperty(Loaded, () => {
+      // Re-trigger lazy load if the field was unloaded externally (e.g. activeWorkflow reload)
+      if (loaded.value && node.parent instanceof AppNode && !node.getPropertyValue<boolean>(Loaded)) {
+        loaded.value = false
+        buildObserver?.([])
+      }
+    }, true))
+  }
+  schemaNode.value = node || null
 })
 
 onUnmounted(() => {
     loaded.value = true
-    if (dataWatcher) dataWatcher()
-    if (configWatcher) configWatcher()
-    if (stateWatcher) stateWatcher()
+    subscribes.forEach((sub) => sub())
+    if (configWatcher) configWatcher.stop()
     if (timeOut) clearTimeout(timeOut)
 })
 

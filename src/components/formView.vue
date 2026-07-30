@@ -1,5 +1,5 @@
 <template>
-  <el-form-item :key="node?.guid" :prop="node?.access" :error="error" :rules="shouldShowError ? rule : null"
+  <el-form-item :key="node?.id" :prop="node?.access" :error="error" :rules="shouldShowError ? rule : null"
     :label-width="noLabel ? '0px' : undefined">
     <template v-if="!noLabel" #label>
       <el-tooltip v-if="node.config.desc?.key" class="item" :content="_L(node.desc)">
@@ -36,29 +36,19 @@ import { DataNode } from 'schema-node-core'
 
 // Properties
 const props = defineProps<{
-  /**
-   * The schema node
-   */
+  /** The schema node */
   node: DataNode,
 
-  /**
-   * The inform settings
-   */
+  /** The inform settings */
   inForm?: SchemaNodeFormType,
 
-  /**
-   * Don't display the form label
-   */
+  /** Don't display the form label */
   noLabel?: boolean
 
-  /**
-   * The vskin
-   */
+  /** The skin */
   skin?: string
 
-  /**
-   * instant validate the value
-   */
+  /** instant validate the value */
   instantValid?: boolean
 }>()
 const node = toRaw(props.node)
