@@ -1,23 +1,24 @@
 <template>
-  <el-cascader v-if="state.enableOptions"
+  <span v-if="text && state.readonly" style="display: inline-block; min-width: 120px;">{{ _L(state.display) }}</span>
+  <el-cascader v-else-if="state.enableOptions"
     v-model="data"
     style="width: 100%;min-width: 120px"
     :options="options"
     :props="{
-        emitPath: false,
-        multiple: false,
-        lazy: false,
-        lazyLoad
+      emitPath: false,
+      multiple: state.multiple,
+      lazy: true,
+      lazyLoad
     }"
     :placeholder="state.selectPlaceHolder"
-    :disabled="state.readonly"
+    :disabled="state.readonly || state.disable"
     :clearable="!state.require"
     v-bind="$attrs"
   ></el-cascader>
   <el-input v-else
     v-model="data"
     :disabled="state.readonly || state.disable"
-    style="width: 100%;"
+    style="width: 100%;min-width: 120px"
     :placeholder="!state.readonly && !isNull(state.default) && `${state.default}` || state.inputPlaceHolder"
     v-bind="$attrs">
     <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
@@ -27,13 +28,18 @@
 </template>
 
 <script lang="ts" setup>
-import { AsSuggest, BlackList, CallArg, Cascade, DataNode, Default, Disable, Display, Entry, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getProperty, isEqual, isNull, IValueAccess, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, sformat, subscribeLanguage, WhiteList } from 'schema-node-core';
+import { AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getProperty, isEmpty, isEqual, isNull, IValueAccess, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, sformat, subscribeLanguage, WhiteList } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw, useSlots } from 'vue';
 import { _L } from '../utility/locale';
+
+// ── Template ──────────────────────────────────────────────────────
 
 const props = defineProps<{
   /** Input schema node */
   node: DataNode,
+
+  /** Use text mode when readonly  */
+  text?: boolean,
 }>();
 
 // slots
@@ -46,6 +52,7 @@ const node = toRaw(props.node);
 // the display state
 const state = reactive<{
   data?: any,
+  display?: string | LocaleString,
 
   // display
   inputPlaceHolder?: string,
@@ -64,7 +71,6 @@ const state = reactive<{
   asSuggest?: boolean,
   enableOptions?: boolean,
 }>({})
-const subs: Function[] = []
 
 // data model
 const data = computed({
@@ -96,18 +102,18 @@ const entrySourceInfo: {
   owner?: DataNode,
   source?: FunctionType,
   args?: IEntrySourceArg[],
-  enableRoot?: boolean,
   subscribes?: Function[],
   cascade?: number,
   root?: string,
   rootEntry?: EntryType<any>,
   whiteList?: string[],
   blackList?: string[],
+  noEntry?: boolean,
 } = {};
 
 /** get entry access list from entry source args */
 async function getSubEntryList(value: any): Promise<ICascaderOptionInfo[]> {
-  if (!entrySourceInfo.source || !entrySourceInfo.args || !entrySourceInfo.rootEntry) return []
+  if (entrySourceInfo.noEntry || !entrySourceInfo.source || !entrySourceInfo.args || !entrySourceInfo.rootEntry) return []
   let accessList = entrySourceInfo.rootEntry.getAccessList(value);
   let lastAccess = accessList?.[accessList.length - 1];
   if (lastAccess && !lastAccess.entry?.hasChildren) return []; // leaf node
@@ -135,7 +141,13 @@ async function getSubEntryList(value: any): Promise<ICascaderOptionInfo[]> {
         if (curr.entry?.hasChildren && !curr.children?.length)
         {
           curr.entry.hasChildren = false;
-          queryAccessList.splice(i+1);
+          queryAccessList.splice(i);
+          if (i > 0)
+          {
+            const item = queryAccessList[i-1].children?.find(c => c.value == curr.entry?.value);
+            if (item) // @TODO: may need update the options
+              item.hasChildren = false;
+          }
           break;
         }
       }
@@ -167,6 +179,55 @@ const lazyLoad = async (treeNode: { value: any }, resolve: Function, reject: any
   resolve(await getSubEntryList(value));
 }
 
+/** init options with entry source args */
+async function initOptions(){
+  entrySourceInfo.noEntry = false;
+  if (entrySourceInfo.whiteList?.length)
+  {
+    const accesses: EntryAccess<any>[][] = [];
+    const passKeys = new Set<string>();
+    for (const item of entrySourceInfo.whiteList.filter(a => !entrySourceInfo.blackList?.includes(a)))
+    {
+      const queryAccessList = await entrySourceInfo.source!.call(entrySourceInfo.args!.map(a => {
+        if (a.source) return a.source === node ? item : a.source.getValue();
+        if (a.isroot) return undefined;
+        return a.value;
+      })) as EntryAccess<any>[];
+      if (!entrySourceInfo.root || queryAccessList.some(a => a.entry?.value == entrySourceInfo.root))
+      {
+        accesses.push(queryAccessList);
+        queryAccessList.filter(a => a.entry?.value).forEach(a => passKeys.add(`${a.entry?.value}`));
+      }
+    }
+
+    // no access list, allow none
+    entrySourceInfo.noEntry = accesses.length == 0;
+
+    // cut access list
+    accesses.forEach(a => {
+      for (let i = 0; i < a.length; i++)
+      {
+        const curr = a[i];
+        curr.children = curr.children?.filter(a => passKeys.has(`${a.value}`) && !entrySourceInfo.blackList?.includes(`${a.value}`));
+        if (!curr.children?.length && curr.entry?.hasChildren)
+        {
+          curr.entry.hasChildren = false;
+          a.splice(i);
+          if (i > 0)
+          {
+            const item = a[i-1].children?.find(c => c.value == curr.entry?.value);
+            if (item)
+              item.hasChildren = false;
+          }
+          break;
+        }
+      }
+      entrySourceInfo.rootEntry!.saveAccessList(a);
+    })
+  }
+  options.value = await getSubEntryList(entrySourceInfo.root);
+}
+
 /** refresh the options with entry source & white list & black list */
 async function refreshEntrySource() {
   const whiteList = node.getPropertyValue<string[]>(WhiteList);
@@ -193,7 +254,6 @@ async function refreshEntrySource() {
       entrySourceInfo.whiteList = whiteList;
       entrySourceInfo.blackList = blackList;
       entrySourceInfo.source = entryFunc;
-      entrySourceInfo.enableRoot = false;
       entrySourceInfo.subscribes?.forEach(sub => sub());
       entrySourceInfo.subscribes = undefined;
       entrySourceInfo.rootEntry = new EntryType<any>();
@@ -211,7 +271,6 @@ async function refreshEntrySource() {
         else if(a.source === ENTRY_ROOT)
         {
           result.isroot = true;
-          entrySourceInfo.enableRoot = true;
         }
         else if (a.source)
         {
@@ -219,6 +278,8 @@ async function refreshEntrySource() {
           if (target)
           {
             result.source = target;
+            entrySourceInfo.subscribes ??= [];
+            entrySourceInfo.subscribes.push(target.subscribe(() => initOptions()));
           }
           console.error(`Entry source arg ${a.source} from ${(owner as DataNode).access} not found`);
         }
@@ -226,9 +287,7 @@ async function refreshEntrySource() {
       });
 
       // init options
-      options.value = await getSubEntryList(entrySourceInfo.root);
-      if (entrySourceInfo.whiteList?.length)
-        entrySourceInfo.rootEntry.maskWhiteList(entrySourceInfo.whiteList);
+      await initOptions();
     }
 
     // enable options
@@ -238,7 +297,6 @@ async function refreshEntrySource() {
   else if (entrySourceInfo?.source)
   {
     entrySourceInfo.source = undefined;
-    entrySourceInfo.enableRoot = false;
     entrySourceInfo.subscribes?.forEach(sub => sub());
     entrySourceInfo.subscribes = undefined;
   }
@@ -263,14 +321,44 @@ async function refreshEntrySource() {
   }
 }
 
+/** get option by value */
+function getOptionByValue(options: ICascaderOptionInfo[], value: any): ICascaderOptionInfo | undefined
+{
+  for (let i = 0; i < options.length; i++)
+  {
+    const item = options[i];
+    if (item.value == value) return item;
+    const child = item.children?.length ? getOptionByValue(item.children, value) : undefined;
+    if (child) return child;
+  }
+  return undefined;
+}
+
+/** refresh the display value */
+function refreshDisplay() {
+  if (state.enableOptions)
+  {
+    const item = getOptionByValue(options.value, node.value);
+    state.display = item?.localename ?? item?.label ?? (!isEmpty(node.value) ? `${node.value}` : "");
+  }
+  else
+  {
+    state.display = !isEmpty(node.value) ? `${node.value}` : "";
+  }
+}
+
 // ── Life Cycle ────────────────────────────────────────────────────
+const subs: Function[] = []
+
 // mounted
-onMounted(async() => {
+onMounted(async() => { 
   // data change
   subs.push(node.subscribe(() => {
     state.data = node.value;
     state.changed = node.changed;
-  }, true))
+    state.multiple = Array.isArray(state.data);
+    if (props.text) refreshDisplay();
+  }, true));
 
   // state change
   subs.push(node.subscribeProperty(ReadOnly, () => state.readonly = node.readonly, true)); // readonly covers several properties
@@ -280,17 +368,19 @@ onMounted(async() => {
   subs.push(node.subscribeProperty(AsSuggest, (owner, propCtor, newValue, oldValue) => state.asSuggest = newValue as boolean, true));
 
   // options
-  subs.push(node.subscribeProperty(WhiteList, refreshEntrySource))
-  subs.push(node.subscribeProperty(BlackList, refreshEntrySource))
-  subs.push(node.subscribeProperty(EntrySource, refreshEntrySource))
-  subs.push(node.subscribeProperty(Root, refreshEntrySource))
-  subs.push(node.subscribeProperty(Cascade, refreshEntrySource))
+  subs.push(node.subscribeProperty(WhiteList, refreshEntrySource));
+  subs.push(node.subscribeProperty(BlackList, refreshEntrySource));
+  subs.push(node.subscribeProperty(EntrySource, refreshEntrySource));
+  subs.push(node.subscribeProperty(Root, refreshEntrySource));
+  subs.push(node.subscribeProperty(Cascade, refreshEntrySource));
 
   // display
   subs.push(subscribeLanguage(() => {
-    state.inputPlaceHolder = sformat("PLACEHOLDER_INPUT", node.getPropertyValue(Display) ?? node.name)
-    state.selectPlaceHolder = sformat("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name)
-  }))
+    state.inputPlaceHolder = sformat("PLACEHOLDER_INPUT", node.getPropertyValue(Display) ?? node.name);
+    state.selectPlaceHolder = sformat("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
+    if (props.text) refreshDisplay();
+  }));
+  await refreshEntrySource();
 })
 
 // destroy
