@@ -2,7 +2,7 @@
 </template>
 
 <script lang="ts" setup>
-import { AsSuggest, BlackList, DataNode, Default, Disable, Display, EntrySource, FuncCall, LocaleString, ReadOnly, Require, sformat, subscribeLanguage, WhiteList } from 'schema-node-core';
+import { AsSuggest, BlackList, DataNode, Default, Disable, Display, EntrySource, FuncCall, FunctionType, getNodeType, LocaleString, ReadOnly, Require, sformat, subscribeLanguage, WhiteList } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw } from 'vue';
 import { _L } from '../utility/locale';
 
@@ -46,7 +46,7 @@ const data = computed({
 interface ICascaderOptionInfo
 {
     value: any
-    localename: LocaleString
+    localename?: LocaleString
     label: string
     disabled?: boolean
     enumlevel: number
@@ -54,13 +54,47 @@ interface ICascaderOptionInfo
     children: ICascaderOptionInfo[] | undefined | null
 }
 const options = shallowRef<ICascaderOptionInfo[]>([]);
+let entrySource: FuncCall | undefined;
+let entryFunc: FunctionType | undefined;
 
 /** refresh the options with entry source & white list & black list */
 async function refreshOptions() {
   const node = toRaw(props.node);
+  const whiteList = node.getPropertyValue<string[]>(WhiteList);
+  const blackList = node.getPropertyValue<string[]>(BlackList);
 
-  // entry source first
-  const entrySource = node.getPropertyValue<FuncCall>(EntrySource);
+  // entry source
+  entrySource = node.getPropertyValue<FuncCall>(EntrySource);
+  if (entrySource?.func)
+  {
+    entryFunc = await getNodeType(entrySource.func) as FunctionType;
+    if (entryFunc)
+    {
+      // init options
+      options.value = entryFunc.call(node);
+      state.enableOptions = true;
+      return;
+    }
+  }
+  
+  // Simple case
+  if (whiteList?.length)
+  {
+    state.enableOptions = true;
+    options.value = whiteList.filter(item => !blackList?.includes(item)).map(item => ({
+      value: item,
+      label: item,
+      disabled: false,
+      enumlevel: 0,
+      leaf: true,
+      children: undefined,
+    }));
+  }
+  else 
+  {
+    state.enableOptions = false;
+    options.value = [];
+  }
 }
 
 // ── Life Cycle ────────────────────────────────────────────────────
