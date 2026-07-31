@@ -2,20 +2,20 @@
   <el-form-item :key="node?.id" :prop="node?.access" :error="error" :rules="shouldShowError ? rule : null"
     :label-width="noLabel ? '0px' : undefined">
     <template v-if="!noLabel" #label>
-      <el-tooltip v-if="node.config.desc?.key" class="item" :content="_L(node.desc)">
+      <el-tooltip v-if="node.getPropertyValue<LocaleString>(Description)?.key" class="item" :content="_L(node.getPropertyValue<LocaleString>(Description))">
         <span>
           <span v-if="node?.require" style="color: #f56c6c; font-size: 14px"> * </span>
-          {{ _L(node.display?.key ? node.display : node.name) }}
+          {{ _L(node.getPropertyValue<LocaleString>(Display)?.key ? node.getPropertyValue<LocaleString>(Display) : node.name) }}
         </span>
       </el-tooltip>
       <span v-else>
         <span v-if="node?.require" style="color: #f56c6c; font-size: 14px"> * </span>
-        {{ _L(node.display?.key ? node.display : node.name) }}
+        {{ _L(node.getPropertyValue<LocaleString>(Display)?.key ? node.getPropertyValue<LocaleString>(Display) : node.name) }}
       </span>
     </template>
     <slot name="pre" :node="node"></slot>
     <slot :node="node">
-      <schema-view v-if="useSingleView(node.schema, skin)" :node="node" :skin="skin" v-bind="$attrs">
+      <schema-view v-if="useSingleView(node.type, skin)" :node="node" :skin="skin" v-bind="$attrs">
       </schema-view>
       <schema-view v-else :node="node" :instantValid="instantValid"
         :in-form="inForm === SchemaNodeFormType.ExpandAll ? SchemaNodeFormType.ExpandAll : SchemaNodeFormType.Expand"
@@ -32,7 +32,7 @@ import { ref, onUnmounted, onMounted, toRaw } from 'vue'
 import { useSingleView } from '../schemaView'
 import { SchemaNodeFormType } from '../enum/formType'
 import { _L } from '../utility/locale'
-import { DataNode } from 'schema-node-core'
+import { DataNode, Description, Display, LocaleString } from 'schema-node-core'
 
 // Properties
 const props = defineProps<{
@@ -60,7 +60,7 @@ const error = ref<string | undefined>(undefined)
 const rule = {
   trigger: 'blur',
   validator: function (rule: any, value: any, callback: Function) {
-    node.valid ? callback() : callback(node.error)
+    node.isValid ? callback() : callback(node.error)
     showError.value = true
     error.value = node.error
   }
@@ -69,7 +69,7 @@ const rule = {
 let stateWatcher: Function | null = null
 
 onMounted(() => {
-  shouldShowError.value = node && !node.readonly && useSingleView(node.schema, props.skin) || false
+  shouldShowError.value = node && !node.readonly && useSingleView(node.type, props.skin) || false
   showError.value = shouldShowError.value && (node.changed || props.instantValid)
 
   if (shouldShowError.value) {

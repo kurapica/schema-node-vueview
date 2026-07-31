@@ -8,7 +8,8 @@
       "outDir": "dist",
       "esModuleInterop": true,
       "lib": ["dom", "esnext"],
-      "jsx": "preserve"
+      "jsx": "preserve",
+      "resolveJsonModule": true,
     },
     "include": ["src"]
   }

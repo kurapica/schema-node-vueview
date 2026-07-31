@@ -203,9 +203,9 @@ onMounted(async () => {
   // loaded change
   if (node.parent instanceof AppNode)
   {
-    subscribes.push(node.subscribeProperty(Loaded, () => {
+    subscribes.push(node.subscribeProperty(Loaded, (owner, propCtor, newValue, oldValue) => {
       // Re-trigger lazy load if the field was unloaded externally (e.g. activeWorkflow reload)
-      if (loaded.value && node.parent instanceof AppNode && !node.getPropertyValue<boolean>(Loaded)) {
+      if (loaded.value && node.parent instanceof AppNode && !newValue) {
         loaded.value = false
         buildObserver?.([])
       }
