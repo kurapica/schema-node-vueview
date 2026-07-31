@@ -1,5 +1,22 @@
 <template>
   <span v-if="text && state.readonly" style="display: inline-block; min-width: 120px;">{{ _L(state.display) }}</span>
+  <el-select v-if="state.enableOptions && state.single"
+    v-model="data"
+    style="width: 100%;min-width: 120px;"
+    :disabled="state.readonly || state.disable"
+    :clearable="!state.require"
+    :filterable="state.asSuggest"
+    :allow-create="state.asSuggest"
+    :default-first-option="state.asSuggest"
+    :placeholder="state.selectPlaceHolder"
+    v-bind="$attrs">
+    <el-option
+        v-for="item in options"
+        :key="item.value"
+        :label="_L(item.localename ?? item.label ?? item.value)"
+        :value="item.value">
+    </el-option>
+  </el-select>
   <el-cascader v-else-if="state.enableOptions"
     v-model="data"
     style="width: 100%;min-width: 120px"
@@ -28,7 +45,7 @@
 </template>
 
 <script lang="ts" setup>
-import { AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getProperty, isEmpty, isEqual, isNull, IValueAccess, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, sformat, subscribeLanguage, WhiteList } from 'schema-node-core';
+import { AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getProperty, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, sformat, subscribeLanguage, WhiteList } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw, useSlots } from 'vue';
 import { _L } from '../utility/locale';
 
@@ -70,6 +87,7 @@ const state = reactive<{
   // entry state
   asSuggest?: boolean,
   enableOptions?: boolean,
+  single?: boolean,
 }>({})
 
 // data model
@@ -82,12 +100,12 @@ const data = computed({
 
 interface ICascaderOptionInfo
 {
-    value: any
-    localename?: LocaleString
-    label: string
-    disabled?: boolean
-    leaf: boolean
-    children: ICascaderOptionInfo[] | undefined | null
+  value: any
+  localename?: LocaleString
+  label: string
+  disabled?: boolean
+  leaf: boolean
+  children: ICascaderOptionInfo[] | undefined | null
 }
 
 interface IEntrySourceArg
@@ -111,6 +129,16 @@ const entrySourceInfo: {
   noEntry?: boolean,
 } = {};
 
+/** get access list from entry source args */
+async function getAccessList(value: any, root?: any): Promise<EntryAccess<any>[]> {
+  if (!entrySourceInfo.source || !entrySourceInfo.args) return []
+  return await entrySourceInfo.source.call(entrySourceInfo.args.map(a => {
+      if (a.source) return a.source === node ? value : a.source.getValue();
+      if (a.isroot) return root;
+      return a.value;
+    })) as EntryAccess<any>[]
+}
+
 /** get entry access list from entry source args */
 async function getSubEntryList(value: any): Promise<ICascaderOptionInfo[]> {
   if (entrySourceInfo.noEntry || !entrySourceInfo.source || !entrySourceInfo.args || !entrySourceInfo.rootEntry) return []
@@ -120,11 +148,7 @@ async function getSubEntryList(value: any): Promise<ICascaderOptionInfo[]> {
 
   // query access list
   if (!lastAccess || !lastAccess.children?.length) {
-    const queryAccessList = await entrySourceInfo.source.call(entrySourceInfo.args.map(a => {
-      if (a.source) return a.source === node ? value : a.source.getValue();
-      if (a.isroot) return lastAccess?.entry?.value;
-      return a.value;
-    })) as EntryAccess<any>[];
+    const queryAccessList =  await getAccessList(value, lastAccess?.entry?.value);
 
     // black list
     if (entrySourceInfo.blackList?.length)
@@ -164,9 +188,9 @@ async function getSubEntryList(value: any): Promise<ICascaderOptionInfo[]> {
   return lastAccess.children!.map(a => {
     return {
       value: a.value,
-      localename: getProperty(a, Display)?.getValue<LocaleString>(),
-      label: _L.value(getProperty(a, Display)?.getValue<LocaleString>() ?? a.value),
-      disabled: getProperty(a, Disable)?.getValue<boolean>(),
+      localename: getPropertyValue<LocaleString>(a, Display),
+      label: _L.value(getPropertyValue<LocaleString>(a, Display) ?? a.value),
+      disabled: getPropertyValue<boolean>(a, Disable),
       leaf: isLeaf || !a.hasChildren,
       children: undefined,
     }
@@ -188,11 +212,7 @@ async function initOptions(){
     const passKeys = new Set<string>();
     for (const item of entrySourceInfo.whiteList.filter(a => !entrySourceInfo.blackList?.includes(a)))
     {
-      const queryAccessList = await entrySourceInfo.source!.call(entrySourceInfo.args!.map(a => {
-        if (a.source) return a.source === node ? item : a.source.getValue();
-        if (a.isroot) return undefined;
-        return a.value;
-      })) as EntryAccess<any>[];
+      const queryAccessList = await getAccessList(item);
       if (!entrySourceInfo.root || queryAccessList.some(a => a.entry?.value == entrySourceInfo.root))
       {
         accesses.push(queryAccessList);
@@ -226,6 +246,47 @@ async function initOptions(){
     })
   }
   options.value = await getSubEntryList(entrySourceInfo.root);
+  state.single = options.value.every(a => a.leaf);
+
+  // load options to the value
+  let value = node.getValue();
+  if (!isEmpty(value))
+  {
+    if (!Array.isArray(value)) value = [value];
+    for(let v of value as Array<any>)
+    {
+      await getSubEntryList(v);
+      const accessList = entrySourceInfo.rootEntry!.getAccessList(v);
+      if (!accessList?.length) continue;
+      let subOptions = options.value;
+
+      for (let i = 0; i < accessList.length; i++)
+      {
+        const curr = accessList[i];
+        if (curr.entry?.value)
+        {
+          const opts = getOptionsByValue(subOptions, curr.entry?.value);
+          if (!opts?.length) break;
+          const last = opts[opts.length - 1];
+          if (last.leaf) break;
+          if (curr.entry?.hasChildren && curr.children?.length && !last.children?.length)
+          {
+            const isLeaf = entrySourceInfo.cascade && entrySourceInfo.cascade <= i + 1;
+            last.children = curr.children.map(a => ({
+              value: a.value,
+              localename: getPropertyValue<LocaleString>(a, Display),
+              label: _L.value(getPropertyValue<LocaleString>(a, Display) ?? a.value),
+              disabled: getPropertyValue<boolean>(a, Disable),
+              leaf: isLeaf || !a.hasChildren,
+              children: undefined,
+            }))
+          }
+          if (!last.children) break;
+          subOptions = last.children;
+        }
+      }
+    }
+  }
 }
 
 /** refresh the options with entry source & white list & black list */
@@ -322,23 +383,33 @@ async function refreshEntrySource() {
 }
 
 /** get option by value */
-function getOptionByValue(options: ICascaderOptionInfo[], value: any): ICascaderOptionInfo | undefined
+function getOptionsByValue(options: ICascaderOptionInfo[], value: any): ICascaderOptionInfo[] | undefined
 {
   for (let i = 0; i < options.length; i++)
   {
     const item = options[i];
-    if (item.value == value) return item;
-    const child = item.children?.length ? getOptionByValue(item.children, value) : undefined;
-    if (child) return child;
+    if (item.value == value) return [item];
+    const child = item.children?.length ? getOptionsByValue(item.children, value) : undefined;
+    if (child?.length) return [item, ...child];
   }
   return undefined;
+}
+
+/** refresh options label */
+function refreshOptionsLabel(options: ICascaderOptionInfo[])
+{
+  options.forEach(item => {
+    item.label = _L.value(item.localename ?? item.label ?? item.value);
+    if (item.children?.length) refreshOptionsLabel(item.children);
+  })
 }
 
 /** refresh the display value */
 function refreshDisplay() {
   if (state.enableOptions)
   {
-    const item = getOptionByValue(options.value, node.value);
+    const items = getOptionsByValue(options.value, node.value);
+    const item = items ? items[items.length - 1] : undefined;
     state.display = item?.localename ?? item?.label ?? (!isEmpty(node.value) ? `${node.value}` : "");
   }
   else
@@ -379,6 +450,7 @@ onMounted(async() => {
     state.inputPlaceHolder = sformat("PLACEHOLDER_INPUT", node.getPropertyValue(Display) ?? node.name);
     state.selectPlaceHolder = sformat("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
     if (props.text) refreshDisplay();
+    refreshOptionsLabel(options.value);
   }));
   await refreshEntrySource();
 })

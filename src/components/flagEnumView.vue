@@ -1,9 +1,25 @@
 <template>
+  <span v-if="text && state.readonly" style="display: inline-block; min-width: 120px;">{{ _L(state.display) }}</span>
+  <el-cascader
+    v-model="data"
+    style="width: 100%;min-width: 120px"
+    :options="options"
+    :props="{
+      emitPath: false,
+      multiple: !state.single,
+      lazy: false
+    }"
+    :placeholder="state.selectPlaceHolder"
+    :disabled="state.readonly || state.disable"
+    :clearable="!state.require"
+    v-bind="$attrs"
+  ></el-cascader>
 </template>
 
 <script setup lang="ts">
-import { DataNode, LocaleString } from 'schema-node-core';
-import { computed, onMounted, reactive, toRaw } from 'vue';
+import { DataNode, Disable, Display, EnumType, getProperty, getPropertyValue, LocaleString, ReadOnly, Require, sformat, SingleFlag, subscribeLanguage } from 'schema-node-core';
+import { computed, onMounted, onUnmounted, reactive, ref, toRaw } from 'vue';
+import { _L } from '../utility/locale';
 
 // ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{
@@ -28,30 +44,81 @@ const state = reactive<{
   readonly?: boolean,
   disable?: boolean,
   require?: boolean,
-  changed?: boolean,
   single?: boolean,
 }>({});
 
 // data model
 const data = computed({
   get (): any { return state.data },
-  set(value: any) { state.data = value }
+  set(value: any) { state.data = Array.isArray(value) ? value.includes(0) && options.value.some(a => a.value === 0) ? 0 : joinFlags(value) : value; }
 })
 
 // ── Entry List ────────────────────────────────────────────────────
 
 interface ICascaderOptionInfo
 {
-    value: any
-    localename?: LocaleString
-    label: string
-    disabled?: boolean
-    leaf: boolean
+  value: any
+  localename?: LocaleString
+  label: string
+  disabled?: boolean
+  leaf: boolean
 }
-const option: ICascaderOptionInfo[] = [];
+const options = ref<ICascaderOptionInfo[]>([]);
+
+// ── Utility ───────────────────────────────────────────────────────
+
+const splitFlags = (flags: number): number[] => {
+  return flags.toString(2).split('').reverse().map((a, i) => Number(a) * Math.pow(2, i)).filter(a => a > 0)
+}
+
+const joinFlags = (flags: number[]): number => {
+  return flags.reduce((a, b) => a | b, 0)
+}
+
+/** refresh the display value */
+function refreshDisplay() {
+  const displays = splitFlags(node.value as number).map(a => options.value.find(b => b.value === a)?.label ?? a);
+  state.display = displays.join(', ');
+}
 
 // ── Life Cycle ────────────────────────────────────────────────────
+const subs: Function[] = [];
+
 onMounted(async () => {
-  
+  // state change
+  subs.push(node.subscribeProperty(ReadOnly, () => state.readonly = node.readonly, true)); // readonly covers several properties
+  subs.push(node.subscribeProperty(Disable, (owner, propCtor, newValue, oldValue) => state.disable = newValue as boolean, true));
+  subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue, oldValue) => state.require = newValue as boolean, true));
+  subs.push(node.subscribeProperty(SingleFlag, (owner, propChange, newValue, oldValue) => { state.single = newValue as boolean; }, true));
+
+  // data change
+  subs.push(node.subscribe(() => {
+    state.data = state.single ? node.value as number : splitFlags(node.value as number);
+    refreshDisplay();
+  }, true));
+
+  // options
+  const access = await (node.type as EnumType).getEnumEntryAccess(); // root;
+  options.value = access[0].children?.map(a => ({
+    value: a.value,
+    localename: getPropertyValue<LocaleString>(a, Display),
+    label: _L.value(getPropertyValue<LocaleString>(a, Display) ?? a.value),
+    disabled: getPropertyValue<boolean>(a, Disable),
+    leaf: true,
+  })) || [];
+
+  // language change
+  subs.push(subscribeLanguage(() => {
+    state.selectPlaceHolder = sformat("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
+    options.value = options.value.map(a => {
+      a.label = _L.value(a.localename ?? a.value);
+      return a;
+    });
+    refreshDisplay();
+  }, true))
+})
+
+onUnmounted(() => {
+  subs.forEach(a => a())
 })
 </script>

@@ -1,4 +1,19 @@
 {
   "PLACEHOLDER_INPUT": "Please enter {0}",
-  "PLACEHOLDER_SELECT": "Please select {0}"
+  "PLACEHOLDER_SELECT": "Please select {0}",
+  "YES": "Yes",
+  "NO": "No",
+  "ADD": "Add",
+  "DEL": "Delete",
+  "OPER": "Operation",
+  "RESUME": "Resume",
+  "CONFIRM": "Confirm",
+  "EDIT": "Edit",
+  "CLOSE": "Close",
+  "SAVE": "Save",
+  "MOVETOP": "Move to Top",
+  "NOTIFY": "Notice",
+  "DEL_CONFIRM": "Confirm to delete {0}?",
+  "frontend.view.error": "Submit failed. Please check your data.",
+  "system.localetran.tran": "Translate"
 }
