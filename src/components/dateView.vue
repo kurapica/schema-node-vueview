@@ -1,53 +1,51 @@
 <template>
-  <span v-if="(disabled || state.readonly) && plainText"
-    :style="{ 'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
+  <span v-if="state.readonly && text"
+    :style="{ 'width': '100%', 'text-align': text === true ? state.defaultAlign : text }">
     {{ state.display }}
   </span>
   <el-select v-else-if="state.useWhiteList"
     v-model="whiteListData"
-    :disabled="state.readonly || disabled || state.disable"
-    :placeholder="selectPlaceHolder"
+    :disabled="state.readonly || state.disable"
+    :placeholder="state.selectPlaceHolder"
     :clearable="!state.require"
     style="width: 100%">
     <el-option v-for="item in state.whiteList"
       :key="item"
-      :label="isYear ? item : dateFormat(item + '', isFullDate, isYear)"
+      :label="state.kind === 'year' ? item : dateFormat(item)"
       :value="item"></el-option>
   </el-select>
   <el-date-picker v-else
     v-model="data"
-    :type="isYear ? 'year' : isYearMonth ? 'month' : isFullDate ? 'datetime' : 'date'"
-    :placeholder="!state.readonly && state.default && dateFormat(state.default, isFullDate, isYear) || selectPlaceHolder"
-    :disabled="state.readonly || disabled || state.disable"
-    :value-format="isYear ? 'YYYY' : null"
+    :type="state.kind"
+    :placeholder="!state.readonly && state.default && dateFormat(state.default) || state.selectPlaceHolder"
+    :disabled="state.readonly || state.disable"
+    :value-format="state.kind === 'year' ? 'YYYY' : null"
     :disabled-date="disabledDate"
     style="width: 100%"
   ></el-date-picker>
 </template>
 
 <script lang="ts" setup>
-import {
-  AsSuggest, BlackList, DataNode, Default, Disable, Display, isNull,
-  NS_SYSTEM_FULL_DATE, NS_SYSTEM_YEAR, NS_SYSTEM_YEARMONTH, ReadOnly, Require,
-  sformat, WhiteList,
-} from 'schema-node-core'
+import { AsSuggest, BlackList, DataNode, DateNode, Default, Disable, Display, getNodeType, IntNode, isNull, NS_SYSTEM_FULL_DATE, NS_SYSTEM_YEAR, NS_SYSTEM_YEARMONTH, ReadOnly, Require, ScalarType, sformat, subscribeLanguage, ValueType, WhiteList } from 'schema-node-core'
 import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
 import { _L } from '../utility/locale'
 
-// Define props
-const props = defineProps<{ node: DataNode, plainText?: any, disabled?: boolean }>()
+// ── Template ──────────────────────────────────────────────────────
+const props = defineProps<{ 
+  node: DataNode, 
+  text?: any
+}>()
 const node = toRaw(props.node)
 
-// date kind derived from the runtime type name
-const isYear = node.type.name === NS_SYSTEM_YEAR
-const isYearMonth = node.type.name === NS_SYSTEM_YEARMONTH
-const isFullDate = node.type.name === NS_SYSTEM_FULL_DATE
-
-// display state
+// ── UI State ──────────────────────────────────────────────────────
+/** Display state */
 const state = reactive<{
   data?: any,
+  kind?: 'year' | 'month' | 'date' | 'datetime',
   default?: any,
   display?: any,
+  selectPlaceHolder?: string,
+  defaultAlign?: "left" | "right" | "center",
   disable?: boolean,
   require?: boolean,
   asSuggest?: boolean,
@@ -55,29 +53,24 @@ const state = reactive<{
   useWhiteList?: boolean,
   whiteList?: any[],
   changed?: boolean
-}>({})
-
-// placeholder
-const selectPlaceHolder = computed(() => sformat("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name))
+}>({ defaultAlign: "left" })
 
 // Data
 const data = computed({
-  get(): any {
-    return isYear ? `${state.data}` : state.data
-  },
-  set(value: any) {
-    node.value = value
-  }
+  get(): any { return state.kind === 'year' ? `${state.data}` : state.data },
+  set(value: any) { node.value = value }
 })
+
+// ── Utility ───────────────────────────────────────────────────────
 
 // white list
 const whiteListData = computed({
   get() {
-    return node.value ? dateFormat(node.value, isFullDate, isYear) : null
+    return node.value ? dateFormat(node.value) : null
   },
   set(newValue) {
     if (!isNull(newValue)) {
-      if (isYear) {
+      if (state.kind === 'year') {
         node.value = parseInt(newValue!)
       } else {
         node.value = newValue ? new Date(newValue) : null
@@ -88,13 +81,97 @@ const whiteListData = computed({
   }
 })
 
-// data & state watcher
+// generate display
+const display = () => {
+  if (state.kind === 'year') return node.value
+
+  // check value
+  let value: any = node.value
+  if (value) {
+    if (typeof (value) === "string") {
+      value = new Date(value);
+      if (isNaN(value.getFullYear())) value = null
+    }
+    if (!(value instanceof Date)) {
+      value = null
+    }
+  }
+  if (!value) return ""
+
+  // display
+  const date = value as unknown as Date
+  if (state.kind === 'month') {
+    return `${date.getFullYear()}-${date.getMonth() + 1}`
+  }
+  if (state.kind === 'datetime') {
+    return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.toLocaleTimeString()}`
+  }
+
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+}
+
+const disabledDate = (time: Date) => {
+  if (node.readonly) return false
+
+  if (state.kind === 'year') {
+    const upLimit = (node as IntNode).upLimit
+    const lowLimit = (node as IntNode).lowLimit
+    return (typeof upLimit === "number" && upLimit < time.getFullYear()) || (typeof lowLimit === "number" && lowLimit > time.getFullYear())
+  }
+  else 
+  {
+    const upLimit = (node as DateNode).upLimit
+    const lowLimit = (node as DateNode).lowLimit
+    if (state.kind === 'month') {
+      return upLimit && (upLimit.getFullYear() < time.getFullYear() || upLimit.getFullYear() === time.getFullYear() && upLimit.getMonth() < time.getMonth()) ||
+             lowLimit && (lowLimit.getFullYear() > time.getFullYear() || lowLimit.getFullYear() === time.getFullYear() && lowLimit.getMonth() > time.getMonth())
+    }
+    else if (state.kind === 'date') {
+      return upLimit && (upLimit.getFullYear() < time.getFullYear() || upLimit.getFullYear() === time.getFullYear() && upLimit.getMonth() < time.getMonth() && upLimit.getDate() < time.getDate()) ||
+             lowLimit && (lowLimit.getFullYear() > time.getFullYear() || lowLimit.getFullYear() === time.getFullYear() && lowLimit.getMonth() > time.getMonth() && lowLimit.getDate() > time.getDate())
+    }
+    else if (state.kind === 'datetime') {
+      return upLimit && (upLimit.getTime() < time.getTime()) ||
+             lowLimit && (lowLimit.getTime() > time.getTime())
+    }
+    else {
+      return false
+    }
+  }
+}
+
+const dateFormat = (date: any): string => {
+  if (state.kind === 'year') return date;
+  const dateObj = new Date(date);
+  const YY = dateObj.getFullYear() + "-";
+  const MM = (dateObj.getMonth() + 1 < 10 ? "0" + (dateObj.getMonth() + 1) : dateObj.getMonth() + 1) + "-";
+  const DD = dateObj.getDate() < 10 ? "0" + dateObj.getDate() : dateObj.getDate();
+  const dateStr = YY + MM + DD;
+  if (state.kind === 'datetime') {
+    const hh = (dateObj.getHours() < 10 ? "0" + dateObj.getHours() : dateObj.getHours()) + ":";
+    const mm = (dateObj.getMinutes() < 10 ? "0" + dateObj.getMinutes() : dateObj.getMinutes()) + ":";
+    const ss = dateObj.getSeconds() < 10 ? "0" + dateObj.getSeconds() : dateObj.getSeconds();
+    return `${dateStr} ${hh + mm + ss}`;
+  }
+  return dateStr;
+}
+
+const getKind = (type: ScalarType): 'month' | 'date' | 'datetime' => {
+  if (type.name === NS_SYSTEM_FULL_DATE) return 'datetime'
+  if (type.name === NS_SYSTEM_YEARMONTH) return 'month'
+  return type.baseType ? getKind(type.baseType) : 'date'
+}
+
+// ── Life Cycle ────────────────────────────────────────────────────
+/** Subscription */
 const subs: Function[] = []
 
-onMounted(() => {
+onMounted(async () => {
+  state.kind = node.type.isAssignableTo(await getNodeType(NS_SYSTEM_YEAR) as ValueType) ? 'year' : getKind(node.type as ScalarType);
+
   subs.push(node.subscribe(() => {
     state.data = node.rawValue
-    state.display = display()
+    if (props.text) state.display = display()
     state.changed = node.changed
   }, true))
 
@@ -119,85 +196,16 @@ onMounted(() => {
       state.whiteList = []
     }
   }
-  subs.push(node.subscribeProperty(WhiteList, refreshWhiteList, true))
+  subs.push(node.subscribeProperty(WhiteList, refreshWhiteList))
   subs.push(node.subscribeProperty(BlackList, refreshWhiteList, true))
+
+  // language
+  subs.push(subscribeLanguage(() => {
+    state.selectPlaceHolder = sformat("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
+  }, true));
 })
 
 onUnmounted(() => {
   subs.forEach(sub => sub())
 })
-
-//#region Helper
-
-// generate display
-const display = () => {
-  if (isYear) return node.value
-
-  // check value
-  let value: any = node.value
-  if (value) {
-    if (typeof (value) === "string") {
-      value = new Date(value);
-      if (isNaN(value.getFullYear())) value = null
-    }
-    if (!(value instanceof Date)) {
-      value = null
-    }
-  }
-  if (!value) return ""
-
-  // display
-  const date = value as unknown as Date
-  if (isYearMonth) {
-    return `${date.getFullYear()}-${date.getMonth() + 1}`
-  }
-  if (isFullDate) {
-    return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.toLocaleTimeString()}`
-  }
-
-  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
-}
-
-const disabledDate = (time: Date) => {
-  if (node.readonly) return false
-
-  const upLimit = (node as any).upLimit
-  const lowLimit = (node as any).lowLimit
-
-  if (isYear) {
-    return (typeof upLimit === "number" && upLimit < time.getFullYear()) || (typeof lowLimit === "number" && lowLimit > time.getFullYear())
-  }
-  else if (isYearMonth) {
-    if (upLimit instanceof Date) {
-      if (upLimit.getFullYear() < time.getFullYear() || upLimit.getFullYear() === time.getFullYear() && upLimit.getMonth() < time.getMonth())
-        return true
-    }
-    if (lowLimit instanceof Date) {
-      if (lowLimit.getFullYear() > time.getFullYear() || lowLimit.getFullYear() === time.getFullYear() && lowLimit.getMonth() > time.getMonth())
-        return true
-    }
-    return false
-  }
-  else {
-    return (upLimit instanceof Date && upLimit < time) || (lowLimit instanceof Date && lowLimit > time)
-  }
-}
-
-const dateFormat = (date: any, hasTime?: boolean, isyear?: boolean): string => {
-  if (isyear) return date;
-  const dateObj = new Date(date);
-  const YY = dateObj.getFullYear() + "-";
-  const MM = (dateObj.getMonth() + 1 < 10 ? "0" + (dateObj.getMonth() + 1) : dateObj.getMonth() + 1) + "-";
-  const DD = dateObj.getDate() < 10 ? "0" + dateObj.getDate() : dateObj.getDate();
-  const dateStr = YY + MM + DD;
-  if (hasTime) {
-    const hh = (dateObj.getHours() < 10 ? "0" + dateObj.getHours() : dateObj.getHours()) + ":";
-    const mm = (dateObj.getMinutes() < 10 ? "0" + dateObj.getMinutes() : dateObj.getMinutes()) + ":";
-    const ss = dateObj.getSeconds() < 10 ? "0" + dateObj.getSeconds() : dateObj.getSeconds();
-    return `${dateStr} ${hh + mm + ss}`;
-  }
-  return dateStr;
-}
-
-//#endregion
 </script>

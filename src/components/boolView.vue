@@ -1,13 +1,12 @@
 <template>
-  <span v-if="(disabled || state.readonly) && plainText"
-    :style="{ 'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
+  <span v-if="state.readonly && text"
+    :style="{ 'width': '100%', 'min-width': '120px', 'display': 'inline-block', 'text-align': text === true ? state.defaultAlign : text }">
     {{ state.data ? _L('YES') : _L('NO') }}
   </span>
-  <section v-else-if="state.require || !isNull(state.default)"
-    :style="{ 'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
+  <section v-else-if="state.require || !isNull(state.default)" style="width: 100%;min-width: 120px;">
     <el-switch
       v-model="data"
-      :disabled="disabled || state.readonly || state.disable"
+      :disabled="state.readonly || state.disable"
       active-color="#13ce66"
       inactive-color="#ff4949">
     </el-switch>
@@ -16,54 +15,61 @@
     v-model="data"
     style="width: 100%;"
     clearable
-    :placeholder="selectPlaceHolder"
-    :disabled="disabled || state.readonly || state.disable">
+    :placeholder="state.selectPlaceHolder"
+    :disabled="state.readonly || state.disable">
     <el-option :label="_L('YES')" :value="true" />
     <el-option :label="_L('NO')" :value="false" />
   </el-select>
 </template>
 
 <script lang="ts" setup>
-import { DataNode, Default, Disable, Display, isNull, ReadOnly, Require, sformat } from 'schema-node-core'
+import { DataNode, Default, Disable, Display, isNull, ReadOnly, Require, sformat, subscribeLanguage } from 'schema-node-core'
 import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
 import { _L } from '../utility/locale'
 
-// Define props
+// ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{
   /** Scalar schema node */
   node: DataNode,
 
-  /** Disable input */
-  disabled?: boolean,
-
   /** Display readon only value as plain text */
-  plainText?: any
+  text?: boolean | 'left' | 'right' | 'center'
 }>()
 const node = toRaw(props.node)
 
-// display state
+// ── UI State ──────────────────────────────────────────────────────
+/** Display state */
 const state = reactive<{
+  /** Data */
   data?: any,
+
+  /** Default align */
+  defaultAlign?: 'left' | 'right' | 'center',
+
+  /** Select placeholder */
+  selectPlaceHolder?: string,
+
+  /** Default value */
   default?: any
-  disable?: boolean
-  require?: boolean
+
+  /** Disable */
+  disable?: boolean,
+
+  /** Require */
+  require?: boolean,
+
+  /** Readonly */
   readonly?: boolean
-}>({})
+}>({ defaultAlign: 'left' })
 
-// placeholder
-const selectPlaceHolder = computed(() => sformat("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name))
-
-// Data
+/** Data Model */
 const data = computed({
-  get(): any {
-    return state.data
-  },
-  set(value: any) {
-    node.value = value
-  }
+  get(): any { return state.data },
+  set(value: any) { node.value = value }
 })
 
-// data & state watcher
+// ── Life Cycle ────────────────────────────────────────────────────
+/** Subscription */
 const subs: Function[] = []
 
 onMounted(() => {
@@ -72,9 +78,14 @@ onMounted(() => {
   }, true))
 
   subs.push(node.subscribeProperty(ReadOnly, () => state.readonly = node.readonly, true))
-  subs.push(node.subscribeProperty(Default, (owner, propCtor, newValue) => state.default = newValue, true))
+  subs.push(node.subscribeProperty(Default, (owner, propCtor, newValue) => state.default = newValue as boolean, true))
   subs.push(node.subscribeProperty(Disable, (owner, propCtor, newValue) => state.disable = newValue as boolean, true))
   subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue) => state.require = newValue as boolean, true))
+
+  // language
+  subs.push(subscribeLanguage(() => {
+    state.selectPlaceHolder = sformat("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
+  }, true));
 })
 
 onUnmounted(() => {

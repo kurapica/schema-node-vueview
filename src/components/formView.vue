@@ -34,7 +34,7 @@ import { SchemaNodeFormType } from '../enum/formType'
 import { _L } from '../utility/locale'
 import { DataNode, Description, Display, LocaleString } from 'schema-node-core'
 
-// Properties
+// ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{
   /** The schema node */
   node: DataNode,
@@ -53,10 +53,17 @@ const props = defineProps<{
 }>()
 const node = toRaw(props.node)
 
-// error
+// ── UI State ──────────────────────────────────────────────────────
+/** Show error of form view */
 const showError = ref(false)
+
+/** Should show error of form view */
 const shouldShowError = ref(false)
+
+/** Error of form view */
 const error = ref<string | undefined>(undefined)
+
+/** Rule of form view */
 const rule = {
   trigger: 'blur',
   validator: function (rule: any, value: any, callback: Function) {
@@ -66,6 +73,8 @@ const rule = {
   }
 }
 
+// ── Life Cycle ────────────────────────────────────────────────────
+/** Subscription of form view */
 let stateWatcher: Function | null = null
 
 onMounted(() => {

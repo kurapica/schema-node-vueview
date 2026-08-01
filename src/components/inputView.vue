@@ -1,5 +1,8 @@
 <template>
-  <span v-if="text && state.readonly" style="display: inline-block; min-width: 120px;">{{ _L(state.display) }}</span>
+  <span v-if="text && state.readonly" 
+    :style="{'width': '100%', 'min-width': '120px', 'display': 'inline-block', 'text-align': text === true ? state.defaultAlign : text }">
+    {{ _L(state.display) }}
+  </span>
   <el-select v-if="state.enableOptions && state.single"
     v-model="data"
     style="width: 100%;min-width: 120px;"
@@ -50,47 +53,66 @@ import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw, useSlots
 import { _L } from '../utility/locale';
 
 // ── Template ──────────────────────────────────────────────────────
-
 const props = defineProps<{
   /** Input schema node */
   node: DataNode,
 
-  /** Use text mode when readonly  */
-  text?: boolean,
+  /** Display readon only value as plain text */
+  text?: boolean | 'left' | 'right' | 'center'
 }>();
+const node = toRaw(props.node);
 
 // slots
 const slots = useSlots()
 const slotEntries = Object.entries(slots) as [string, (...args: any[]) => any][]
 
-const node = toRaw(props.node);
-
-// ── State ──────────────────────────────────────────────────────────
-// the display state
+// ── UI State ──────────────────────────────────────────────────────
+/** Display state */
 const state = reactive<{
+  /** Data */
   data?: any,
+  
+  /** Display */
   display?: string | LocaleString,
 
-  // display
+  /** Input placeholder */
   inputPlaceHolder?: string,
+
+  /** Select placeholder */
   selectPlaceHolder?: string,
 
-  // base state
+  /** Default align */
+  defaultAlign?: 'left' | 'right' | 'center',
+
+  /** Default value */
   default?: any,
+
+  /** Readonly */
   readonly?: boolean,
+
+  /** Disable */
   disable?: boolean,
+
+  /** Require */
   require?: boolean,
+
+  /** Changed */
   changed?: boolean,
 
+  /** Multiple */
   multiple?: boolean,
 
-  // entry state
+  /** As suggest */
   asSuggest?: boolean,
+
+  /** Enable options */
   enableOptions?: boolean,
+
+  /** Single */
   single?: boolean,
 }>({})
 
-// data model
+/** Data model */
 const data = computed({
   get (): any { return state.data },
   set(value: any) { state.data = value }
@@ -98,6 +120,7 @@ const data = computed({
 
 // ── Entry List ────────────────────────────────────────────────────
 
+/** Cascader option info */
 interface ICascaderOptionInfo
 {
   value: any
@@ -108,6 +131,7 @@ interface ICascaderOptionInfo
   children: ICascaderOptionInfo[] | undefined | null
 }
 
+/** Entry source arg */
 interface IEntrySourceArg
 {
   source?: IValueAccess,
@@ -115,7 +139,10 @@ interface IEntrySourceArg
   isroot?: boolean,
 }
 
+/** Cascader options */
 const options = shallowRef<ICascaderOptionInfo[]>([]);
+
+/** Entry source info */
 const entrySourceInfo: {
   owner?: DataNode,
   source?: FunctionType,
@@ -419,6 +446,7 @@ function refreshDisplay() {
 }
 
 // ── Life Cycle ────────────────────────────────────────────────────
+/** Subscription */
 const subs: Function[] = []
 
 // mounted
@@ -428,6 +456,8 @@ onMounted(async() => {
     state.data = node.value;
     state.changed = node.changed;
     state.multiple = Array.isArray(state.data);
+    state.defaultAlign = typeof(state.data) === 'number' ? 'right' : 'left';
+
     if (props.text) refreshDisplay();
   }, true));
 
@@ -451,7 +481,7 @@ onMounted(async() => {
     state.selectPlaceHolder = sformat("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
     if (props.text) refreshDisplay();
     refreshOptionsLabel(options.value);
-  }));
+  }, true));
   await refreshEntrySource();
 })
 

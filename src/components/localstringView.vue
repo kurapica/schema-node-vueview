@@ -1,14 +1,14 @@
 <template>
   <section v-if="keyNode" style="width: 100%; min-width: 120px;">
-    <span v-if="(disabled || keyNode.readonly) && plainText"
-      :style="{ 'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
+    <span v-if="keyNode.readonly && text"
+      :style="{ 'width': '100%', 'display': 'inline-block', 'text-align': text === true ? 'left' : text }">
       {{ _L(displayData) }}
     </span>
     <span v-else-if="isCombine && !showCombineKey"
-      :style="{ 'width': '100%', 'display': 'inline-block', 'text-align': plainText === true ? 'center' : plainText }">
+      :style="{ 'width': '100%', 'display': 'inline-block', 'text-align': text === true ? 'left' : text }">
       {{ _L(combineData) }}
     </span>
-    <schema-view v-else style="width: 100%;" :key="keyNode.id" :node="keyNode" :plainText="plainText"
+    <schema-view v-else style="width: 100%;" :key="keyNode.id" :node="keyNode" :text="text"
       :disabled="disabled" v-bind="$attrs">
       <template #append>
         <a v-if="isCombine" href="javascript:void(0)" @click="showCombineKey = false">{{ _L('CONFIRM') }}</a>
@@ -16,7 +16,7 @@
       </template>
     </schema-view>
 
-    <template v-if="(disabled || keyNode.readonly) && plainText">
+    <template v-if="(disabled || keyNode.readonly) && text">
       <a href="javascript:void(0)" style="position: absolute; right: 1rem" @click="openTrans">{{
         _L('system.localetran.tran') }}</a>
     </template>
@@ -57,19 +57,18 @@
 </template>
 
 <script lang="ts" setup>
-import { ArrayNode, DataNode, Display, getProperty, getPropertyValue, isNull, LocaleString, StructNode } from 'schema-node-core'
+import { ArrayNode, DataNode, Display, getPropertyValue, isNull, LocaleString, StructNode } from 'schema-node-core'
 import { onUnmounted, ref, toRaw } from 'vue'
 import schemaView from '../schemaView.vue'
 import { _L, getLanguageEntries } from '../utility/locale'
-import { getField } from '../utility/node'
 
+// ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{
   /** Struct Schema node (locale string struct with key + trans fields) */
   node: DataNode,
-  /** Disable input */
-  disabled?: boolean,
+  
   /** Display readon only value as plain text */
-  plainText?: any
+  text?: any
 }>()
 
 const localeNode = toRaw(props.node) as StructNode

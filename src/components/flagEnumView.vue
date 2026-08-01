@@ -1,5 +1,8 @@
 <template>
-  <span v-if="text && state.readonly" style="display: inline-block; min-width: 120px;">{{ _L(state.display) }}</span>
+  <span v-if="text && state.readonly" 
+    :style="{'width': '100%', 'min-width': '120px', 'display': 'inline-block', 'text-align': text === true ? state.defaultAlign : text }">
+    {{ _L(state.display) }}
+  </span>
   <el-cascader
     v-model="data"
     style="width: 100%;min-width: 120px"
@@ -29,32 +32,44 @@ const props = defineProps<{
   /** Use text mode when readonly  */
   text?: boolean,
 }>();
-
 const node = toRaw(props.node);
 
-// ── State ──────────────────────────────────────────────────────────
+// ── UI State ──────────────────────────────────────────────────────
+/** State */
 const state = reactive<{
+  /** Data */
   data?: number | number[],
   
   /** Display value */
   display?: string | LocaleString,
+
+  /** Select placeholder */
   selectPlaceHolder?: string,
+  
+  /** Default align */
+  defaultAlign?: 'left' | 'right' | 'center',
 
-  // base state
+  /** Readonly */
   readonly?: boolean,
+  
+  /** Disable */
   disable?: boolean,
+  
+  /** Require */
   require?: boolean,
+  
+  /** Single flag */
   single?: boolean,
-}>({});
+}>({ defaultAlign: 'right' });
 
-// data model
+/** Data model */
 const data = computed({
   get (): any { return state.data },
   set(value: any) { state.data = Array.isArray(value) ? value.includes(0) && options.value.some(a => a.value === 0) ? 0 : joinFlags(value) : value; }
 })
 
 // ── Entry List ────────────────────────────────────────────────────
-
+/** Entry list */
 interface ICascaderOptionInfo
 {
   value: any
@@ -63,14 +78,18 @@ interface ICascaderOptionInfo
   disabled?: boolean
   leaf: boolean
 }
+
+/** Entry list of flag enum view */
 const options = ref<ICascaderOptionInfo[]>([]);
 
 // ── Utility ───────────────────────────────────────────────────────
 
+/** Split flags into binary array */
 const splitFlags = (flags: number): number[] => {
   return flags.toString(2).split('').reverse().map((a, i) => Number(a) * Math.pow(2, i)).filter(a => a > 0)
 }
 
+/** Join binary array into flags */
 const joinFlags = (flags: number[]): number => {
   return flags.reduce((a, b) => a | b, 0)
 }
@@ -82,6 +101,7 @@ function refreshDisplay() {
 }
 
 // ── Life Cycle ────────────────────────────────────────────────────
+/** Subscription */
 const subs: Function[] = [];
 
 onMounted(async () => {
