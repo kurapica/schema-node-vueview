@@ -1,5 +1,7 @@
 <template>
   <section style="width: 100%">
+    <table-filter v-if="filters.length" ref="filterRef" :filters="filters" :columns-per-row="columnsPerRow"
+      :auto-filter="autoFilter" @expand="handleExpand" @reset="onResetFilter" @query="onQueryFilter" />
     <div v-if="(!state.readonly && state.allowAdd && addPosition === 'header') || $slots.action"
       :style="{ display: 'flex', marginBottom: '16px' }">
       <template v-if="!state.readonly && state.allowAdd">
@@ -116,11 +118,20 @@
         </template>
         <template #default="scope" v-if="$slots.operator || state.allowDel">
           <slot name="operator" :row="scope.row.node" :index="scope.row.eleIdx">
-            <a v-if="!noDel" href="javascript:void(0)" @click="delRow(node, scope.row.eleIdx)">{{ _L('DEL') }}</a>
+            <a v-if="!noDel && !state.deleted[scope.row.eleIdx]" href="javascript:void(0)"
+              @click="delRow(node, scope.row.eleIdx)">{{ _L('DEL') }}</a>
+            <a v-else-if="!noDel && state.deleted[scope.row.eleIdx]" href="javascript:void(0)"
+              style="color: grey" @click="resumeRow(node, scope.row.eleIdx)">{{ _L('RESUME') }}</a>
           </slot>
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- page -->
+    <el-pagination v-if="state.pageCount && state.total" :current-page="(state.page || 0) + 1"
+      :page-size="state.pageCount" :total="state.total" layout="total, prev, pager, next"
+      :style="{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }" @current-change="handlePage">
+    </el-pagination>
   </section>
 </template>
 
@@ -130,11 +141,13 @@ import {
   ReadOnly, StructNode, StructType, type StructFieldType, Unit, clearDebounce,
   debounce, LocaleString, sformat, subscribeLanguage,
 } from "schema-node-core";
+import { PageNode, type IArrayFieldFilter } from "schema-node-app";
 import { SchemaNodeFormType } from "../enum/formType";
 import {
-  onMounted, onUnmounted, reactive, toRaw, shallowRef, ref, nextTick,
+  onMounted, onUnmounted, reactive, toRaw, shallowRef, ref, computed, nextTick,
 } from "vue";
 import structFieldView from "./structFieldView.vue";
+import tableFilter from "./tableFilter.vue";
 import { _L } from "../utility/locale";
 import { useSingleView } from "../schemaView";
 import { ElMessageBox } from "element-plus";
@@ -171,6 +184,10 @@ const props = defineProps<{
   autoDel?: boolean;
   /** Add button position */
   addPosition?: "header" | "tableHeader";
+  /** Enable auto filter (query on filter change) */
+  autoFilter?: boolean;
+  /** Disable filter display */
+  noFilter?: boolean;
 }>();
 
 const node = toRaw(props.node) as ArrayNode;
@@ -184,19 +201,45 @@ const state = reactive<{
   spanCols: { [key: number]: boolean };
   readonly?: boolean;
   disabled?: boolean;
+  page?: number;
+  pageCount?: number;
+  total?: number;
+  deleted: boolean[];
   allowAdd: boolean;
   allowDel: boolean;
 }>({
   columns: [],
   spanCols: {},
+  deleted: [],
   allowAdd: props.noAdd ? false : true,
   allowDel: props.noDel ? false : true,
 });
 
 const changedatacolor = props.changeColor || "#c7f3b1";
+const deldatacolor = "grey";
 const headerAlign = typeof props.plainText === "string" ? props.plainText : "center";
 const currentLang = ref((navigator.language || "").toLowerCase());
 const tableRef = ref();
+const filterRef = ref();
+
+// Whether the node is a PageNode (supports pagination & filtering)
+const pageNode = node instanceof PageNode ? (node as PageNode) : undefined;
+
+// Filter list (only for PageNode with filters initialized)
+const filters = computed<IArrayFieldFilter[]>(() => {
+  if (props.noFilter || !pageNode) return [];
+  return pageNode.filters || [];
+});
+
+// Responsive columns per row for filter layout
+const w = ref(window.innerWidth);
+const columnsPerRow = computed(() => {
+  if (w.value < 800) return 1;
+  if (w.value < 1080) return 2;
+  if (w.value <= 1440) return 3;
+  if (w.value <= 1920) return 4;
+  return 5;
+});
 
 // Expose table ref & current language for parent access
 defineExpose({ tableRef, currentLang });
@@ -264,6 +307,14 @@ const vOverflowTitle = {
 const subs: Function[] = [];
 
 onMounted(async () => {
+  window.addEventListener("resize", resizefunc);
+
+  // init filters for PageNode
+  if (pageNode && !props.noFilter) {
+    await pageNode.initFilters();
+    pageNode.enableAutoFilter(props.autoFilter ?? false);
+  }
+
   await refreshColumns();
 
   // row change handler
@@ -272,6 +323,17 @@ onMounted(async () => {
     state.disabled = !!node.getPropertyValue<boolean>(requireDisableCtor());
     state.allowAdd = !props.noAdd && !state.readonly;
     state.allowDel = !props.noDel && !state.readonly;
+
+    // update pagination state for PageNode
+    if (pageNode) {
+      state.page = pageNode.page;
+      state.pageCount = pageNode.pageCount;
+      state.total = pageNode.total;
+      // update deleted state for each row
+      const elements = Array.from(node.elements);
+      state.deleted = elements.map((e) => pageNode.isRowDeleted(e));
+    }
+
     genRows();
   }, true));
 
@@ -290,7 +352,12 @@ onMounted(async () => {
   }));
 });
 
+function resizefunc() {
+  w.value = window.innerWidth;
+}
+
 onUnmounted(() => {
+  window.removeEventListener("resize", resizefunc);
   subs.forEach((sub) => sub());
   clearDebounce(genRows);
 });
@@ -389,10 +456,13 @@ const addRow = (arrayNode: ArrayNode) => {
   genRows();
 };
 
-// del row
+// del row — for PageNode, autoDel confirms only for non-new (existing) rows
 const delRow = async (arrayNode: ArrayNode, index: number) => {
   const array = toRaw(arrayNode);
-  if (props.autoDel) {
+  const elements = Array.from(array.elements);
+  const isNew = !pageNode || !elements[index]?.changed;
+
+  if (props.autoDel && !isNew) {
     try {
       await ElMessageBox.confirm(
         sformat("DEL_CONFIRM", node.getPropertyValue(Display) ?? node.name),
@@ -404,7 +474,45 @@ const delRow = async (arrayNode: ArrayNode, index: number) => {
     }
   }
   array.delRows(index, 1);
+  if (pageNode && elements[index]) {
+    state.deleted[index] = pageNode.isRowDeleted(elements[index]);
+  }
   genRows();
+};
+
+// resume a deleted row (PageNode only)
+const resumeRow = (arrayNode: ArrayNode, index: number) => {
+  const array = toRaw(arrayNode);
+  if (pageNode) {
+    pageNode.resumeRows(index, 1);
+    const elements = Array.from(array.elements);
+    if (elements[index]) {
+      state.deleted[index] = pageNode.isRowDeleted(elements[index]);
+    }
+    genRows();
+  }
+};
+
+// handle page change
+const handlePage = async (page: number) => {
+  if (!pageNode) return;
+  await pageNode.setPage(page - 1);
+  const elements = Array.from(node.elements);
+  state.deleted = elements.map((e) => pageNode.isRowDeleted(e));
+};
+
+// filter handlers
+const onResetFilter = () => {
+  pageNode?.resetFilter(true);
+};
+
+const onQueryFilter = () => {
+  pageNode?.processFilter();
+};
+
+// filter expand handler
+const handleExpand = (_isExpand: boolean) => {
+  // layout adjustment can be handled here if needed
 };
 
 const genRows = debounce(() => {
@@ -427,6 +535,9 @@ const genRows = debounce(() => {
 }, 100);
 
 const getRowStyle = (data: any) => {
+  if (state.deleted[data.row.eleIdx]) {
+    return { backgroundColor: deldatacolor };
+  }
   if (props.highLightChange && data.row.node?.changed) {
     return { backgroundColor: changedatacolor };
   }

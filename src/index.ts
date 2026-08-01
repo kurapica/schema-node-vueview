@@ -1,7 +1,7 @@
 export { regBaseSchemaTypeView, regSchemaTypeView } from './schemaView'
 export * from './utility/locale'
 
-import { ArrayType, DataNode, EnumType, EnumValueType, NS_SYSTEM_LOCALE_STRING, NS_SYSTEM_RANGE_DATE, NS_SYSTEM_RANGE_FULL_DATE, NS_SYSTEM_RANGE_MONTH, NS_SYSTEM_RANGE_YEAR, NS_SYSTEM_YEAR, SCHEMA_KIND_ARRAY, SCHEMA_KIND_BOOL, SCHEMA_KIND_DATE, SCHEMA_KIND_DECIMAL, SCHEMA_KIND_ENUM, SCHEMA_KIND_INT, SCHEMA_KIND_OBJECT, SCHEMA_KIND_STRING, SCHEMA_KIND_STRUCT, StructType } from 'schema-node-core'
+import { ArrayType, DataNode, EnumArrayNode, EnumType, EnumValueType, NS_SYSTEM_LOCALE_STRING, NS_SYSTEM_RANGE_DATE, NS_SYSTEM_RANGE_FULL_DATE, NS_SYSTEM_RANGE_MONTH, NS_SYSTEM_RANGE_YEAR, NS_SYSTEM_YEAR, SCHEMA_KIND_ARRAY, SCHEMA_KIND_BOOL, SCHEMA_KIND_DATE, SCHEMA_KIND_DECIMAL, SCHEMA_KIND_ENUM, SCHEMA_KIND_INT, SCHEMA_KIND_OBJECT, SCHEMA_KIND_STRING, SCHEMA_KIND_STRUCT, StructType } from 'schema-node-core'
 
 import schemaView from './schemaView.vue'
 import arrayView from './components/arrayView.vue'
@@ -32,6 +32,7 @@ regBaseSchemaTypeView(SCHEMA_KIND_ENUM, inputView, (node: DataNode, skin?: strin
 })
 regBaseSchemaTypeView(SCHEMA_KIND_STRUCT, structView)
 regBaseSchemaTypeView(SCHEMA_KIND_ARRAY, arrayView, (node: DataNode, skin?: string) => {
+  if (node instanceof EnumArrayNode) return inputView;
   if ((node.type as ArrayType).element instanceof StructType && !useSingleView((node.type as ArrayType).element!, skin)) return tableView
   return undefined;
 })
