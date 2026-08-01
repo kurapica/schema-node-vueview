@@ -48,8 +48,8 @@ regSchemaTypeView(NS_SYSTEM_RANGE_FULL_DATE, rangeDateView)
 regSchemaTypeView(NS_SYSTEM_LOCALE_STRING, localstringView, undefined, true)
 
 schemaView.install = (app: App): void => { 
-    app.component("SchemaView", schemaView)
-    app.component("StructFieldView", structFieldView)
+  app.component("SchemaView", schemaView)
+  app.component("StructFieldView", structFieldView)
 }
 
 // default
