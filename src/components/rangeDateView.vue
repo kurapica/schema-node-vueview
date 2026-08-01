@@ -32,6 +32,7 @@ import {
 import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
 import schemaView from '../schemaView.vue'
 import { _L } from '../utility/locale'
+import { subscribeAncestorProperty } from '../utility/toolset.js';
 
 // ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{
@@ -39,7 +40,7 @@ const props = defineProps<{
   node: DataNode,
   
   /** Display readon only value as plain text */
-  text?: any,
+  text?: boolean | 'left' | 'right' | 'center'
 }>()
 
 const node = toRaw(props.node) as StructNode
@@ -134,8 +135,8 @@ onMounted(() => {
     state.changed = node.changed
   }, true));
 
-  subs.push(node.subscribeProperty(ReadOnly, () => state.readonly = node.readonly, true));
-  subs.push(node.subscribeProperty(Disable, (owner, propCtor, newValue) => state.disable = newValue as boolean, true));
+  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = node.readonly || values.some(v => v), true));
+  subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true));
   subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue) => state.require = newValue as boolean, true));
   
   // language

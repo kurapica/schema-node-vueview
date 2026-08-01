@@ -1,6 +1,6 @@
 <template>
   <template v-for="field in fields" :key="field.name">
-    <struct-field-view v-if="isFieldChangable(node, field.name)"
+    <struct-field-view v-if="field.isChangable"
       :node="node"
       :field="field.name"
       :in-form="inForm"
@@ -12,8 +12,8 @@
     </struct-field-view>
     <schema-view v-else
       :key="field.node.id"
-      :node="field.node"
-      :in-form="getSubNodeFormType(field.node, inForm, skin)"
+      :node="field.node as DataNode"
+      :in-form="getSubNodeFormType(field.node as DataNode, inForm, skin)"
       :skin="skin"
       v-bind="$attrs">
       <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
@@ -25,12 +25,11 @@
 
 <script lang="ts" setup>
 import { DataNode, StructNode } from 'schema-node-core'
-import { computed, toRaw, useSlots } from 'vue'
+import { onMounted, ref, toRaw, useSlots } from 'vue'
 import { SchemaNodeFormType } from '../enum/formType'
 import { getSubNodeFormType } from '../schemaView'
 import structFieldView from './structFieldView.vue'
 import schemaView from '../schemaView.vue'
-import { isFieldChangable } from '../utility/node'
 
 const props = defineProps<{
   /** Struct Schema node */
@@ -47,13 +46,14 @@ const node = toRaw(props.node) as StructNode
 const slots = useSlots()
 const slotEntries = Object.entries(slots) as [string, (...args: any[]) => any][]
 
-// materialize the field list (stable; individual field nodes may be replaced,
-// structFieldView handles that internally)
-const fields = computed(() => {
-  const result: { node: DataNode, name: string }[] = []
+// materialize the field list 
+const fields= ref<{ node: DataNode, name: string, isChangable: boolean }[]>([]);
+
+onMounted(() => {
+  const result: { node: DataNode, name: string, isChangable: boolean }[] = [];
   for (const f of node.fields) {
-    if (f.name) result.push({ node: f, name: f.name })
+    if (f.name) result.push({ node: f, name: f.name, isChangable: node.isFieldChangable(f.name) })
   }
-  return result
+  fields.value = result;
 })
 </script>

@@ -81,7 +81,7 @@ onMounted(() => {
   shouldShowError.value = node && !node.readonly && useSingleView(node.type, props.skin) || false
   showError.value = shouldShowError.value && (node.changed || props.instantValid)
 
-  if (shouldShowError.value) {   
+  if (shouldShowError.value) {
     stateWatcher = node.subscribeViolated(() => {
       if (node.changed) showError.value = true
       if (showError.value)

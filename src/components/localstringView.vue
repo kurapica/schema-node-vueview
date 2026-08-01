@@ -1,41 +1,41 @@
 <template>
-  <section v-if="keyNode" style="width: 100%; min-width: 120px;">
-    <span v-if="keyNode.readonly && text"
+  <section style="width: 100%; min-width: 120px;">
+    <span v-if="state.readonly && text"
       :style="{ 'width': '100%', 'display': 'inline-block', 'text-align': text === true ? 'left' : text }">
-      {{ _L(displayData) }}
+      {{ _L(state.display) }}
     </span>
-    <span v-else-if="isCombine && !showCombineKey"
+    <span v-else-if="state.isCombine && !state.showCombineKey"
       :style="{ 'width': '100%', 'display': 'inline-block', 'text-align': text === true ? 'left' : text }">
-      {{ _L(combineData) }}
+      {{ _L(state.combineData) }}
     </span>
     <schema-view v-else style="width: 100%;" :key="keyNode.id" :node="keyNode" :text="text"
-      :disabled="disabled" v-bind="$attrs">
+      :disabled="state.disable" v-bind="$attrs">
       <template #append>
-        <a v-if="isCombine" href="javascript:void(0)" @click="showCombineKey = false">{{ _L('CONFIRM') }}</a>
-        <a v-else href="javascript:void(0)" @click="openTrans">{{ _L('system.localetran.tran') }}</a>
+        <a v-if="state.isCombine" href="javascript:void(0)" @click="state.showCombineKey = false">{{ _L('CONFIRM') }}</a>
+        <a v-else href="javascript:void(0)" @click="state.showTrans = true">{{ _L('system.localetran.tran') }}</a>
       </template>
     </schema-view>
 
-    <template v-if="(disabled || keyNode.readonly) && text">
+    <template v-if="state.readonly && text">
       <a href="javascript:void(0)" style="position: absolute; right: 1rem" @click="openTrans">{{
         _L('system.localetran.tran') }}</a>
     </template>
-    <template v-else-if="isCombine && !showCombineKey">
-      <a href="javascript:void(0)" style="position: absolute; right: 1rem" @click="showCombineKey = true">{{ _L('EDIT')
+    <template v-else-if="state.isCombine && !state.showCombineKey">
+      <a href="javascript:void(0)" style="position: absolute; right: 1rem" @click="state.showCombineKey = true">{{ _L('EDIT')
         }}</a>
     </template>
 
     <!-- show trans -->
-    <el-drawer v-model="showTrans" :title="_L('system.localetran.tran') + ` ${keyNode.rawValue || ''}`" direction="rtl"
+    <el-drawer v-model="state.showTrans" :title="_L('system.localetran.tran') + ` ${keyNode.rawValue || ''}`" direction="rtl"
       size="50%" append-to-body @close="saveTrans">
       <el-container class="main" style="height: 80vh;">
         <el-main>
           <el-form :data="transNode">
-            <el-table :data="trans" style="width: 100%;">
+            <el-table :data="state.trans" style="width: 100%;">
               <el-table-column :label="_L('system.localetran.lang')" prop="label" min-width="120" />
               <el-table-column :label="_L('system.localetran.tran')" min-width="300">
                 <template #default="scope">
-                  <el-input v-if="!(disabled || keyNode.readonly)" v-model="scope.row.tran"></el-input>
+                  <el-input v-if="!state.readonly" v-model="scope.row.tran"></el-input>
                   <span v-else>{{ scope.row.tran }}</span>
                 </template>
               </el-table-column>
@@ -49,7 +49,7 @@
         </el-main>
         <el-footer>
           <br />
-          <el-button @click="showTrans = false">{{ _L('CLOSE') }}</el-button>
+          <el-button @click="state.showTrans = false">{{ _L('CLOSE') }}</el-button>
         </el-footer>
       </el-container>
     </el-drawer>
@@ -57,10 +57,11 @@
 </template>
 
 <script lang="ts" setup>
-import { ArrayNode, DataNode, Display, getPropertyValue, isNull, LocaleString, StructNode } from 'schema-node-core'
-import { onUnmounted, ref, toRaw } from 'vue'
+import { ArrayNode, DataNode, Disable, Display, getPropertyValue, isNull, LocaleString, ReadOnly, ScalarNode, StructNode } from 'schema-node-core'
+import { onMounted, onUnmounted, reactive, ref, toRaw } from 'vue'
 import schemaView from '../schemaView.vue'
 import { _L, getLanguageEntries } from '../utility/locale'
+import { subscribeAncestorProperty } from '../utility/toolset.js';
 
 // ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{
@@ -69,16 +70,30 @@ const props = defineProps<{
   
   /** Display readon only value as plain text */
   text?: any
-}>()
+}>();
+const node = toRaw(props.node) as StructNode;
+const keyNode = (node.getAccessValue("key") as ScalarNode)!;
+const transNode = (node.getAccessValue("trans") as ArrayNode)!;
 
-const localeNode = toRaw(props.node) as StructNode
-const keyNode = getField(localeNode, "key")
-const transNode = getField(localeNode, "trans") as ArrayNode
-
-const isCombine = ref(false)
-const showCombineKey = ref(false)
-const combineData = ref<any>({ key: "" })
-const displayData = ref<any>(localeNode.rawValue)
+// ── UI State ──────────────────────────────────────────────────────
+/** UI State */
+const state = reactive<{
+  readonly?: boolean
+  disable?: boolean
+  isCombine?: boolean
+  showCombineKey?: boolean
+  combineData?: any
+  display?: any
+  showTrans?: boolean
+  trans?: TranItem[]
+}>({
+  isCombine: false,
+  showCombineKey: false,
+  combineData: { key: "" },
+  display: node.rawValue,
+  showTrans: false,
+  trans: []
+})
 
 interface TranItem {
   lang: string,
@@ -86,11 +101,7 @@ interface TranItem {
   tran: string
 }
 
-const trans = ref<TranItem[]>([])
-const showTrans = ref(false)
-
-const subs: Function[] = []
-
+// ── Utility ───────────────────────────────────────────────────────
 const refreshTrans = () => {
   const topOrders = localStorage["schema_node_locale_orders"] ? JSON.parse(localStorage["schema_node_locale_orders"]) : []
   const translate: { [key: string]: string } = {}
@@ -122,19 +133,19 @@ const refreshTrans = () => {
     })
   })
 
-  trans.value = _trans
+  state.trans = _trans
 }
 
 const openTrans = async () => {
   refreshTrans()
-  showTrans.value = true
+  state.showTrans = true
 }
 
 const saveTrans = () => {
-  if (!keyNode || keyNode.readonly) return
+  if (state.readonly) return
 
   const data: any[] = []
-  trans.value.forEach(item => {
+  state.trans?.forEach(item => {
     if (!isNull(item.tran)) {
       data.push({
         lang: item.lang,
@@ -155,16 +166,23 @@ const movetop = (lang: string) => {
   refreshTrans()
 }
 
-if (keyNode) {
+// ── Life Cycle ────────────────────────────────────────────────────
+const subs: Function[] = [];
+
+onMounted(() => {
   subs.push(keyNode.subscribe(() => {
     const data = keyNode.rawValue
-    displayData.value = localeNode.value
-    isCombine.value = typeof data === "string" && data.indexOf("{") >= 0
-    if (isCombine.value) {
-      combineData.value = { key: data }
+    state.display = node.value
+    state.isCombine = typeof data === "string" && data.indexOf("{") >= 0
+    if (state.isCombine) {
+      state.combineData = { key: data }
     }
   }, true))
-}
+
+  // state change
+  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = node.readonly || values.some(v => v), true)); // readonly covers several properties
+  subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true));  
+})
 
 onUnmounted(() => {
   subs.forEach(sub => sub())

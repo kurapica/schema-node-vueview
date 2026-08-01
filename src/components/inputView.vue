@@ -463,8 +463,8 @@ onMounted(async() => {
   }, true));
 
   // state change
-  subs.push(subscribeAncestorProperty(node, ReadOnly, () => state.readonly = node.readonly, true)); // readonly covers several properties
-  subs.push(node.subscribeProperty(Disable, (owner, propCtor, newValue, oldValue) => state.disable = newValue as boolean, true));
+  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = node.readonly || values.some(v => v), true)); // readonly covers several properties
+  subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true));
   subs.push(node.subscribeProperty(Default, (owner, propCtor, newValue, oldValue) => state.default = newValue, true));
   subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue, oldValue) => state.require = newValue as boolean, true));
   subs.push(node.subscribeProperty(AsSuggest, (owner, propCtor, newValue, oldValue) => state.asSuggest = newValue as boolean, true));

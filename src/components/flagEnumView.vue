@@ -20,9 +20,10 @@
 </template>
 
 <script setup lang="ts">
-import { DataNode, Disable, Display, EnumType, getProperty, getPropertyValue, LocaleString, ReadOnly, Require, sformat, SingleFlag, subscribeLanguage } from 'schema-node-core';
+import { DataNode, Disable, Display, EnumType, getPropertyValue, LocaleString, ReadOnly, Require, sformat, SingleFlag, subscribeLanguage } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, ref, toRaw } from 'vue';
 import { _L } from '../utility/locale';
+import { subscribeAncestorProperty } from '../utility/toolset';
 
 // ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{
@@ -30,7 +31,7 @@ const props = defineProps<{
   node: DataNode,
 
   /** Use text mode when readonly  */
-  text?: boolean,
+  text?: boolean | 'left' | 'right' | 'center',
 }>();
 const node = toRaw(props.node);
 
@@ -106,8 +107,8 @@ const subs: Function[] = [];
 
 onMounted(async () => {
   // state change
-  subs.push(node.subscribeProperty(ReadOnly, () => state.readonly = node.readonly, true)); // readonly covers several properties
-  subs.push(node.subscribeProperty(Disable, (owner, propCtor, newValue, oldValue) => state.disable = newValue as boolean, true));
+  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = node.readonly || values.some(v => v), true)); // readonly covers several properties
+  subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true));
   subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue, oldValue) => state.require = newValue as boolean, true));
   subs.push(node.subscribeProperty(SingleFlag, (owner, propChange, newValue, oldValue) => { state.single = newValue as boolean; }, true));
 

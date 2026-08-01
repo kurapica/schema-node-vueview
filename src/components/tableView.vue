@@ -23,11 +23,11 @@
             <template #default="scope">
               <!-- multi row (array of struct) -->
               <template
-                v-if="col.isArray && getField(scope.row.node, col.prop) && (getField(scope.row.node, col.prop) as ArrayNode).length > scope.row.index">
+                v-if="col.isArray && scope.row.node.getAccessValue(col.prop).length > scope.row.index">
                 <struct-field-view
-                  v-if="(getField(scope.row.node, col.prop) as ArrayNode).at(scope.row.index) instanceof StructNode"
-                  :key="(getField(scope.row.node, col.prop) as ArrayNode).at(scope.row.index)!.id"
-                  :node="(getField(scope.row.node, col.prop) as ArrayNode).at(scope.row.index) as StructNode"
+                  v-if="scope.row.node.getAccessValue(col.prop).at(scope.row.index) instanceof StructNode"
+                  :key="scope.row.node.getAccessValue(col.prop).at(scope.row.index)!.id"
+                  :node="scope.row.node.getAccessValue(col.prop).at(scope.row.index)"
                   :field="scol.prop" :in-form="inForm" :plain-text="plainText" :skin="skin"
                   :disabled="state.readonly || state.disabled" no-label v-bind="$attrs"></struct-field-view>
                 <template v-else>
@@ -35,24 +35,24 @@
                 </template>
               </template>
               <!-- single row (struct) -->
-              <div v-if="scol.localString && !col.isArray && scope.row.index === 0 && (getField(scope.row.node, col.prop) instanceof StructNode) && isReadonlyField((getField(scope.row.node, col.prop) as StructNode), scol.prop)"
+              <div v-if="scol.localString && !col.isArray && scope.row.index === 0 && (scope.row.node.getAccessValue(col.prop) instanceof StructNode) && isReadonlyField(scope.row.node.getAccessValue(col.prop), scol.prop)"
                 class="localstring-readonly-tooltip"
-                v-overflow-title="getFieldTipKey((getField(scope.row.node, col.prop) as StructNode), scol.prop)">
-                <struct-field-view :key="getField(getField(scope.row.node, col.prop) as StructNode, scol.prop)?.id"
-                  :node="(getField(scope.row.node, col.prop) as StructNode)" :field="scol.prop" :in-form="inForm"
+                v-overflow-title="getFieldTipKey(scope.row.node.getAccessValue(col.prop), scol.prop)">
+                <struct-field-view :key="scope.row.node.getAccessValue(col.prop).getAccessValue(scol.prop)?.id"
+                  :node="scope.row.node.getAccessValue(col.prop)" :field="scol.prop" :in-form="inForm"
                   :plain-text="plainText" :skin="skin" :disabled="state.readonly || state.disabled" no-label
                   v-bind="$attrs"></struct-field-view>
                 <el-tooltip
-                  :content="localStringTipMap[getFieldTipKey((getField(scope.row.node, col.prop) as StructNode), scol.prop)] || ''"
-                  :disabled="!localStringOverflowMap[getFieldTipKey((getField(scope.row.node, col.prop) as StructNode), scol.prop)]"
+                  :content="localStringTipMap[getFieldTipKey(scope.row.node.getAccessValue(col.prop), scol.prop)] || ''"
+                  :disabled="!localStringOverflowMap[getFieldTipKey(scope.row.node.getAccessValue(col.prop), scol.prop)]"
                   placement="top" effect="dark" :show-after="200">
                   <div class="localstring-tip-trigger"></div>
                 </el-tooltip>
               </div>
               <struct-field-view
-                v-else-if="!col.isArray && scope.row.index === 0 && (getField(scope.row.node, col.prop) instanceof StructNode)"
-                :key="getField(getField(scope.row.node, col.prop) as StructNode, scol.prop)?.id"
-                :node="(getField(scope.row.node, col.prop) as StructNode)" :field="scol.prop" :in-form="inForm"
+                v-else-if="!col.isArray && scope.row.index === 0 && (scope.row.node.getAccessValue(col.prop) instanceof StructNode)"
+                :key="scope.row.node.getAccessValue(col.prop).getAccessValue(scol.prop)?.id"
+                :node="scope.row.node.getAccessValue(col.prop)" :field="scol.prop" :in-form="inForm"
                 :plain-text="plainText" :skin="skin" :disabled="state.readonly || state.disabled" no-label
                 v-bind="$attrs"></struct-field-view>
               <template v-else>
@@ -64,13 +64,13 @@
           <el-table-column v-if="col.isArray && !state.readonly && !state.disabled && !(noSubAdd && noSubDel)"
             :label="_L('OPER')" align="center" width="100">
             <template #default="scope">
-              <template v-if="getField(scope.row.node, col.prop)">
+              <template v-if="scope.row.node.getAccessValue(col.prop)">
                 <a href="javascript:void(0)" style="color: lightseagreen"
-                  v-if="!noSubAdd && (getField(scope.row.node, col.prop) as ArrayNode).length == scope.row.index"
-                  @click="addRow(getField(scope.row.node, col.prop) as ArrayNode)">{{ _L('ADD') }}</a>
+                  v-if="!noSubAdd && (scope.row.node.getAccessValue(col.prop) as ArrayNode).length == scope.row.index"
+                  @click="addRow(scope.row.node.getAccessValue(col.prop) as ArrayNode)">{{ _L('ADD') }}</a>
                 <a href="javascript:void(0)" style="color: red"
-                  v-else-if="!noSubDel && (getField(scope.row.node, col.prop) as ArrayNode).length > scope.row.index"
-                  @click="delRow(getField(scope.row.node, col.prop) as ArrayNode, scope.row.index)">{{ _L('DEL') }}</a>
+                  v-else-if="!noSubDel && (scope.row.node.getAccessValue(col.prop) as ArrayNode).length > scope.row.index"
+                  @click="delRow(scope.row.node.getAccessValue(col.prop) as ArrayNode, scope.row.index)">{{ _L('DEL') }}</a>
               </template>
             </template>
           </el-table-column>
@@ -83,11 +83,11 @@
             <span><span style="color: red; margin-right: 4px">*</span>{{ col.label }}</span>
           </template>
           <template #default="scope">
-            <template v-if="scope.row.index === 0 && getField(scope.row.node as StructNode, col.prop)">
+            <template v-if="scope.row.index === 0 && scope.row.node.getAccessValue(col.prop)">
               <div v-if="col.localString && isReadonlyField((scope.row.node as StructNode), col.prop)"
                 class="localstring-readonly-tooltip"
                 v-overflow-title="getFieldTipKey((scope.row.node as StructNode), col.prop)">
-                <struct-field-view :key="getField(scope.row.node as StructNode, col.prop)!.id"
+                <struct-field-view :key="scope.row.node.getAccessValue(col.prop)!.id"
                   :node="scope.row.node" :field="col.prop" :in-form="inForm" :plain-text="plainText" :skin="skin"
                   :disabled="state.readonly || state.disabled" no-label v-bind="$attrs"></struct-field-view>
                 <el-tooltip
@@ -97,7 +97,7 @@
                   <div class="localstring-tip-trigger"></div>
                 </el-tooltip>
               </div>
-              <struct-field-view v-else :key="getField(scope.row.node as StructNode, col.prop)!.id"
+              <struct-field-view v-else :key="scope.row.node.getAccessValue(col.prop)!.id"
                 :node="scope.row.node" :field="col.prop" :in-form="inForm" :plain-text="plainText" :skin="skin"
                 :disabled="state.readonly || state.disabled" no-label v-bind="$attrs"></struct-field-view>
             </template>
@@ -136,7 +136,6 @@ import {
 } from "vue";
 import structFieldView from "./structFieldView.vue";
 import { _L } from "../utility/locale";
-import { getField } from "../utility/node";
 import { useSingleView } from "../schemaView";
 import { ElMessageBox } from "element-plus";
 
@@ -203,13 +202,13 @@ const tableRef = ref();
 defineExpose({ tableRef, currentLang });
 
 const isReadonlyField = (node: StructNode, field: string) => {
-  const f = getField(node, field);
+  const f = node.getAccessValue(field) as DataNode;
   if (!f) return false;
   return !!(f.readonly || f.displayOnly || state.readonly || state.disabled);
 };
 
 const getFieldTipKey = (node: StructNode, field: string) => {
-  const f = getField(node, field);
+  const f = node.getAccessValue(field) as DataNode;
   return f?.id || `${node.id}:${field}`;
 };
 
@@ -415,7 +414,7 @@ const genRows = debounce(() => {
     let count = 0;
     for (const col of state.columns) {
       if (col.isArray) {
-        const f = getField(ele, col.prop) as ArrayNode | undefined;
+        const f = ele.getAccessValue(col.prop) as ArrayNode | undefined;
         if (f) count = Math.max(count, f.length);
       }
     }

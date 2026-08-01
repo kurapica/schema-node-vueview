@@ -1,6 +1,6 @@
 <template>
-  <span v-if="state.simple && state.readonly && plainText && isScalarElement"
-    :style="{ 'width': '100%', 'text-align': plainText === true ? 'center' : plainText }">
+  <span v-if="state.simple && state.readonly && text"
+    :style="{ 'width': '100%', 'text-align': text === true ? 'center' : text }">
     {{ state.display }}
   </span>
   <div v-else style="display: flex;">
@@ -8,8 +8,7 @@
       <schema-view v-if="node.at(i - 1)"
         style="min-width: 120px;"
         :node="node.at(i - 1)!"
-        :plain-text="plainText"
-        :skin="skin"
+        :plain-text="text"
         :in-form="getSubNodeFormType(node.at(i - 1)!, inForm, skin)"
         no-label
         v-bind="$attrs"
@@ -27,41 +26,41 @@
 </template>
 
 <script setup lang="ts">
-import { ArrayNode, ArrayType, isNull, ReadOnly, ScalarType, StructType } from 'schema-node-core'
+import { ArrayNode, ArrayType, Disable, isNull, ReadOnly, ScalarType, StructType } from 'schema-node-core'
 import { onMounted, onUnmounted, reactive, toRaw, useSlots } from 'vue'
 import schemaView from '../schemaView.vue'
 import { SchemaNodeFormType } from '../enum/formType'
 import { getSubNodeFormType } from '../schemaView'
+import { subscribeAncestorProperty } from '../utility/toolset.js'
 
-// properties
+// ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{
   node: ArrayNode
-  plainText?: any,
+  text?: boolean | 'left' | 'right' | 'center',
   inForm?: SchemaNodeFormType,
   skin?: string
-}>()
-const node = toRaw(props.node) as ArrayNode
+}>();
+const node = (toRaw(props.node) as ArrayNode)!;
 
 // slots
-const slots = useSlots()
-const slotEntries = Object.entries(slots) as [string, (...args: any[]) => any][]
+const slots = useSlots();
+const slotEntries = Object.entries(slots) as [string, (...args: any[]) => any][];
 
-// element type info
-const elementType = (node.type as ArrayType).element
-const isScalarElement = elementType instanceof ScalarType
-
-// state
+// ── UI State ──────────────────────────────────────────────────────
 const state = reactive<{
   readonly?: boolean
+  disable?: boolean
   display?: string
   length: number,
   simple?: boolean,
 }>({ length: 0 })
 
+// ── Life Cycle ────────────────────────────────────────────────────
+/** Subscription */
 const subs: Function[] = []
 
 onMounted(() => {
-  state.simple = !(elementType instanceof StructType)
+  state.simple = !((node.type as ArrayType).element instanceof StructType)
 
   subs.push(node.subscribe(() => {
     if (!node.readonly && state.simple) {
@@ -79,8 +78,8 @@ onMounted(() => {
     if (state.simple) state.display = ((node.value as any[]) || []).join()
   }, true))
 
-  // readonly is multi-source in core; re-read node.readonly on relevant changes
-  subs.push(node.subscribeProperty(ReadOnly, () => state.readonly = node.readonly, true))
+  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = node.readonly || values.some(v => v), true))
+  subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true))
 })
 
 onUnmounted(() => {

@@ -18,8 +18,8 @@ export function isFieldChangable(node: DataNode, fieldName: string): boolean {
 }
 
 /** Subscribe an ancestor property */
-export function subscribeAncestorProperty<T>(node: DataNode, propCtor: new () => Property<T>, callback: (value: Iterable<T>) => void, immediate = false): Function {
-  const handler = () => callback(ancestorPropertyGenerator(node, propCtor));
+export function subscribeAncestorProperty<T>(node: DataNode, propCtor: new () => Property<T>, callback: (value: T[]) => void, immediate = false): Function {
+  const handler = () => callback(ancestorPropertyValues(node, propCtor)); 
   const delayHandler = debounce(handler, DEBOUNCE_DELAY);
   const subs: Function[] = [];
   let curr: DataNode | null = node;
@@ -31,18 +31,13 @@ export function subscribeAncestorProperty<T>(node: DataNode, propCtor: new () =>
   return () => subs.forEach(sub => sub());
 }
 
-function ancestorPropertyGenerator<T>(
-  node: DataNode,
-  propCtor: new () => Property<T>
-): Iterable<T> {
-  return {
-    *[Symbol.iterator]() {
-        let curr: DataNode | null = node;
-        while (curr) {
-            const value = curr.getPropertyValue<T>(propCtor);
-            if (!isNull(value)) yield value as T;
-            curr = curr.parent instanceof DataNode ? curr.parent : null;
-        }
-    }
-  };
+function ancestorPropertyValues<T>(node: DataNode, propCtor: new () => Property<T>): T[] {
+  let curr: DataNode | null = node;
+  const values: T[] = [];
+  while (curr) {
+      const value = curr.getPropertyValue<T>(propCtor);
+      if (!isNull(value)) values.push(value as T);
+      curr = curr.parent instanceof DataNode ? curr.parent : null;
+  }
+  return values;
 }

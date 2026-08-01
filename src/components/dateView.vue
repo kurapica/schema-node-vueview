@@ -29,11 +29,15 @@
 import { AsSuggest, BlackList, DataNode, DateNode, Default, Disable, Display, getNodeType, IntNode, isNull, NS_SYSTEM_FULL_DATE, NS_SYSTEM_YEAR, NS_SYSTEM_YEARMONTH, ReadOnly, Require, ScalarType, sformat, subscribeLanguage, ValueType, WhiteList } from 'schema-node-core'
 import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
 import { _L } from '../utility/locale'
+import { subscribeAncestorProperty } from '../utility/toolset';
 
 // ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{ 
+  /** Input schema node */
   node: DataNode, 
-  text?: any
+
+  /** Display readon only value as plain text */
+  text?: boolean | 'left' | 'right' | 'center'
 }>()
 const node = toRaw(props.node)
 
@@ -175,9 +179,9 @@ onMounted(async () => {
     state.changed = node.changed
   }, true))
 
-  subs.push(node.subscribeProperty(ReadOnly, () => state.readonly = node.readonly, true))
+  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = node.readonly || values.some(v => v), true))
+  subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true))
   subs.push(node.subscribeProperty(Default, (owner, propCtor, newValue) => state.default = newValue, true))
-  subs.push(node.subscribeProperty(Disable, (owner, propCtor, newValue) => state.disable = newValue as boolean, true))
   subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue) => state.require = newValue as boolean, true))
   subs.push(node.subscribeProperty(AsSuggest, (owner, propCtor, newValue) => state.asSuggest = newValue as boolean, true))
 

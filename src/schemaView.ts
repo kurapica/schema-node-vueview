@@ -5,8 +5,8 @@ export const DEFAULT_SKIN = "default"
 const baseSchemaViews: {
     [key: string]: {
         view: any,
-        resolve?: Function,
-        customResolve?: Function
+        resolve?: (node: DataNode, skin?: string) => any,
+        customResolve?: (node: DataNode, skin?: string) => any
     }
 } = {}
 const schemaViews: { [key: string]: { [key: string]: any } } = {};
@@ -42,7 +42,7 @@ export function getSubNodeFormType(node: DataNode, type?: SchemaNodeFormType, sk
 /**
  * register view as default for any node of the given schema type
  */
-export function regBaseSchemaTypeView(type: string, view?: any, resolve?: Function) {
+export function regBaseSchemaTypeView(type: string, view?: any, resolve?: (node: DataNode, skin?: string) => any) {
     const map = baseSchemaViews[type]
     if (map) {
         // override the default
