@@ -38,17 +38,10 @@ function ancestorPropertyGenerator<T>(
   return {
     *[Symbol.iterator]() {
         let curr: DataNode | null = node;
-
         while (curr) {
             const value = curr.getPropertyValue<T>(propCtor);
-
-            if (!isNull(value)) {
-                yield value;
-            }
-
-            curr = curr.parent instanceof DataNode
-                ? curr.parent
-                : null;
+            if (!isNull(value)) yield value as T;
+            curr = curr.parent instanceof DataNode ? curr.parent : null;
         }
     }
   };

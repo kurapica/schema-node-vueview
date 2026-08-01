@@ -48,9 +48,10 @@
 </template>
 
 <script lang="ts" setup>
-import { AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getProperty, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, sformat, subscribeLanguage, WhiteList } from 'schema-node-core';
+import { AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, sformat, subscribeLanguage, WhiteList } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw, useSlots } from 'vue';
 import { _L } from '../utility/locale';
+import { subscribeAncestorProperty } from '../utility/toolset';
 
 // ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{
@@ -462,9 +463,9 @@ onMounted(async() => {
   }, true));
 
   // state change
-  subs.push(node.subscribeProperty(ReadOnly, () => state.readonly = node.readonly, true)); // readonly covers several properties
-  subs.push(node.subscribeProperty(Default, (owner, propCtor, newValue, oldValue) => state.default = newValue, true));
+  subs.push(subscribeAncestorProperty(node, ReadOnly, () => state.readonly = node.readonly, true)); // readonly covers several properties
   subs.push(node.subscribeProperty(Disable, (owner, propCtor, newValue, oldValue) => state.disable = newValue as boolean, true));
+  subs.push(node.subscribeProperty(Default, (owner, propCtor, newValue, oldValue) => state.default = newValue, true));
   subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue, oldValue) => state.require = newValue as boolean, true));
   subs.push(node.subscribeProperty(AsSuggest, (owner, propCtor, newValue, oldValue) => state.asSuggest = newValue as boolean, true));
 
