@@ -27,6 +27,7 @@
     :props="{
       emitPath: false,
       multiple: state.multiple,
+      checkStrictly: !state.leafOnly,
       lazy: true,
       lazyLoad
     }"
@@ -48,10 +49,11 @@
 </template>
 
 <script lang="ts" setup>
-import { AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, sformat, subscribeLanguage, WhiteList } from 'schema-node-core';
+import { AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, Entry, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LeafOnly, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, sformat, subscribeLanguage, Valid, WhiteList } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw, useSlots } from 'vue';
 import { _L } from '../utility/locale';
 import { subscribeAncestorProperty } from '../utility/toolset';
+import { fa } from 'element-plus/es/locale';
 
 // ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{
@@ -111,6 +113,11 @@ const state = reactive<{
 
   /** Single */
   single?: boolean,
+
+  /** Leaf only */
+  leafOnly?: boolean,
+
+  anyRootPassed?: boolean,
 }>({})
 
 /** Data model */
@@ -155,16 +162,70 @@ const entrySourceInfo: {
   whiteList?: string[],
   blackList?: string[],
   noEntry?: boolean,
+  valids?: FuncCall[],
+  validres?: Map<string, boolean>,
 } = {};
+
+/** check value value is valid */
+async function isValidValue(value: any): Promise<boolean> {
+  if (!entrySourceInfo.valids?.length) return true;
+
+  // check cache
+  const v = `${value}`;
+  if (entrySourceInfo.validres?.has(v)) return entrySourceInfo.validres!.get(v)!;
+
+  // valid
+  let isvalid = true;
+  for (const valid of entrySourceInfo.valids)
+  {
+    const validFunc = await getNodeType(valid.func) as FunctionType;
+    if (!validFunc) continue;
+    const res = await validFunc.call(valid.args.map(a => {
+      if (!a.source) return a.value;
+      return a.source === NODE_SELF ? value : undefined;
+    }));
+    if (!res)
+    {
+      isvalid = false;
+      break;
+    }
+  }
+  entrySourceInfo.validres ??= new Map();
+  entrySourceInfo.validres.set(v, isvalid);
+  return isvalid;
+}
 
 /** get access list from entry source args */
 async function getAccessList(value: any, root?: any): Promise<EntryAccess<any>[]> {
   if (!entrySourceInfo.source || !entrySourceInfo.args) return []
-  return await entrySourceInfo.source.call(entrySourceInfo.args.map(a => {
+  const result = await entrySourceInfo.source.call(entrySourceInfo.args.map(a => {
       if (a.source) return a.source === node ? value : a.source.getValue();
       if (a.isroot) return root;
       return a.value;
-    })) as EntryAccess<any>[]
+    })) as EntryAccess<any>[];
+
+  // valid
+  if (entrySourceInfo.valids?.length)
+  {
+    for (let i = 0; i < result.length; i++)
+    {
+      const r = result[i];
+      if (r.children?.length) {
+        const passed: Entry<any>[] = [];
+        for (const c of r.children || [])
+        {
+          if (await isValidValue(c.value))
+            passed.push(c);
+        }
+        r.children = passed;
+      }
+
+      if (r.entry?.hasChildren && !r.children?.length)
+        r.entry.hasChildren = false;
+    }
+  }
+
+  return result;
 }
 
 /** get entry access list from entry source args */
@@ -234,6 +295,9 @@ const lazyLoad = async (treeNode: { value: any }, resolve: Function, reject: any
 /** init options with entry source args */
 async function initOptions(){
   entrySourceInfo.noEntry = false;
+  entrySourceInfo.validres = new Map();
+  state.anyRootPassed = false;
+
   if (entrySourceInfo.whiteList?.length)
   {
     const accesses: EntryAccess<any>[][] = [];
@@ -468,6 +532,7 @@ onMounted(async() => {
   subs.push(node.subscribeProperty(Default, (owner, propCtor, newValue, oldValue) => state.default = newValue, true));
   subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue, oldValue) => state.require = newValue as boolean, true));
   subs.push(node.subscribeProperty(AsSuggest, (owner, propCtor, newValue, oldValue) => state.asSuggest = newValue as boolean, true));
+  subs.push(node.subscribeProperty(LeafOnly, (owner, propCtor, newValue, oldValue) => state.leafOnly = newValue as boolean, true));
 
   // options
   subs.push(node.subscribeProperty(WhiteList, refreshEntrySource));
@@ -475,6 +540,10 @@ onMounted(async() => {
   subs.push(node.subscribeProperty(EntrySource, refreshEntrySource));
   subs.push(node.subscribeProperty(Root, refreshEntrySource));
   subs.push(node.subscribeProperty(Cascade, refreshEntrySource));
+
+  // valids for filter options
+  entrySourceInfo.valids = Array.from(node.type.getProperties(Valid).map(v => v.getValue<FuncCall>()!));
+  entrySourceInfo.valids.reverse(); // old first
 
   // display
   subs.push(subscribeLanguage(() => {
