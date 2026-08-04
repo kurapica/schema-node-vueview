@@ -49,7 +49,7 @@
 </template>
 
 <script lang="ts" setup>
-import { AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, Entry, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LeafOnly, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, setPropertyValue, sformat, subscribeLanguage, Valid, WhiteList } from 'schema-node-core';
+import { EntrySourceConsumer, EntrySourceProvider, AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, Entry, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LeafOnly, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, setPropertyValue, sformat, subscribeLanguage, Valid, WhiteList } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw, useSlots } from 'vue';
 import { _L } from '../utility/locale';
 import { subscribeAncestorProperty } from '../utility/toolset';
@@ -154,7 +154,7 @@ const options = shallowRef<ICascaderOptionInfo[]>([]);
 /** Entry source info */
 const entrySourceInfo: {
   /** The propert owner(the node or its ancestor) of the entry source */
-  owner?: DataNode,
+  owner?: IValueAccess,
 
   /** The source function */
   source?: FunctionType,
@@ -457,13 +457,28 @@ async function refreshEntrySource() {
   const blackList = node.getPropertyValue<string[]>(BlackList);
 
   // entry source
-  const entrySource = node.getPropertyValue<FuncCall>(EntrySource);
+  let entrySource = node.getPropertyValue<FuncCall>(EntrySource);
   const root = node.getPropertyValue<string>(Root);
   const cascade = node.getPropertyValue<number>(Cascade);
-  const owner = node.getPropertySource(EntrySource) as DataNode;
+  let owner = node.getPropertySource(EntrySource);
   const entryFunc = entrySource?.func ? await getNodeType(entrySource.func) as FunctionType : undefined;
   const valids = Array.from(node.type.getProperties(Valid).map(v => v.getValue<FuncCall>()!));
   valids.reverse(); // old first
+
+  // access consumer to access access source from ancestors
+  if (!entrySource?.func && node.getPropertyValue<boolean>(EntrySourceConsumer))
+  {
+    let parent: IValueAccess | undefined = node;
+    while (parent)
+    {
+      entrySource = parent.getPropertyValue<FuncCall>(EntrySourceProvider);
+      if (entrySource) {
+        owner = parent;
+        break;
+      }
+      parent = parent.parent;
+    }
+  }
 
   if (entryFunc)
   {
