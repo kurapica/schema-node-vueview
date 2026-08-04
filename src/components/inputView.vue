@@ -49,12 +49,15 @@
 </template>
 
 <script lang="ts" setup>
-import { EntrySourceConsumer, EntrySourceProvider, AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, Entry, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LeafOnly, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, setPropertyValue, sformat, subscribeLanguage, Valid, WhiteList } from 'schema-node-core';
+import { EntrySourceConsumer, EntrySourceProvider, AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, Entry, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LeafOnly, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, setPropertyValue, sformat, subscribeLanguage, Valid, WhiteList, AccessValueTypeConsumer, AccessValueTypeProvider, debounce } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw, useSlots } from 'vue';
 import { _L } from '../utility/locale';
 import { subscribeAncestorProperty } from '../utility/toolset';
 
 // ── Template ──────────────────────────────────────────────────────
+/** Debounce time */
+const DEBOUNCE_TIME = 50;
+
 const props = defineProps<{
   /** Input schema node */
   node: DataNode,
@@ -186,10 +189,23 @@ const entrySourceInfo: {
   /** The valids */
   valids?: FuncCall[],
 
+  /** The access value type provider */
+  valueTypeProvider?: FunctionType,
+
+  /** The access value type provider args */
+  valueTypeProviderArgs?: IEntrySourceArg[],
+
+  /** The access value type consumer */
+  valueTypeConsumer?: FunctionType,
+
+  /** The access value type consumer args */
+  valueTypeConsumerArgs?: IEntrySourceArg[],
+
   /** The valid result cache */
   validres?: Map<string, boolean>,
 } = {};
 
+/** convert entry to option */
 function entryToOption(entries: Entry<any>[], isLeaf?: boolean): ICascaderOptionInfo[]
 {
   return entries.map(entry => {
@@ -231,6 +247,21 @@ async function isValidValue(value: any): Promise<boolean> {
       break;
     }
   }
+
+  // validate access value type
+  if (isvalid && entrySourceInfo.valueTypeConsumer && entrySourceInfo.valueTypeProvider){
+    const valueType = await entrySourceInfo.valueTypeProvider.call(entrySourceInfo.valueTypeProviderArgs!.map(a => {
+      if (a.source) return a.source === node ? value : a.source.getValue();
+      return a.value;
+    })) as string;
+    if (!valueType || !await entrySourceInfo.valueTypeConsumer.call(entrySourceInfo.valueTypeConsumerArgs!.map(a => {
+      if (a.source) return a.source === node ? value : a.source.getValue();
+      return a.value;
+    }))) 
+      isvalid = false;
+  }
+
+  // record cache
   entrySourceInfo.validres ??= new Map();
   entrySourceInfo.validres.set(v, isvalid);
   return isvalid;
@@ -451,6 +482,8 @@ async function initOptions(){
   }
 }
 
+const delayInit = debounce(initOptions, DEBOUNCE_TIME);
+
 /** refresh the options with entry source & white list & black list */
 async function refreshEntrySource() {
   const whiteList = node.getPropertyValue<string[]>(WhiteList);
@@ -474,6 +507,80 @@ async function refreshEntrySource() {
       entrySource = parent.getPropertyValue<FuncCall>(EntrySourceProvider);
       if (entrySource) {
         owner = parent;
+        break;
+      }
+      parent = parent.parent;
+    }
+  }
+
+  // access value type handler
+  const accessValueTypeConsumer = node.getPropertyValue<FuncCall>(AccessValueTypeConsumer);
+  if (accessValueTypeConsumer && !entrySourceInfo.valueTypeProvider)
+  {
+    let parent: IValueAccess | undefined = node;
+    while (parent)
+    {
+      const accessValueTypeProvider = parent.getPropertyValue<FuncCall>(AccessValueTypeProvider);
+      if (accessValueTypeProvider) {
+        const provider = parent;
+        entrySourceInfo.valueTypeProvider = accessValueTypeProvider.func ? await getNodeType(accessValueTypeProvider.func) as FunctionType : undefined;
+        entrySourceInfo.valueTypeProviderArgs = accessValueTypeProvider.args.map(a => {
+          const result: IEntrySourceArg = { value: a.value };
+          if (a.source === NODE_SELF)
+          {
+            result.source = node;
+          }
+          else if(a.source === NODE_TYPE)
+          {
+            result.value = node.type.name;
+          }
+          else if(a.source === ENTRY_ROOT)
+          {
+            result.isroot = true;
+          }
+          else if (a.source)
+          {
+            const target = provider.getAccessValue(a.source);
+            if (target)
+            {
+              result.source = target;
+              entrySourceInfo.subscribes ??= [];
+              entrySourceInfo.subscribes.push(target.subscribe(delayInit));
+            }
+            console.error(`Entry source arg ${a.source} from ${(owner as DataNode).access} not found`);
+          }
+          return result;
+        });
+
+        entrySourceInfo.valueTypeConsumer = accessValueTypeConsumer.func ? await getNodeType(accessValueTypeConsumer.func) as FunctionType : undefined;
+        entrySourceInfo.valueTypeConsumerArgs = accessValueTypeConsumer.args.map(a => {
+        const result: IEntrySourceArg = { value: a.value };
+          if (a.source === NODE_SELF)
+          {
+            result.source = node;
+          }
+          else if(a.source === NODE_TYPE)
+          {
+            result.value = node.type.name;
+          }
+          else if(a.source === ENTRY_ROOT)
+          {
+            result.isroot = true;
+          }
+          else if (a.source)
+          {
+            const target = node.parent?.getAccessValue(a.source);
+            if (target)
+            {
+              result.source = target;
+              entrySourceInfo.subscribes ??= [];
+              entrySourceInfo.subscribes.push(target.subscribe(delayInit));
+            }
+            console.error(`Entry source arg ${a.source} from ${(owner as DataNode).access} not found`);
+          }
+          return result;
+        });
+
         break;
       }
       parent = parent.parent;
@@ -521,7 +628,7 @@ async function refreshEntrySource() {
           {
             result.source = target;
             entrySourceInfo.subscribes ??= [];
-            entrySourceInfo.subscribes.push(target.subscribe(() => initOptions()));
+            entrySourceInfo.subscribes.push(target.subscribe(delayInit));
           }
           console.error(`Entry source arg ${a.source} from ${(owner as DataNode).access} not found`);
         }
