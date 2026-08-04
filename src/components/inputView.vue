@@ -27,7 +27,7 @@
     :props="{
       emitPath: false,
       multiple: state.multiple,
-      checkStrictly: !state.leafOnly,
+      checkStrictly: !state.leafOnly && state.allRootPassed,
       lazy: true,
       lazyLoad
     }"
@@ -49,11 +49,10 @@
 </template>
 
 <script lang="ts" setup>
-import { AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, Entry, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LeafOnly, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, sformat, subscribeLanguage, Valid, WhiteList } from 'schema-node-core';
+import { AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, Entry, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LeafOnly, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, setPropertyValue, sformat, subscribeLanguage, Valid, WhiteList } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw, useSlots } from 'vue';
 import { _L } from '../utility/locale';
 import { subscribeAncestorProperty } from '../utility/toolset';
-import { fa } from 'element-plus/es/locale';
 
 // ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{
@@ -117,7 +116,8 @@ const state = reactive<{
   /** Leaf only */
   leafOnly?: boolean,
 
-  anyRootPassed?: boolean,
+  /** Whether to allow all root passed */
+  allRootPassed?: boolean,
 }>({})
 
 /** Data model */
@@ -135,8 +135,9 @@ interface ICascaderOptionInfo
   localename?: LocaleString
   label: string
   disabled?: boolean
+  disabledRoot?: boolean
   leaf: boolean
-  children: ICascaderOptionInfo[] | undefined | null
+  children: ICascaderOptionInfo[] | undefined
 }
 
 /** Entry source arg */
@@ -152,26 +153,66 @@ const options = shallowRef<ICascaderOptionInfo[]>([]);
 
 /** Entry source info */
 const entrySourceInfo: {
+  /** The propert owner(the node or its ancestor) of the entry source */
   owner?: DataNode,
+
+  /** The source function */
   source?: FunctionType,
+
+  /** The source args */
   args?: IEntrySourceArg[],
+
+  /** The subscribes to other node */
   subscribes?: Function[],
+
+  /** The cascade level */
   cascade?: number,
+
+  /** The root value of starting */
   root?: string,
+
+  /** The root entry */
   rootEntry?: EntryType<any>,
+
+  /** The white list */
   whiteList?: string[],
+
+  /** The black list */
   blackList?: string[],
+
+  /** Whether to allow no entry */
   noEntry?: boolean,
+
+  /** The valids */
   valids?: FuncCall[],
+
+  /** The valid result cache */
   validres?: Map<string, boolean>,
 } = {};
 
+function entryToOption(entries: Entry<any>[], isLeaf?: boolean): ICascaderOptionInfo[]
+{
+  return entries.map(entry => {
+    const asLeaf = isLeaf ?? !entry.hasChildren;
+    return {
+      value: entry.value,
+      localename: getPropertyValue<LocaleString>(entry, Display),
+      label: _L.value(getPropertyValue<LocaleString>(entry, Display) ?? entry.value),
+      disabled: asLeaf && getPropertyValue<boolean>(entry, Disable),
+      disabledRoot: getPropertyValue<boolean>(entry, Disable),
+      leaf: asLeaf,
+      children: undefined,
+    }
+  }).filter(o => !(o.leaf && o.disabled));
+}
+
 /** check value value is valid */
 async function isValidValue(value: any): Promise<boolean> {
+  const v = `${value}`;
+  if (entrySourceInfo.blackList?.includes(v)) return false;
   if (!entrySourceInfo.valids?.length) return true;
 
   // check cache
-  const v = `${value}`;
   if (entrySourceInfo.validres?.has(v)) return entrySourceInfo.validres!.get(v)!;
 
   // valid
@@ -182,7 +223,7 @@ async function isValidValue(value: any): Promise<boolean> {
     if (!validFunc) continue;
     const res = await validFunc.call(valid.args.map(a => {
       if (!a.source) return a.value;
-      return a.source === NODE_SELF ? value : undefined;
+      return a.source === NODE_SELF ? value : undefined; // only scalar value here
     }));
     if (!res)
     {
@@ -205,23 +246,102 @@ async function getAccessList(value: any, root?: any): Promise<EntryAccess<any>[]
     })) as EntryAccess<any>[];
 
   // valid
-  if (entrySourceInfo.valids?.length)
+  if (entrySourceInfo.valids?.length || entrySourceInfo.blackList?.length)
   {
-    for (let i = 0; i < result.length; i++)
+    // check black list for entry first
+    if (entrySourceInfo.blackList?.length)
+    {
+      for (let i = 0; i < result.length; i++)
+      {
+        if (result[i].entry?.value && entrySourceInfo.blackList?.includes(`${result[i].entry?.value}`)) {
+          result.splice(i);
+          break;
+        }
+      }
+    }
+
+    // validate the children
+    for (let i = result.length - 1; i >= 0; i--)
     {
       const r = result[i];
       if (r.children?.length) {
         const passed: Entry<any>[] = [];
         for (const c of r.children || [])
         {
-          if (await isValidValue(c.value))
+          // black list not allow children
+          if (entrySourceInfo.blackList?.includes(`${c.value}`)) continue;
+
+          const disable = getPropertyValue(c, Disable) || !await isValidValue(c.value);
+          if (!disable || c.hasChildren) // valid or has children
+          {
+            if (disable) setPropertyValue(c, Disable, true); // mark as disabled
             passed.push(c);
+          }
         }
         r.children = passed;
       }
 
-      if (r.entry?.hasChildren && !r.children?.length)
+      // rest hasChildren if no children passed
+      if (!r.entry) continue;
+
+      const disable = getPropertyValue(r.entry, Disable) || !await isValidValue(r.entry.value);
+      if (r.entry?.hasChildren && !r.children?.length) {
         r.entry.hasChildren = false;
+        if (i > 0)
+        {
+          const item = result[i-1].children?.find(c => c.value == r.entry?.value);
+          if (item) {
+            if (disable)
+              result[i-1].children?.splice(result[i-1].children?.indexOf(item)!, 1);
+            else
+              item.hasChildren = false;
+          }
+        }
+
+        // may need reset the options, check the loaded options
+        const entry = entrySourceInfo.rootEntry?.getEntry(r.entry.value);
+        if (entry)
+        {
+          if (disable)
+            entry.drop();
+          else
+            entry.dropChildren();
+
+          // reset options if has children
+          const opts = getOptionsByValue(options.value, r.entry.value);
+          if (opts?.length && !opts[opts.length - 1].leaf)
+          {
+            let index = opts.length - 1;
+            opts[index].children = [];
+            while (index >= 0)
+            {
+              if (opts[index].children?.length) break;
+
+              opts[index].leaf = true;
+              opts[index].children = undefined;
+
+              if ((opts[index].disabled || opts[index].disabledRoot) && index > 0)
+              {
+                const idx = opts[index - 1].children?.findIndex(c => c.value == opts[index].value);
+                if (idx !== undefined && idx >= 0)
+                  opts[index - 1].children!.splice(idx, 1);
+              }
+              index--;
+            }
+            options.value = [...options.value]; // force update
+          }
+        }
+      }
+      else if (disable)
+        state.allRootPassed = false;
+    }
+
+    // remove no children access
+    for (let i = 0; i < result.length; i++)
+    {
+      if (result[i].entry?.hasChildren) continue;
+      result.splice(i);
+      break;
     }
   }
 
@@ -237,53 +357,14 @@ async function getSubEntryList(value: any): Promise<ICascaderOptionInfo[]> {
 
   // query access list
   if (!lastAccess || !lastAccess.children?.length) {
-    const queryAccessList =  await getAccessList(value, lastAccess?.entry?.value);
-
-    // black list
-    if (entrySourceInfo.blackList?.length)
-    {
-      for (let i = 0; i < queryAccessList.length; i++)
-      {
-        const curr = queryAccessList[i];
-        if (curr.entry?.value && entrySourceInfo.blackList.includes(`${curr.entry.value}`))
-        {
-          queryAccessList.splice(i);
-          break;
-        }
-        curr.children = curr.children?.filter(a => !entrySourceInfo.blackList!.includes(`${a.value}`));
-        if (curr.entry?.hasChildren && !curr.children?.length)
-        {
-          curr.entry.hasChildren = false;
-          queryAccessList.splice(i);
-          if (i > 0)
-          {
-            const item = queryAccessList[i-1].children?.find(c => c.value == curr.entry?.value);
-            if (item) // @TODO: may need update the options
-              item.hasChildren = false;
-          }
-          break;
-        }
-      }
-    }
-
-    entrySourceInfo.rootEntry!.saveAccessList(queryAccessList);
+    entrySourceInfo.rootEntry!.saveAccessList(await getAccessList(value, lastAccess?.entry?.value));
     accessList = entrySourceInfo.rootEntry.getAccessList(value);
     lastAccess = accessList?.[accessList.length - 1];
   }
 
   // generate options
   if (!lastAccess || !lastAccess.children?.length) return []
-  const isLeaf = entrySourceInfo.cascade && entrySourceInfo.cascade <= accessList!.length;
-  return lastAccess.children!.map(a => {
-    return {
-      value: a.value,
-      localename: getPropertyValue<LocaleString>(a, Display),
-      label: _L.value(getPropertyValue<LocaleString>(a, Display) ?? a.value),
-      disabled: getPropertyValue<boolean>(a, Disable),
-      leaf: isLeaf || !a.hasChildren,
-      children: undefined,
-    }
-  })
+  return entryToOption(lastAccess.children ?? [], !!(entrySourceInfo.cascade && entrySourceInfo.cascade <= accessList!.length));
 }
 
 /** lazy load options from entry source args */
@@ -296,7 +377,7 @@ const lazyLoad = async (treeNode: { value: any }, resolve: Function, reject: any
 async function initOptions(){
   entrySourceInfo.noEntry = false;
   entrySourceInfo.validres = new Map();
-  state.anyRootPassed = false;
+  state.allRootPassed = true;
 
   if (entrySourceInfo.whiteList?.length)
   {
@@ -320,7 +401,7 @@ async function initOptions(){
       for (let i = 0; i < a.length; i++)
       {
         const curr = a[i];
-        curr.children = curr.children?.filter(a => passKeys.has(`${a.value}`) && !entrySourceInfo.blackList?.includes(`${a.value}`));
+        curr.children = curr.children?.filter(a => passKeys.has(`${a.value}`));
         if (!curr.children?.length && curr.entry?.hasChildren)
         {
           curr.entry.hasChildren = false;
@@ -328,8 +409,7 @@ async function initOptions(){
           if (i > 0)
           {
             const item = a[i-1].children?.find(c => c.value == curr.entry?.value);
-            if (item)
-              item.hasChildren = false;
+            if (item) item.hasChildren = false;
           }
           break;
         }
@@ -362,17 +442,7 @@ async function initOptions(){
           const last = opts[opts.length - 1];
           if (last.leaf) break;
           if (curr.entry?.hasChildren && curr.children?.length && !last.children?.length)
-          {
-            const isLeaf = entrySourceInfo.cascade && entrySourceInfo.cascade <= i + 1;
-            last.children = curr.children.map(a => ({
-              value: a.value,
-              localename: getPropertyValue<LocaleString>(a, Display),
-              label: _L.value(getPropertyValue<LocaleString>(a, Display) ?? a.value),
-              disabled: getPropertyValue<boolean>(a, Disable),
-              leaf: isLeaf || !a.hasChildren,
-              children: undefined,
-            }))
-          }
+            last.children = entryToOption(curr.children, !!(entrySourceInfo.cascade && entrySourceInfo.cascade <= i + 1));
           if (!last.children) break;
           subOptions = last.children;
         }
@@ -392,7 +462,9 @@ async function refreshEntrySource() {
   const cascade = node.getPropertyValue<number>(Cascade);
   const owner = node.getPropertySource(EntrySource) as DataNode;
   const entryFunc = entrySource?.func ? await getNodeType(entrySource.func) as FunctionType : undefined;
-  
+  const valids = Array.from(node.type.getProperties(Valid).map(v => v.getValue<FuncCall>()!));
+  valids.reverse(); // old first
+
   if (entryFunc)
   {
     // refresh options if relatied properties changed
@@ -401,7 +473,8 @@ async function refreshEntrySource() {
         entrySourceInfo?.root !== root ||
         entrySourceInfo?.owner !== owner ||
         !isEqual(entrySourceInfo.whiteList, whiteList) ||
-        !isEqual(entrySourceInfo.blackList, blackList))
+        !isEqual(entrySourceInfo.blackList, blackList) ||
+        !isEqual(entrySourceInfo.valids, valids))
     {
       entrySourceInfo.owner = owner;
       entrySourceInfo.whiteList = whiteList;
@@ -410,6 +483,7 @@ async function refreshEntrySource() {
       entrySourceInfo.subscribes?.forEach(sub => sub());
       entrySourceInfo.subscribes = undefined;
       entrySourceInfo.rootEntry = new EntryType<any>();
+      entrySourceInfo.valids = valids;
       
       entrySourceInfo.args = entrySource!.args.map(a => {
         const result: IEntrySourceArg = { value: a.value };
@@ -540,10 +614,7 @@ onMounted(async() => {
   subs.push(node.subscribeProperty(EntrySource, refreshEntrySource));
   subs.push(node.subscribeProperty(Root, refreshEntrySource));
   subs.push(node.subscribeProperty(Cascade, refreshEntrySource));
-
-  // valids for filter options
-  entrySourceInfo.valids = Array.from(node.type.getProperties(Valid).map(v => v.getValue<FuncCall>()!));
-  entrySourceInfo.valids.reverse(); // old first
+  subs.push(node.subscribeProperty(Valid, refreshEntrySource));
 
   // display
   subs.push(subscribeLanguage(() => {
