@@ -49,7 +49,7 @@
 </template>
 
 <script lang="ts" setup>
-import { EntrySourceConsumer, EntrySourceProvider, AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, Entry, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LeafOnly, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, setPropertyValue, sformat, subscribeLanguage, Valid, WhiteList, AccessValueTypeConsumer, AccessValueTypeProvider, debounce, CallArg } from 'schema-node-core';
+import { EntrySourceConsumer, EntrySourceProvider, AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, Entry, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LeafOnly, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, setPropertyValue, sformat, subscribeLanguage, Valid, WhiteList, AccessEntryConsumer, AccessValueTypeProvider, debounce, CallArg } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw, useSlots } from 'vue';
 import { _L } from '../utility/locale';
 import { subscribeAncestorProperty } from '../utility/toolset';
@@ -529,7 +529,8 @@ async function refreshEntrySource() {
   valids.reverse(); // old first
 
   // access consumer to access access source from ancestors
-  if (!entrySource?.func && node.getPropertyValue<boolean>(EntrySourceConsumer))
+  const accessValueTypeConsumer = node.getPropertyValue<FuncCall>(AccessEntryConsumer);
+  if (!entrySource?.func && (accessValueTypeConsumer || node.getPropertyValue<boolean>(EntrySourceConsumer)))
   {
     let parent: IValueAccess | undefined = node;
     while (parent)
@@ -544,7 +545,6 @@ async function refreshEntrySource() {
   }
 
   // access value type handler
-  const accessValueTypeConsumer = node.getPropertyValue<FuncCall>(AccessValueTypeConsumer);
   if (accessValueTypeConsumer && !entrySourceInfo.valueTypeProvider)
   {
     let parent: IValueAccess | undefined = node;
