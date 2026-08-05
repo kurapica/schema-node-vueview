@@ -49,7 +49,7 @@
 </template>
 
 <script lang="ts" setup>
-import { EntrySourceConsumer, EntrySourceProvider, AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, Entry, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LeafOnly, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, setPropertyValue, sformat, subscribeLanguage, Valid, WhiteList, AccessValueTypeConsumer, AccessValueTypeProvider, debounce } from 'schema-node-core';
+import { EntrySourceConsumer, EntrySourceProvider, AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, Entry, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LeafOnly, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, setPropertyValue, sformat, subscribeLanguage, Valid, WhiteList, AccessValueTypeConsumer, AccessValueTypeProvider, debounce, CallArg } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw, useSlots } from 'vue';
 import { _L } from '../utility/locale';
 import { subscribeAncestorProperty } from '../utility/toolset';
@@ -220,6 +220,36 @@ function entryToOption(entries: Entry<any>[], isLeaf?: boolean): ICascaderOption
       children: undefined,
     }
   }).filter(o => !(o.leaf && o.disabled));
+}
+
+/** convert call arg to entry source arg */
+function callArgToEntrySource(owner: IValueAccess, a: CallArg): IEntrySourceArg
+{
+  const result: IEntrySourceArg = { value: a.value };
+  if (a.source === NODE_SELF)
+  {
+    result.source = node;
+  }
+  else if(a.source === NODE_TYPE)
+  {
+    result.value = node.type.name;
+  }
+  else if(a.source === ENTRY_ROOT)
+  {
+    result.isroot = true;
+  }
+  else if (a.source)
+  {
+    const target = owner.getAccessValue(a.source);
+    if (target)
+    {
+      result.source = target;
+      entrySourceInfo.subscribes ??= [];
+      entrySourceInfo.subscribes.push(target.subscribe(delayInit));
+    }
+    console.error(`Entry source arg ${a.source} from ${(owner as DataNode).access} not found`);
+  }
+  return result;
 }
 
 /** check value value is valid */
@@ -522,64 +552,11 @@ async function refreshEntrySource() {
     {
       const accessValueTypeProvider = parent.getPropertyValue<FuncCall>(AccessValueTypeProvider);
       if (accessValueTypeProvider) {
-        const provider = parent;
         entrySourceInfo.valueTypeProvider = accessValueTypeProvider.func ? await getNodeType(accessValueTypeProvider.func) as FunctionType : undefined;
-        entrySourceInfo.valueTypeProviderArgs = accessValueTypeProvider.args.map(a => {
-          const result: IEntrySourceArg = { value: a.value };
-          if (a.source === NODE_SELF)
-          {
-            result.source = node;
-          }
-          else if(a.source === NODE_TYPE)
-          {
-            result.value = node.type.name;
-          }
-          else if(a.source === ENTRY_ROOT)
-          {
-            result.isroot = true;
-          }
-          else if (a.source)
-          {
-            const target = provider.getAccessValue(a.source);
-            if (target)
-            {
-              result.source = target;
-              entrySourceInfo.subscribes ??= [];
-              entrySourceInfo.subscribes.push(target.subscribe(delayInit));
-            }
-            console.error(`Entry source arg ${a.source} from ${(owner as DataNode).access} not found`);
-          }
-          return result;
-        });
+        entrySourceInfo.valueTypeProviderArgs = accessValueTypeProvider.args.map(a => callArgToEntrySource(parent!, a));
 
         entrySourceInfo.valueTypeConsumer = accessValueTypeConsumer.func ? await getNodeType(accessValueTypeConsumer.func) as FunctionType : undefined;
-        entrySourceInfo.valueTypeConsumerArgs = accessValueTypeConsumer.args.map(a => {
-        const result: IEntrySourceArg = { value: a.value };
-          if (a.source === NODE_SELF)
-          {
-            result.source = node;
-          }
-          else if(a.source === NODE_TYPE)
-          {
-            result.value = node.type.name;
-          }
-          else if(a.source === ENTRY_ROOT)
-          {
-            result.isroot = true;
-          }
-          else if (a.source)
-          {
-            const target = node.parent?.getAccessValue(a.source);
-            if (target)
-            {
-              result.source = target;
-              entrySourceInfo.subscribes ??= [];
-              entrySourceInfo.subscribes.push(target.subscribe(delayInit));
-            }
-            console.error(`Entry source arg ${a.source} from ${(owner as DataNode).access} not found`);
-          }
-          return result;
-        });
+        entrySourceInfo.valueTypeConsumerArgs = accessValueTypeConsumer.args.map(a => callArgToEntrySource(node.parent!, a));
 
         break;
       }
@@ -607,33 +584,7 @@ async function refreshEntrySource() {
       entrySourceInfo.rootEntry = new EntryType<any>();
       entrySourceInfo.valids = valids;
       
-      entrySourceInfo.args = entrySource!.args.map(a => {
-        const result: IEntrySourceArg = { value: a.value };
-        if (a.source === NODE_SELF)
-        {
-          result.source = node;
-        }
-        else if(a.source === NODE_TYPE)
-        {
-          result.value = node.type.name;
-        }
-        else if(a.source === ENTRY_ROOT)
-        {
-          result.isroot = true;
-        }
-        else if (a.source)
-        {
-          const target = owner.getAccessValue(a.source);
-          if (target)
-          {
-            result.source = target;
-            entrySourceInfo.subscribes ??= [];
-            entrySourceInfo.subscribes.push(target.subscribe(delayInit));
-          }
-          console.error(`Entry source arg ${a.source} from ${(owner as DataNode).access} not found`);
-        }
-        return result;
-      });
+      entrySourceInfo.args = entrySource!.args.map(a => callArgToEntrySource(owner!, a));
 
       // init options
       await initOptions();
