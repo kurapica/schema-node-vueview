@@ -112,13 +112,13 @@
         :label="_L('OPER')" align="center" fixed="right" :width="operWidth || 100">
         <template #header>
           <a href="javascript:void(0)"
-            v-if="!state.readonly && state.allowAdd && addPosition !== 'header'"
+            v-if="state.addAble && !state.readonly && state.allowAdd && addPosition !== 'header'"
             @click="addRow(node)" style="text-decoration: underline; color: lightseagreen">{{ _L('ADD') }}</a>
           <p v-else>{{ _L('OPER') }}</p>
         </template>
         <template #default="scope" v-if="$slots.operator || state.allowDel">
           <slot name="operator" :row="scope.row.node" :index="scope.row.eleIdx">
-            <a v-if="!noDel && !state.deleted[scope.row.eleIdx]" href="javascript:void(0)"
+            <a v-if="state.delAble && !state.deleted[scope.row.eleIdx]" href="javascript:void(0)"
               @click="delRow(node, scope.row.eleIdx)">{{ _L('DEL') }}</a>
             <a v-else-if="!noDel && state.deleted[scope.row.eleIdx]" href="javascript:void(0)"
               style="color: grey" @click="resumeRow(node, scope.row.eleIdx)">{{ _L('RESUME') }}</a>
@@ -140,6 +140,8 @@ import {
   ArrayNode, ArrayType, DataNode, Display, InVisible, NS_SYSTEM_LOCALE_STRING,
   ReadOnly, StructNode, StructType, type StructFieldType, Unit, clearDebounce,
   debounce, LocaleString, sformat, subscribeLanguage,
+  MaxSize,
+  MinSize,
 } from "schema-node-core";
 import { PageNode, type IArrayFieldFilter } from "schema-node-app";
 import { SchemaNodeFormType } from "../enum/formType";
@@ -207,6 +209,8 @@ const state = reactive<{
   deleted: boolean[];
   allowAdd: boolean;
   allowDel: boolean;
+  addAble?: boolean;
+  delAble?: boolean;
 }>({
   columns: [],
   spanCols: {},
@@ -323,6 +327,8 @@ onMounted(async () => {
     state.disabled = !!node.getPropertyValue<boolean>(requireDisableCtor());
     state.allowAdd = !props.noAdd && !state.readonly;
     state.allowDel = !props.noDel && !state.readonly;
+    state.addAble = node.addAble;
+    state.delAble = node.delAble;
 
     // update pagination state for PageNode
     if (pageNode) {
@@ -343,6 +349,8 @@ onMounted(async () => {
     state.allowAdd = !props.noAdd && !state.readonly;
     state.allowDel = !props.noDel && !state.readonly;
   }, true));
+  subs.push(node.subscribeProperty(MaxSize, () => state.addAble = node.addAble));
+  subs.push(node.subscribeProperty(MinSize, () => state.delAble = node.delAble));
 
   // lang handler
   subs.push(subscribeLanguage((lang: string) => {

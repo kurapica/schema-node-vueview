@@ -19,14 +19,14 @@
       </schema-view>
     </template>
     <template v-if="!state.simple && !state.readonly" style="align-self: center; white-space: nowrap;">
-      <a @click="node.addRow()" href="javascript:void(0)" style="font-size: xx-large;margin-right: 1rem;">+</a>
-      <a v-if="state.length" @click="node.delRows(state.length - 1)" href="javascript:void(0)" style="font-size: xx-large;">-</a>
+      <a v-if="state.addAble" @click="node.addRow()" href="javascript:void(0)" style="font-size: xx-large;margin-right: 1rem;">+</a>
+      <a v-if="state.delAble" @click="node.delRows(state.length - 1)" href="javascript:void(0)" style="font-size: xx-large;">-</a>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ArrayNode, ArrayType, Disable, isNull, ReadOnly, ScalarType, StructType } from 'schema-node-core'
+import { ArrayNode, ArrayType, Disable, isNull, MaxSize, MinSize, ReadOnly, ScalarType, StructType } from 'schema-node-core'
 import { onMounted, onUnmounted, reactive, toRaw, useSlots } from 'vue'
 import schemaView from '../schemaView.vue'
 import { SchemaNodeFormType } from '../enum/formType'
@@ -53,6 +53,8 @@ const state = reactive<{
   display?: string
   length: number,
   simple?: boolean,
+  addAble?: boolean,
+  delAble?: boolean
 }>({ length: 0 })
 
 // ── Life Cycle ────────────────────────────────────────────────────
@@ -66,20 +68,25 @@ onMounted(() => {
     if (!node.readonly && state.simple) {
       const length = node.length
       const last = node.at(length - 1)
-      if (length === 0 || !isNull(last?.rawValue)) {
+      if ((length === 0 || !isNull(last?.rawValue)) && node.addAble) {
         return node.addRow()
       }
-      else if (length >= 2 && isNull(node.at(length - 2)?.rawValue)) {
+      else if (length >= 2 && isNull(node.at(length - 2)?.rawValue) && node.delAble) {
         return node.delRows(length - 1)
       }
     }
 
     state.length = node.length
+    state.addAble = node.addAble
+    state.delAble = node.delAble
     if (state.simple) state.display = ((node.value as any[]) || []).join()
   }, true))
 
   subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = node.readonly || values.some(v => v), true))
   subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true))
+
+  subs.push(node.subscribeProperty(MaxSize, () => state.addAble = node.addAble))
+  subs.push(node.subscribeProperty(MinSize, () => state.delAble = node.delAble))
 })
 
 onUnmounted(() => {
