@@ -30,7 +30,7 @@
                   v-if="scope.row.node.getAccessValue(col.prop).at(scope.row.index) instanceof StructNode"
                   :key="scope.row.node.getAccessValue(col.prop).at(scope.row.index)!.id"
                   :node="scope.row.node.getAccessValue(col.prop).at(scope.row.index)"
-                  :field="scol.prop" :in-form="inForm" :plain-text="plainText" :skin="skin"
+                  :field="scol.prop" :in-form="inForm" :text="plainText" :skin="skin"
                   :disabled="state.readonly || state.disabled" no-label v-bind="$attrs"></struct-field-view>
                 <template v-else>
                   <span></span>
@@ -42,7 +42,7 @@
                 v-overflow-title="getFieldTipKey(scope.row.node.getAccessValue(col.prop), scol.prop)">
                 <struct-field-view :key="scope.row.node.getAccessValue(col.prop).getAccessValue(scol.prop)?.id"
                   :node="scope.row.node.getAccessValue(col.prop)" :field="scol.prop" :in-form="inForm"
-                  :plain-text="plainText" :skin="skin" :disabled="state.readonly || state.disabled" no-label
+                  :text="plainText" :skin="skin" :disabled="state.readonly || state.disabled" no-label
                   v-bind="$attrs"></struct-field-view>
                 <el-tooltip
                   :content="localStringTipMap[getFieldTipKey(scope.row.node.getAccessValue(col.prop), scol.prop)] || ''"
@@ -55,7 +55,7 @@
                 v-else-if="!col.isArray && scope.row.index === 0 && (scope.row.node.getAccessValue(col.prop) instanceof StructNode)"
                 :key="scope.row.node.getAccessValue(col.prop).getAccessValue(scol.prop)?.id"
                 :node="scope.row.node.getAccessValue(col.prop)" :field="scol.prop" :in-form="inForm"
-                :plain-text="plainText" :skin="skin" :disabled="state.readonly || state.disabled" no-label
+                :text="plainText" :skin="skin" :disabled="state.readonly || state.disabled" no-label
                 v-bind="$attrs"></struct-field-view>
               <template v-else>
                 <span></span>
@@ -90,7 +90,7 @@
                 class="localstring-readonly-tooltip"
                 v-overflow-title="getFieldTipKey((scope.row.node as StructNode), col.prop)">
                 <struct-field-view :key="scope.row.node.getAccessValue(col.prop)!.id"
-                  :node="scope.row.node" :field="col.prop" :in-form="inForm" :plain-text="plainText" :skin="skin"
+                  :node="scope.row.node" :field="col.prop" :in-form="inForm" :text="plainText" :skin="skin"
                   :disabled="state.readonly || state.disabled" no-label v-bind="$attrs"></struct-field-view>
                 <el-tooltip
                   :content="localStringTipMap[getFieldTipKey((scope.row.node as StructNode), col.prop)] || ''"
@@ -100,7 +100,7 @@
                 </el-tooltip>
               </div>
               <struct-field-view v-else :key="scope.row.node.getAccessValue(col.prop)!.id"
-                :node="scope.row.node" :field="col.prop" :in-form="inForm" :plain-text="plainText" :skin="skin"
+                :node="scope.row.node" :field="col.prop" :in-form="inForm" :text="plainText" :skin="skin"
                 :disabled="state.readonly || state.disabled" no-label v-bind="$attrs"></struct-field-view>
             </template>
           </template>

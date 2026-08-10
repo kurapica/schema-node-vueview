@@ -3,7 +3,7 @@
     <el-form :inline="true" ref="formRef" :style="{ maxHeight: '80px', overflow: 'hidden' }">
       <template v-for="filter in filters" :key="filter.filter">
         <template v-for="(node, idx) in filter.nodes" :key="node.id ?? `${filter.filter}-${idx}`">
-          <schema-view :node="node" plain-text="left" :in-form="true"></schema-view>
+          <schema-view :node="node" text="left" :in-form="true"></schema-view>
         </template>
       </template>
       <el-form-item class="filters-actions">

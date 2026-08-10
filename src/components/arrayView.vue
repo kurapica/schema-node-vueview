@@ -8,7 +8,7 @@
       <schema-view v-if="node.at(i - 1)"
         style="min-width: 120px;"
         :node="node.at(i - 1)!"
-        :plain-text="text"
+        :text="text"
         :in-form="getSubNodeFormType(node.at(i - 1)!, inForm, skin)"
         no-label
         v-bind="$attrs"
