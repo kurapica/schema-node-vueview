@@ -31,7 +31,6 @@ import { getSchemaTypeView, useSingleView } from './schemaView'
 import { _L } from './utility/locale'
 import { DataNode, getNodeType, InVisible, ValueType, Visible } from 'schema-node-core'
 import { AppNode, Loaded } from 'schema-node-app'
-import { fa } from 'element-plus/es/locale/index.js'
 
 // props
 const props = defineProps<{
