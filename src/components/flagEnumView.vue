@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { DataNode, Disable, Display, EnumType, getPropertyValue, LocaleString, ReadOnly, Require, sformat, SingleFlag, subscribeLanguage } from 'schema-node-core';
+import { DataNode, Disable, Display, EnumType, getPropertyValue, LocaleString, ReadOnly, Require, formatLocaleString, SingleFlag, subscribeLanguage } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, ref, toRaw } from 'vue';
 import { _L } from '../utility/locale';
 import { subscribeAncestorProperty } from '../utility/toolset';
@@ -130,7 +130,7 @@ onMounted(async () => {
 
   // language change
   subs.push(subscribeLanguage(() => {
-    state.selectPlaceHolder = sformat("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
+    state.selectPlaceHolder = formatLocaleString("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
     options.value = options.value.map(a => {
       a.label = _L.value(a.localename ?? a.value);
       return a;

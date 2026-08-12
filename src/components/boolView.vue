@@ -23,7 +23,7 @@
 </template>
 
 <script lang="ts" setup>
-import { DataNode, Default, Disable, Display, isNull, ReadOnly, Require, sformat, subscribeLanguage } from 'schema-node-core'
+import { DataNode, Default, Disable, Display, isNull, ReadOnly, Require, formatLocaleString, subscribeLanguage } from 'schema-node-core'
 import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
 import { _L } from '../utility/locale'
 import { subscribeAncestorProperty } from '../utility/toolset';
@@ -85,7 +85,7 @@ onMounted(() => {
 
   // language
   subs.push(subscribeLanguage(() => {
-    state.selectPlaceHolder = sformat("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
+    state.selectPlaceHolder = formatLocaleString("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
   }, true));
 })
 

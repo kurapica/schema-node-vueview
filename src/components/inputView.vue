@@ -49,7 +49,7 @@
 </template>
 
 <script lang="ts" setup>
-import { EntrySourceConsumer, EntrySourceProvider, AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, Entry, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LeafOnly, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, setPropertyValue, sformat, subscribeLanguage, Valid, WhiteList, AccessEntryConsumer, AccessValueTypeProvider, debounce, CallArg } from 'schema-node-core';
+import { EntrySourceConsumer, EntrySourceProvider, AsSuggest, BlackList, Cascade, DataNode, Default, Disable, Display, Entry, ENTRY_ROOT, EntryAccess, EntrySource, EntryType, FuncCall, FunctionType, getNodeType, getPropertyValue, isEmpty, isEqual, isNull, IValueAccess, LeafOnly, LocaleString, NODE_SELF, NODE_TYPE, ReadOnly, Require, Root, setPropertyValue, formatLocaleString, subscribeLanguage, Valid, WhiteList, AccessEntryConsumer, AccessValueTypeProvider, debounce, CallArg } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw, useSlots } from 'vue';
 import { _L } from '../utility/locale';
 import { subscribeAncestorProperty } from '../utility/toolset';
@@ -691,8 +691,8 @@ onMounted(async() => {
 
   // display
   subs.push(subscribeLanguage(() => {
-    state.inputPlaceHolder = sformat("PLACEHOLDER_INPUT", node.getPropertyValue(Display) ?? node.name);
-    state.selectPlaceHolder = sformat("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
+    state.inputPlaceHolder = formatLocaleString("PLACEHOLDER_INPUT", node.getPropertyValue(Display) ?? node.name);
+    state.selectPlaceHolder = formatLocaleString("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
     if (props.text) refreshDisplay();
     refreshOptionsLabel(options.value);
   }, true));

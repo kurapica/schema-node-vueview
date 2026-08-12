@@ -23,7 +23,7 @@
 <script setup lang="ts">
 import {
   DataNode, Disable, Display, NS_SYSTEM_RANGE_DATE, NS_SYSTEM_RANGE_FULL_DATE,
-  NS_SYSTEM_YEAR, NS_SYSTEM_YEARMONTH, NS_SYSTEM_FULL_DATE, ReadOnly, Require, sformat,
+  NS_SYSTEM_YEAR, NS_SYSTEM_YEARMONTH, NS_SYSTEM_FULL_DATE, ReadOnly, Require, formatLocaleString,
   StructNode,
   ScalarNode,
   subscribeLanguage,
@@ -141,7 +141,7 @@ onMounted(() => {
   
   // language
   subs.push(subscribeLanguage(() => {
-    state.selectPlaceHolder = sformat("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
+    state.selectPlaceHolder = formatLocaleString("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
   }, true));
 });
 

@@ -139,7 +139,7 @@
 import {
   ArrayNode, ArrayType, DataNode, Display, InVisible, NS_SYSTEM_LOCALE_STRING,
   ReadOnly, StructNode, StructType, type StructFieldType, Unit, clearDebounce,
-  debounce, LocaleString, sformat, subscribeLanguage,
+  debounce, LocaleString, formatLocaleString, subscribeLanguage,
   MaxSize,
   MinSize,
 } from "schema-node-core";
@@ -473,7 +473,7 @@ const delRow = async (arrayNode: ArrayNode, index: number) => {
   if (props.autoDel && !isNew) {
     try {
       await ElMessageBox.confirm(
-        sformat("DEL_CONFIRM", node.getPropertyValue(Display) ?? node.name),
+        formatLocaleString("DEL_CONFIRM", node.getPropertyValue(Display) ?? node.name),
         _L.value("NOTIFY"),
         { type: "warning", dangerouslyUseHTMLString: true }
       );

@@ -113,7 +113,7 @@ onMounted(async () => {
   if (!node) {
     if (props.type) {
       const type = await getNodeType(props.type) as ValueType
-      node = type?.create(props.modelValue)
+      node = type?.create(props.modelValue) as DataNode
       if (node && props.props)
       {
         if (isRef(props.props) || isReactive(props.props)) {

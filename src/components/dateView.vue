@@ -26,7 +26,7 @@
 </template>
 
 <script lang="ts" setup>
-import { AsSuggest, BlackList, DataNode, DateNode, Default, Disable, Display, getNodeType, IntNode, isNull, NS_SYSTEM_FULL_DATE, NS_SYSTEM_YEAR, NS_SYSTEM_YEARMONTH, ReadOnly, Require, ScalarType, sformat, subscribeLanguage, ValueType, WhiteList } from 'schema-node-core'
+import { AsSuggest, BlackList, DataNode, DateNode, Default, Disable, Display, getNodeType, IntNode, isNull, NS_SYSTEM_FULL_DATE, NS_SYSTEM_YEAR, NS_SYSTEM_YEARMONTH, ReadOnly, Require, ScalarType, formatLocaleString, subscribeLanguage, ValueType, WhiteList } from 'schema-node-core'
 import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
 import { _L } from '../utility/locale'
 import { subscribeAncestorProperty } from '../utility/toolset';
@@ -205,7 +205,7 @@ onMounted(async () => {
 
   // language
   subs.push(subscribeLanguage(() => {
-    state.selectPlaceHolder = sformat("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
+    state.selectPlaceHolder = formatLocaleString("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
   }, true));
 })
 

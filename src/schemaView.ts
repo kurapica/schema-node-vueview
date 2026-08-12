@@ -1,4 +1,4 @@
-import { ArrayNode, ArrayType, DataNode, NodeType, ScalarType, SCHEMA_KIND_BOOL, SCHEMA_KIND_DATE, SCHEMA_KIND_DECIMAL, SCHEMA_KIND_ENUM, SCHEMA_KIND_INT, SCHEMA_KIND_STRING, StructType } from "schema-node-core"
+import { ArrayNode, ArrayType, DataNode, IValueTypeAccess, NodeType, ScalarType, SCHEMA_KIND_BOOL, SCHEMA_KIND_DATE, SCHEMA_KIND_DECIMAL, SCHEMA_KIND_ENUM, SCHEMA_KIND_INT, SCHEMA_KIND_STRING, StructType } from "schema-node-core"
 import { SchemaNodeFormType } from "./enum/formType"
 
 export const DEFAULT_SKIN = "default"
@@ -16,7 +16,7 @@ const singleView = new Set<string>()
 /**
  * if node is single node or use a special schema view
  */
-export function useSingleView(node: NodeType, skinName: string = DEFAULT_SKIN) {
+export function useSingleView(node: IValueTypeAccess, skinName: string = DEFAULT_SKIN) {
   const key = `${node.name.toLowerCase()}-${skinName.toLowerCase()}`
   if (singleView.has(key)) return true
   if (node instanceof StructType)
@@ -85,7 +85,7 @@ export function getSchemaTypeView(node: DataNode, skinName: string = DEFAULT_SKI
         baseMap.view
 }
 
-function getSchemaTypeViewBySchema(schema: NodeType, skinName: string = DEFAULT_SKIN): any | undefined {
+function getSchemaTypeViewBySchema(schema: IValueTypeAccess, skinName: string = DEFAULT_SKIN): any | undefined {
     skinName = skinName.toLowerCase()
     const type = schema.name.toLowerCase()
     const maps = schemaViews[type]

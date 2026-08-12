@@ -24,12 +24,13 @@ export default defineConfig({
       fileName: (format) => format === 'cjs' ? `index.js` : `index.${format}.js`,
     },
     rollupOptions: {
-      external: ['vue', 'element-plus', 'schema-node'],
+      external: ['vue', 'element-plus', 'schema-node-core', 'schema-node-app'],
       output: {
         globals: {
           vue: 'Vue',
           'element-plus': 'ElementPlus',
-          'schema-node': 'SchemaNode'
+          'schema-node-core': 'SchemaNodeCore',
+          'schema-node-app': 'SchemaNodeApp'
         }
       }
     },
