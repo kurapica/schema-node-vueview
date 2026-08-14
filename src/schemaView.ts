@@ -42,15 +42,15 @@ export function getSubNodeFormType(node: DataNode, type?: SchemaNodeFormType, sk
 /**
  * register view as default for any node of the given schema type
  */
-export function regBaseSchemaTypeView(type: string, view?: any, resolve?: (node: DataNode, skin?: string) => any) {
-    const map = baseSchemaViews[type]
+export function regBaseSchemaKindView(kind: string, view?: any, resolve?: (node: DataNode, skin?: string) => any) {
+    const map = baseSchemaViews[kind]
     if (map) {
         // override the default
         if (view) map.view = view
         if (resolve) map.customResolve = resolve
     }
     else {
-        baseSchemaViews[type] = { view, resolve }
+        baseSchemaViews[kind] = { view, resolve }
     }
 }
 
@@ -78,7 +78,7 @@ export function getSchemaTypeView(node: DataNode, skinName: string = DEFAULT_SKI
     if (template) return template
     
     // Try base view
-    const baseMap = baseSchemaViews[node.type.name]
+    const baseMap = baseSchemaViews[node.type.kind]
     if (!baseMap) return undefined
     return baseMap.customResolve && baseMap.customResolve(node, skinName) ||
         baseMap.resolve && baseMap.resolve(node, skinName) ||
