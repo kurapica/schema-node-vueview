@@ -3,18 +3,37 @@
     <el-skeleton animated v-bind="$attrs"></el-skeleton>
   </div>
   <template v-else-if="schemaNode && !invisible">
-    <form-view v-if="inFormType === SchemaNodeFormType.Nest" :node="schemaNode" :in-form="inFormType"
+    <form-view v-if="inFormType === SchemaNodeFormType.Nest" :node="schemaNode" :in-form="inFormType" :label-width="labelWidth" :debug="debug"
       v-bind="$attrs">
       <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
         <component :is="slot" v-bind="slotProps" />
       </template>
     </form-view>
-    <component v-else-if="component" :is="component" :key="schemaNode.id" :node="schemaNode"
-      v-bind="{ ...$attrs, ...(inFormType ? { 'in-form': inFormType } : {}) }">
-      <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
-        <component :is="slot" v-bind="slotProps" />
-      </template>
-    </component>
+    <template v-else-if="component">
+      <el-popover v-if="debug"
+        placement="bottom"
+        width="400"
+        trigger="hover">
+        <el-table :data="nodeProps">
+          <el-table-column width="150" property="name" :label="_L['frontend.view.property']"></el-table-column>
+          <el-table-column width="100" property="value" :label="_L['frontend.view.value']"></el-table-column>
+        </el-table>
+        <template #reference>
+          <component :is="component" :key="schemaNode.id" :node="schemaNode" :label-width="labelWidth" :debug="debug"
+            v-bind="{ ...$attrs, ...(inFormType ? { 'in-form': inFormType } : {}) }">
+            <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
+              <component :is="slot" v-bind="slotProps" />
+            </template>
+          </component>
+        </template>
+      </el-popover>
+      <component v-else :is="component" :key="schemaNode.id" :node="schemaNode" :label-width="labelWidth" :debug="debug"
+        v-bind="{ ...$attrs, ...(inFormType ? { 'in-form': inFormType } : {}) }">
+        <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
+          <component :is="slot" v-bind="slotProps" />
+        </template>
+      </component>
+    </template>
   </template>
 </template>
 
@@ -24,7 +43,7 @@ import formView from './components/formView.vue'
 import { SchemaNodeFormType } from './enum/formType'
 import { getSchemaTypeView, useSingleView } from './schemaView'
 import { _L } from './utility/locale'
-import { DataNode, getNodeType, InVisible, ValueType, Visible } from 'schema-node-core'
+import { DataNode, getNodeType, InVisible, isNull, ValueType, Visible } from 'schema-node-core'
 import { AppNode, Loaded } from 'schema-node-app'
 
 // props
@@ -55,6 +74,15 @@ const props = defineProps<{
 
   /** The text align */
   text?: boolean | 'left' | 'right' | 'center'
+
+  /** The label width */
+  labelWidth?: string
+  
+  /** instant validate the value */
+  instantValid?: boolean
+
+  /** Debug mode */
+  debug?: boolean
 }>()
 
 // slots
@@ -71,6 +99,8 @@ const inFormType = ref<SchemaNodeFormType>(SchemaNodeFormType.None)
 const invisible = ref(false)
 const loaded = ref(true)
 const mask = ref(null)
+const nodeProps = ref<{ name: string, value: any }[]>([])
+
 let observer: any = null
 
 let configWatcher: WatchHandle | null = null
@@ -183,6 +213,20 @@ onMounted(async () => {
       }
     }, true))
   }
+
+  // debug
+  if (props.debug) {
+    subscribes.push(node.subscribeState(() => {
+      const result: { name: string, value: any }[] = []
+      for (const prop of node.filterProperties(v => true)) {
+        const value = prop.getValue();
+        if (typeof(value) !== 'object' && !isNull(value))
+          result.push({ name: prop.name, value: value })
+      }
+      nodeProps.value = result
+    }, true));
+  }
+
   schemaNode.value = node || null
 })
 
