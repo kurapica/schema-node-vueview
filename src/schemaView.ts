@@ -1,4 +1,4 @@
-import { ArrayNode, ArrayType, DataNode, IValueTypeAccess, NodeType, ScalarType, SCHEMA_KIND_BOOL, SCHEMA_KIND_DATE, SCHEMA_KIND_DECIMAL, SCHEMA_KIND_ENUM, SCHEMA_KIND_INT, SCHEMA_KIND_STRING, StructType } from "schema-node-core"
+import { ArrayType, DataNode, IValueTypeAccess, ScalarType, SCHEMA_KIND_ARRAY, SCHEMA_KIND_BOOL, SCHEMA_KIND_DATE, SCHEMA_KIND_DECIMAL, SCHEMA_KIND_ENUM, SCHEMA_KIND_INT, SCHEMA_KIND_STRING, StructType } from "schema-node-core"
 import { SchemaNodeFormType } from "./enum/formType"
 
 export const DEFAULT_SKIN = "default"
@@ -30,7 +30,7 @@ export function useSingleView(node: IValueTypeAccess, skinName: string = DEFAULT
  * gets the form type of the sub node
  */
 export function getSubNodeFormType(node: DataNode, type?: SchemaNodeFormType, skinName: string = DEFAULT_SKIN) {
-    return useSingleView(node.type, skinName) || node instanceof ArrayNode
+    return (useSingleView(node.type, skinName) || node.type.kind == SCHEMA_KIND_ARRAY)
         ? SchemaNodeFormType.Nest
         : type === SchemaNodeFormType.ExpandAll
             ? SchemaNodeFormType.ExpandAll

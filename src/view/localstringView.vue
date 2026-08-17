@@ -9,31 +9,30 @@
       {{ _L(state.combineData) }}
     </span>
     <schema-view v-else style="width: 100%;" :key="keyNode.id" :node="keyNode" :text="text"
-      :disabled="state.disable" v-bind="$attrs">
+      :disabled="state.disable || state.readonly" v-bind="$attrs">
       <template #append>
         <a v-if="state.isCombine" href="javascript:void(0)" @click="state.showCombineKey = false">{{ _L('CONFIRM') }}</a>
-        <a v-else href="javascript:void(0)" @click="state.showTrans = true">{{ _L('system.localetran.tran') }}</a>
+        <a v-else href="javascript:void(0)" @click="state.showTrans = true">{{ _L('frontend.locale.trans') }}</a>
       </template>
     </schema-view>
 
     <template v-if="state.readonly && text">
       <a href="javascript:void(0)" style="position: absolute; right: 1rem" @click="openTrans">{{
-        _L('system.localetran.tran') }}</a>
+        _L('frontend.locale.trans') }}</a>
     </template>
     <template v-else-if="state.isCombine && !state.showCombineKey">
-      <a href="javascript:void(0)" style="position: absolute; right: 1rem" @click="state.showCombineKey = true">{{ _L('EDIT')
-        }}</a>
+      <a href="javascript:void(0)" style="position: absolute; right: 1rem" @click="state.showCombineKey = true">{{ _L('EDIT') }}</a>
     </template>
 
     <!-- show trans -->
-    <el-drawer v-model="state.showTrans" :title="_L('system.localetran.tran') + ` ${keyNode.rawValue || ''}`" direction="rtl"
+    <el-drawer v-model="state.showTrans" :title="_L('frontend.locale.trans') + ` ${keyNode.rawValue || ''}`" direction="rtl"
       size="50%" append-to-body @close="saveTrans">
       <el-container class="main" style="height: 80vh;">
         <el-main>
           <el-form :data="transNode">
             <el-table :data="state.trans" style="width: 100%;">
               <el-table-column :label="_L('system.localetran.lang')" prop="label" min-width="120" />
-              <el-table-column :label="_L('system.localetran.tran')" min-width="300">
+              <el-table-column :label="_L('frontend.locale.trans')" min-width="300">
                 <template #default="scope">
                   <el-input v-if="!state.readonly" v-model="scope.row.tran"></el-input>
                   <span v-else>{{ scope.row.tran }}</span>

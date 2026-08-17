@@ -19,5 +19,8 @@
   "NOTIFY": "Notice",
   "DEL_CONFIRM": "Confirm to delete {0}?",
   "frontend.view.error": "Submit failed. Please check your data.",
-  "system.localetran.tran": "Translate"
+  "system.localetran.tran": "Translate",
+  "frontend.view.property": "Property",
+  "frontend.view.value": "Value",
+  "frontend.locale.trans": "Trans"
 }

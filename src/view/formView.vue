@@ -6,11 +6,13 @@
         <span>
           <span v-if="node?.require" style="color: #f56c6c; font-size: 14px"> * </span>
           {{ _L(node.getPropertyValue<LocaleString>(Display)?.key ? node.getPropertyValue<LocaleString>(Display) : node.name) }}
+          {{ debug ? `(${node.name})` : '' }}
         </span>
       </el-tooltip>
       <span v-else>
         <span v-if="node?.require" style="color: #f56c6c; font-size: 14px"> * </span>
         {{ _L(node.getPropertyValue<LocaleString>(Display)?.key ? node.getPropertyValue<LocaleString>(Display) : node.name) }}
+        {{ debug ? `(${node.name})` : '' }}
       </span>
     </template>
     <slot name="pre" :node="node"></slot>

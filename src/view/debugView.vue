@@ -1,0 +1,60 @@
+<template>
+  <el-popover
+    placement="bottom"
+    width="600"
+    trigger="hover">
+    <el-table :data="nodeProps">
+      <el-table-column width="120" property="name" :label="_L['frontend.view.property']"></el-table-column>
+      <el-table-column width="480" property="value" :label="_L['frontend.view.value']"></el-table-column>
+    </el-table>
+    <template #reference>
+      <div class="schema-node-debug">
+        <slot />
+        <span class="debug-mark">🐞</span>
+      </div>
+    </template>
+  </el-popover>
+</template>
+
+<script setup lang="ts">
+import { DataNode, isEmpty, SCHEMA_KIND_NODE } from 'schema-node-core';
+import { onMounted, onUnmounted, ref, toRaw } from 'vue'
+import { _L } from '../utility/locale';
+
+const props = defineProps({ node: DataNode });
+const nodeProps = ref<{ name: string, value: any }[]>([])
+
+const node = toRaw(props.node)!
+let sub: Function | undefined
+
+onMounted(() => {
+  sub = node.subscribeState(() => {
+    const result: { name: string, value: any }[] = []
+    for (const prop of node.filterProperties(v => true)) {
+      if (prop.forSchema(SCHEMA_KIND_NODE)) continue;
+      const value = prop.getValue();
+      if (!isEmpty(value))
+        result.push({ name: prop.name, value: Array.isArray(value) || typeof value === 'object' ? JSON.stringify(value) : value })
+    }
+    result.sort((a, b) => a.name == 'name' ? -1 : b.name == 'name' ? 1 : a.name.localeCompare(b.name))
+    nodeProps.value = result
+  }, true)
+})
+
+onUnmounted(() => {
+  sub?.()
+})
+</script>
+
+<style lang="scss" scoped>
+.schema-node-debug {
+  position: absolute;
+  align-items: center;
+  right: 8px;
+  top: 4px;
+  z-index: 99;
+}
+.debug-mark {
+  margin-left: 5px;
+}
+</style>

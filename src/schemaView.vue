@@ -10,24 +10,8 @@
       </template>
     </form-view>
     <template v-else-if="component">
-      <el-popover v-if="debug"
-        placement="bottom"
-        width="400"
-        trigger="hover">
-        <el-table :data="nodeProps">
-          <el-table-column width="150" property="name" :label="_L['frontend.view.property']"></el-table-column>
-          <el-table-column width="100" property="value" :label="_L['frontend.view.value']"></el-table-column>
-        </el-table>
-        <template #reference>
-          <component :is="component" :key="schemaNode.id" :node="schemaNode" :label-width="labelWidth" :debug="debug"
-            v-bind="{ ...$attrs, ...(inFormType ? { 'in-form': inFormType } : {}) }">
-            <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
-              <component :is="slot" v-bind="slotProps" />
-            </template>
-          </component>
-        </template>
-      </el-popover>
-      <component v-else :is="component" :key="schemaNode.id" :node="schemaNode" :label-width="labelWidth" :debug="debug"
+      <debug-view v-if="debug" :node="node"/>
+      <component :is="component" :key="schemaNode.id" :node="schemaNode" :label-width="labelWidth" :debug="debug"
         v-bind="{ ...$attrs, ...(inFormType ? { 'in-form': inFormType } : {}) }">
         <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
           <component :is="slot" v-bind="slotProps" />
@@ -39,12 +23,13 @@
 
 <script setup lang="ts" name="SchemaView">
 import { isReactive, isRef, onMounted, onUnmounted, ref, shallowRef, toRaw, useSlots, watch, type WatchHandle } from 'vue'
-import formView from './components/formView.vue'
+import formView from './view/formView.vue'
 import { SchemaNodeFormType } from './enum/formType'
 import { getSchemaTypeView, useSingleView } from './schemaView'
 import { _L } from './utility/locale'
-import { DataNode, getNodeType, InVisible, isNull, ValueType, Visible } from 'schema-node-core'
+import { DataNode, getNodeType, InVisible, isEmpty, SCHEMA_KIND_NODE, ValueType, Visible } from 'schema-node-core'
 import { AppNode, Loaded } from 'schema-node-app'
+import DebugView from './view/debugView.vue'
 
 // props
 const props = defineProps<{
@@ -99,7 +84,6 @@ const inFormType = ref<SchemaNodeFormType>(SchemaNodeFormType.None)
 const invisible = ref(false)
 const loaded = ref(true)
 const mask = ref(null)
-const nodeProps = ref<{ name: string, value: any }[]>([])
 
 let observer: any = null
 
@@ -214,19 +198,6 @@ onMounted(async () => {
     }, true))
   }
 
-  // debug
-  if (props.debug) {
-    subscribes.push(node.subscribeState(() => {
-      const result: { name: string, value: any }[] = []
-      for (const prop of node.filterProperties(v => true)) {
-        const value = prop.getValue();
-        if (typeof(value) !== 'object' && !isNull(value))
-          result.push({ name: prop.name, value: value })
-      }
-      nodeProps.value = result
-    }, true));
-  }
-
   schemaNode.value = node || null
 })
 
@@ -236,6 +207,5 @@ onUnmounted(() => {
   if (configWatcher) configWatcher.stop()
   if (timeOut) clearTimeout(timeOut)
 })
-
 
 </script>

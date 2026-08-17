@@ -1,6 +1,6 @@
 {
-  "PLACEHOLDER_INPUT": "请输入 {0}",
-  "PLACEHOLDER_SELECT": "请选择 {0}",
+  "PLACEHOLDER_INPUT": "请输入{0}",
+  "PLACEHOLDER_SELECT": "请选择{0}",
   "YES": "是",
   "NO": "否",
   "ADD": "添加",
@@ -19,5 +19,7 @@
   "NOTIFY": "提示",
   "DEL_CONFIRM": "确认删除 {0} ?",
   "frontend.view.error": "处理失败，请检查数据后重新提交",
-  "system.localetran.tran": "翻译"
+  "frontend.view.property": "属性",
+  "frontend.view.value": "值",
+  "frontend.locale.trans": "翻译"
 }

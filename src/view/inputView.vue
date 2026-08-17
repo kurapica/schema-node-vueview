@@ -53,6 +53,7 @@ import { EntrySourceConsumer, EntrySourceProvider, AsSuggest, BlackList, Cascade
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw, useSlots } from 'vue';
 import { _L } from '../utility/locale';
 import { subscribeAncestorProperty } from '../utility/toolset';
+import { logger } from '../utility/logger';
 
 // ── Template ──────────────────────────────────────────────────────
 /** Debounce time */
@@ -126,7 +127,7 @@ const state = reactive<{
 /** Data model */
 const data = computed({
   get (): any { return state.data },
-  set(value: any) { state.data = value }
+  set(value: any) { node.value = value }
 })
 
 // ── Entry List ────────────────────────────────────────────────────
@@ -183,9 +184,6 @@ const entrySourceInfo: {
   /** The black list */
   blackList?: string[],
 
-  /** Whether to allow no entry */
-  noEntry?: boolean,
-
   /** The valids */
   valids?: FuncCall[],
 
@@ -208,8 +206,8 @@ const entrySourceInfo: {
 /** convert entry to option */
 function entryToOption(entries: Entry<any>[], isLeaf?: boolean): ICascaderOptionInfo[]
 {
-  return entries.map(entry => {
-    const asLeaf = isLeaf ?? !entry.hasChildren;
+  const options = entries.map(entry => {
+    const asLeaf = isLeaf || !entry.hasChildren;
     return {
       value: entry.value,
       localename: getPropertyValue<LocaleString>(entry, Display),
@@ -220,6 +218,7 @@ function entryToOption(entries: Entry<any>[], isLeaf?: boolean): ICascaderOption
       children: undefined,
     }
   }).filter(o => !(o.leaf && o.disabled));
+  return options;
 }
 
 /** convert call arg to entry source arg */
@@ -299,7 +298,7 @@ async function isValidValue(value: any): Promise<boolean> {
 
 /** get access list from entry source args */
 async function getAccessList(value: any, root?: any): Promise<EntryAccess<any>[]> {
-  if (!entrySourceInfo.source || !entrySourceInfo.args) return []
+  if (!entrySourceInfo.source || !entrySourceInfo.args) return [];
   const result = await entrySourceInfo.source.call(entrySourceInfo.args.map(a => {
       if (a.source) return a.source === node ? value : a.source.getValue();
       if (a.isroot) return root;
@@ -400,21 +399,20 @@ async function getAccessList(value: any, root?: any): Promise<EntryAccess<any>[]
     // remove no children access
     for (let i = 0; i < result.length; i++)
     {
-      if (result[i].entry?.hasChildren) continue;
+      if (!result[i].entry || result[i].entry?.hasChildren) continue;
       result.splice(i);
       break;
     }
   }
-
   return result;
 }
 
 /** get entry access list from entry source args */
 async function getSubEntryList(value: any): Promise<ICascaderOptionInfo[]> {
-  if (entrySourceInfo.noEntry || !entrySourceInfo.source || !entrySourceInfo.args || !entrySourceInfo.rootEntry) return []
-  let accessList = entrySourceInfo.rootEntry.getAccessList(value);
+  if (!entrySourceInfo.source || !entrySourceInfo.args || !entrySourceInfo.rootEntry) return [];
+  let accessList = entrySourceInfo.rootEntry.hasChildren ? entrySourceInfo.rootEntry.getAccessList(value) : undefined;
   let lastAccess = accessList?.[accessList.length - 1];
-  if (lastAccess && !lastAccess.entry?.hasChildren) return []; // leaf node
+  if (lastAccess?.entry && !lastAccess.entry?.hasChildren) return []; // leaf node
 
   // query access list
   if (!lastAccess || !lastAccess.children?.length) {
@@ -435,48 +433,23 @@ const lazyLoad = async (treeNode: { value: any }, resolve: Function, reject: any
 }
 
 /** init options with entry source args */
-async function initOptions(){
-  entrySourceInfo.noEntry = false;
+async function initOptions() {
   entrySourceInfo.validres = new Map();
   state.allRootPassed = true;
 
   if (entrySourceInfo.whiteList?.length)
   {
-    const accesses: EntryAccess<any>[][] = [];
-    const passKeys = new Set<string>();
+    const passKeys = new Set();
     for (const item of entrySourceInfo.whiteList.filter(a => !entrySourceInfo.blackList?.includes(a)))
     {
       const queryAccessList = await getAccessList(item);
-      if (!entrySourceInfo.root || queryAccessList.some(a => a.entry?.value == entrySourceInfo.root))
+      if (queryAccessList && (!entrySourceInfo.root || queryAccessList.some(a => a.entry?.value == entrySourceInfo.root)))
       {
-        accesses.push(queryAccessList);
-        queryAccessList.filter(a => a.entry?.value).forEach(a => passKeys.add(`${a.entry?.value}`));
+        entrySourceInfo.rootEntry!.saveAccessList(queryAccessList);
+        queryAccessList.filter(a => a.entry?.value).forEach(a => passKeys.add(a.entry!.value));
       }
     }
-
-    // no access list, allow none
-    entrySourceInfo.noEntry = accesses.length == 0;
-
-    // cut access list
-    accesses.forEach(a => {
-      for (let i = 0; i < a.length; i++)
-      {
-        const curr = a[i];
-        curr.children = curr.children?.filter(a => passKeys.has(`${a.value}`));
-        if (!curr.children?.length && curr.entry?.hasChildren)
-        {
-          curr.entry.hasChildren = false;
-          a.splice(i);
-          if (i > 0)
-          {
-            const item = a[i-1].children?.find(c => c.value == curr.entry?.value);
-            if (item) item.hasChildren = false;
-          }
-          break;
-        }
-      }
-      entrySourceInfo.rootEntry!.saveAccessList(a);
-    })
+    entrySourceInfo.rootEntry!.useWhiteList(Array.from(passKeys.values()));
   }
   options.value = await getSubEntryList(entrySourceInfo.root);
   state.single = options.value.every(a => a.leaf);
@@ -525,7 +498,7 @@ async function refreshEntrySource() {
   const cascade = node.getPropertyValue<number>(Cascade);
   let owner = node.getPropertySource(EntrySource);
   const entryFunc = entrySource?.func ? await getNodeType(entrySource.func) as FunctionType : undefined;
-  const valids = Array.from(node.type.getProperties(Valid).map(v => v.getValue<FuncCall>()!));
+  const valids = Array.from(node.getProperties(Valid).map(v => v.getValue<FuncCall>()!));
   valids.reverse(); // old first
 
   // access consumer to access access source from ancestors
@@ -585,6 +558,8 @@ async function refreshEntrySource() {
       entrySourceInfo.valids = valids;
       
       entrySourceInfo.args = entrySource!.args.map(a => callArgToEntrySource(owner!, a));
+      
+      logger.verbose('[InputView][EntrySource]', node.access, entrySourceInfo);
 
       // init options
       await initOptions();

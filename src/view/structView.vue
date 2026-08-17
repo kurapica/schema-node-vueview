@@ -28,7 +28,7 @@
 </template>
 
 <script lang="ts" setup>
-import { DataNode, StructNode } from 'schema-node-core'
+import { ArrayNode, DataNode, NS_SYSTEM_ARRAY, StructNode } from 'schema-node-core'
 import { onMounted, ref, toRaw, useSlots } from 'vue'
 import { SchemaNodeFormType } from '../enum/formType'
 import { getSubNodeFormType } from '../schemaView'
