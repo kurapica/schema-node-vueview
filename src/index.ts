@@ -10,7 +10,7 @@ import boolView from './view/boolView.vue'
 import dateView from './view/dateView.vue'
 import flagsEnumView from './view/flagEnumView.vue'
 import inputView from './view/inputView.vue'
-import localstringView from "./view/localstringView.vue"
+import localeStringView from "./view/localeStringView.vue"
 import anyView from './view/objectView.vue'
 import rangeDateView from './view/rangeDateView.vue'
 import structFieldView from './view/structFieldView.vue'
@@ -47,7 +47,7 @@ regSchemaTypeView(NS_SYSTEM_RANGE_YEAR, rangeDateView)
 regSchemaTypeView(NS_SYSTEM_RANGE_MONTH, rangeDateView)
 regSchemaTypeView(NS_SYSTEM_RANGE_DATE, rangeDateView)
 regSchemaTypeView(NS_SYSTEM_RANGE_FULL_DATE, rangeDateView)
-regSchemaTypeView(NS_SYSTEM_LOCALE_STRING, localstringView, undefined, true)
+regSchemaTypeView(NS_SYSTEM_LOCALE_STRING, localeStringView, undefined, true)
 
 schemaView.install = (app: App): void => { 
   app.component("SchemaView", schemaView)

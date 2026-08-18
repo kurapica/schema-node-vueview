@@ -7,6 +7,7 @@
       :skin="skin"
       :label-width="labelWidth"
       :debug="debug"
+      :text="text"
       v-bind="$attrs">
       <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
         <component :is="slot" v-bind="slotProps" />
@@ -19,6 +20,7 @@
       :skin="skin"
       :label-width="labelWidth"
       :debug="debug"
+      :text="text"
       v-bind="$attrs">
       <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
         <component :is="slot" v-bind="slotProps" />
@@ -28,7 +30,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ArrayNode, DataNode, NS_SYSTEM_ARRAY, StructNode } from 'schema-node-core'
+import { DataNode, StructNode } from 'schema-node-core'
 import { onMounted, ref, toRaw, useSlots } from 'vue'
 import { SchemaNodeFormType } from '../enum/formType'
 import { getSubNodeFormType } from '../schemaView'
@@ -45,7 +47,9 @@ const props = defineProps<{
   /** Label width */
   labelWidth?: string,
   /** Debug mode */
-  debug?: boolean
+  debug?: boolean,
+  /** The text mode */
+  text?: any
 }>()
 
 const node = toRaw(props.node) as StructNode

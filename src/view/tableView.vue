@@ -323,8 +323,6 @@ onMounted(async () => {
 
   // row change handler
   subs.push(node.subscribe(() => {
-    state.readonly = node.readonly;
-    state.disabled = !!node.getPropertyValue<boolean>(requireDisableCtor());
     state.allowAdd = !props.noAdd && !state.readonly;
     state.allowDel = !props.noDel && !state.readonly;
     state.addAble = node.addAble;
@@ -344,11 +342,12 @@ onMounted(async () => {
   }, true));
 
   // state handler
-  subs.push(node.subscribeProperty(ReadOnly, () => {
-    state.readonly = node.readonly;
+  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => {
+    state.readonly = node.readonly || values.some((v) => v);
     state.allowAdd = !props.noAdd && !state.readonly;
     state.allowDel = !props.noDel && !state.readonly;
   }, true));
+  subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disabled = node.getPropertyValue<boolean>(Disable) || values.some((v) => v)));
   subs.push(node.subscribeProperty(MaxSize, () => state.addAble = node.addAble));
   subs.push(node.subscribeProperty(MinSize, () => state.delAble = node.delAble));
 
@@ -372,7 +371,7 @@ onUnmounted(() => {
 
 // Disable property ctor accessor (kept indirect to avoid pulling the import when unused)
 import { Disable } from "schema-node-core";
-function requireDisableCtor() { return Disable }
+import { subscribeAncestorProperty } from "../utility/toolset";
 
 // columns
 const refreshColumns = async () => {

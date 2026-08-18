@@ -1,5 +1,5 @@
 <template>
-  <el-form-item :key="node?.id" :prop="node?.access" :error="error" :rules="shouldShowError ? rule : null"
+  <el-form-item :key="node?.id" :prop="node?.access" :error="error" :rules="shouldShowError ? rule : undefined"
     v-bind="noLabel ? { labelWidth: '0px' } : labelWidth ? { labelWidth: labelWidth } : {}">
     <template v-if="!noLabel" #label>
       <el-tooltip v-if="node.getPropertyValue<LocaleString>(Description)?.key" class="item" :content="_L(node.getPropertyValue<LocaleString>(Description))">
@@ -35,6 +35,7 @@ import { useSingleView } from '../schemaView'
 import { SchemaNodeFormType } from '../enum/formType'
 import { _L } from '../utility/locale'
 import { DataNode, Description, Display, LocaleString } from 'schema-node-core'
+import { ElFormItem } from 'element-plus'
 
 // ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{
@@ -75,6 +76,7 @@ const error = ref<string | undefined>(undefined)
 const rule = {
   trigger: 'blur',
   validator: function (rule: any, value: any, callback: Function) {
+    console.log("trigger validator", node.access)
     node.isValid ? callback() : callback(node.error)
     showError.value = true
     error.value = node.error

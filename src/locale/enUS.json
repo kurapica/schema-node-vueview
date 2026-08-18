@@ -22,5 +22,6 @@
   "system.localetran.tran": "Translate",
   "frontend.view.property": "Property",
   "frontend.view.value": "Value",
-  "frontend.locale.trans": "Trans"
+  "frontend.locale.trans": "Trans",
+  "frontend.view.keyword": "Keyword"
 }

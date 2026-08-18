@@ -3,7 +3,7 @@
     :style="{'width': '100%', 'min-width': '120px', 'display': 'inline-block', 'text-align': text === true ? state.defaultAlign : text }">
     {{ _L(state.display) }}
   </span>
-  <el-select v-if="state.enableOptions && state.single"
+  <el-select v-else-if="state.enableOptions && state.single"
     v-model="data"
     style="width: 100%;min-width: 120px;"
     :disabled="state.readonly || state.disable"
@@ -215,7 +215,7 @@ onMounted(async() => {
     state.multiple = Array.isArray(state.data);
     state.defaultAlign = typeof(state.data) === 'number' ? 'right' : 'left';
 
-    if (props.text) state.display = node.displayValue;
+    if (props.text) state.display = node.getDisplayValue(' / ');
   }, true));
 
   // state change
@@ -243,8 +243,9 @@ onMounted(async() => {
   subs.push(subscribeLanguage(() => {
     state.inputPlaceHolder = formatLocaleString("PLACEHOLDER_INPUT", node.getPropertyValue(Display) ?? node.name);
     state.selectPlaceHolder = formatLocaleString("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
-    if (props.text) state.display = node.displayValue;
+    if (props.text) state.display = node.getDisplayValue(' / ');
     refreshOptionsLabel(options.value);
+    options.value = [...options.value];
   }, true));
 
 })

@@ -50,8 +50,8 @@ onUnmounted(() => {
 .schema-node-debug {
   position: absolute;
   align-items: center;
-  right: 8px;
-  top: 4px;
+  right: -16px;
+  top: 0px;
   z-index: 99;
 }
 .debug-mark {

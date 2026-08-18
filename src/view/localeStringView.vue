@@ -5,20 +5,19 @@
       {{ _L(state.display) }}
     </span>
     <span v-else-if="state.isCombine && !state.showCombineKey"
-      :style="{ 'width': '100%', 'display': 'inline-block', 'text-align': text === true ? 'left' : text }">
+      :style="{ 'width': '100%', 'display': 'inline-block', 'text-align': (text === undefined || text === true) ? 'left' : text }">
       {{ _L(state.combineData) }}
     </span>
     <schema-view v-else style="width: 100%;" :key="keyNode.id" :node="keyNode" :text="text"
       :disabled="state.disable || state.readonly" v-bind="$attrs">
       <template #append>
         <a v-if="state.isCombine" href="javascript:void(0)" @click="state.showCombineKey = false">{{ _L('CONFIRM') }}</a>
-        <a v-else href="javascript:void(0)" @click="state.showTrans = true">{{ _L('frontend.locale.trans') }}</a>
+        <a v-else href="javascript:void(0)" @click="openTrans">{{ _L('frontend.locale.trans') }}</a>
       </template>
     </schema-view>
 
     <template v-if="state.readonly && text">
-      <a href="javascript:void(0)" style="position: absolute; right: 1rem" @click="openTrans">{{
-        _L('frontend.locale.trans') }}</a>
+      <a href="javascript:void(0)" style="position: absolute; right: 1rem" @click="openTrans">{{ _L('frontend.locale.trans') }}</a>
     </template>
     <template v-else-if="state.isCombine && !state.showCombineKey">
       <a href="javascript:void(0)" style="position: absolute; right: 1rem" @click="state.showCombineKey = true">{{ _L('EDIT') }}</a>
@@ -59,8 +58,9 @@
 import { ArrayNode, DataNode, Disable, Display, getPropertyValue, isNull, LocaleString, ReadOnly, ScalarNode, StructNode } from 'schema-node-core'
 import { onMounted, onUnmounted, reactive, ref, toRaw } from 'vue'
 import schemaView from '../schemaView.vue'
-import { _L, getLanguageEntries } from '../utility/locale'
+import { _L, getLanguageEntries } from '../utility/locale.js'
 import { subscribeAncestorProperty } from '../utility/toolset.js';
+import { unique } from 'element-plus/es/utils/arrays.js';
 
 // ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{
@@ -183,7 +183,5 @@ onMounted(() => {
   subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true));  
 })
 
-onUnmounted(() => {
-  subs.forEach(sub => sub())
-})
+onUnmounted(() => subs.forEach(sub => sub()))
 </script>
