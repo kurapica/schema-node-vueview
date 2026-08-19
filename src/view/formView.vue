@@ -76,7 +76,6 @@ const error = ref<string | undefined>(undefined)
 const rule = {
   trigger: 'blur',
   validator: function (rule: any, value: any, callback: Function) {
-    console.log("trigger validator", node.access)
     node.isValid ? callback() : callback(node.error)
     showError.value = true
     error.value = node.error
