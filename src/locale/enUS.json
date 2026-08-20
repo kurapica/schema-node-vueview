@@ -23,5 +23,12 @@
   "frontend.view.property": "Property",
   "frontend.view.value": "Value",
   "frontend.locale.trans": "Trans",
-  "frontend.view.keyword": "Keyword"
+  "frontend.view.keyword": "Keyword",
+  "frontend.view.schemanameexists": "Schema name already used",
+  "frontend.view.save": "Save",
+  "frontend.view.cancel": "Cancel",
+  "frontend.view.close": "Close",
+  "frontend.view.moveup": "Move Up",
+  "frontend.view.nextlevel": "Next Level",
+  "frontend.view.savefailed": "Save failed, please check your data and submit again"
 }

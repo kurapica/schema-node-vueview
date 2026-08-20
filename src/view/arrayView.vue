@@ -6,7 +6,7 @@
   <div v-else style="display: flex;">
     <template v-for="i in state.length" :key="i">
       <schema-view v-if="node.at(i - 1)"
-        style="min-width: 120px;"
+        style="min-width: 120px;margin-right: 8px;"
         :node="node.at(i - 1)!"
         :text="text"
         :in-form="getSubNodeFormType(node.at(i - 1)!, inForm, skin)"
@@ -82,7 +82,7 @@ onMounted(() => {
     if (state.simple) state.display = ((node.value as any[]) || []).join()
   }, true))
 
-  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = node.readonly || values.some(v => v), true))
+  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true))
   subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true))
 
   subs.push(node.subscribeProperty(MaxSize, () => state.addAble = node.addAble))

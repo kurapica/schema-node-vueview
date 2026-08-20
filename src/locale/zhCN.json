@@ -22,5 +22,12 @@
   "frontend.view.property": "属性",
   "frontend.view.value": "值",
   "frontend.locale.trans": "翻译",
-  "frontend.view.keyword": "关键词"
+  "frontend.view.keyword": "关键词",
+  "frontend.view.schemanameexists": "Schema名称已被使用",
+  "frontend.view.save": "保存",
+  "frontend.view.cancel": "取消",
+  "frontend.view.close": "关闭",
+  "frontend.view.moveup": "上移",
+  "frontend.view.nextlevel": "下一级",
+  "frontend.view.savefailed": "保存失败，请检查数据后重新提交"
 }

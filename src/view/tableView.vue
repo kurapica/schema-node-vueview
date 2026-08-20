@@ -343,7 +343,7 @@ onMounted(async () => {
 
   // state handler
   subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => {
-    state.readonly = node.readonly || values.some((v) => v);
+    state.readonly = values.some((v) => v);
     state.allowAdd = !props.noAdd && !state.readonly;
     state.allowDel = !props.noDel && !state.readonly;
   }, true));

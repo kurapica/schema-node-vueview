@@ -21,7 +21,7 @@ import { getSubNodeFormType, regBaseSchemaKindView, regSchemaTypeView, useSingle
 
 import { SchemaNodeFormType } from './enum/formType'
 
-export { SchemaNodeFormType, schemaView, structFieldView, getSubNodeFormType }
+export { SchemaNodeFormType, schemaView, structFieldView, tableView, getSubNodeFormType }
 
 // base view
 regBaseSchemaKindView(SCHEMA_KIND_INT, inputView)

@@ -104,6 +104,9 @@ const state = reactive<{
   /** Changed */
   changed?: boolean,
 
+  /** Valid */
+  valid?: boolean,
+
   /** Multiple */
   multiple?: boolean,
 
@@ -210,7 +213,7 @@ const subs: Function[] = []
 onMounted(async() => { 
   // data change
   subs.push(node.subscribe(() => {
-    state.data = node.value;
+    state.data = node.rawValue;
     state.changed = node.changed;
     state.multiple = Array.isArray(state.data);
     state.defaultAlign = typeof(state.data) === 'number' ? 'right' : 'left';
@@ -219,7 +222,7 @@ onMounted(async() => {
   }, true));
 
   // state change
-  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = node.readonly || values.some(v => v), true)); // readonly covers several properties
+  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true));
   subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true));
   subs.push(node.subscribeProperty(Default, (owner, propCtor, newValue, oldValue) => state.default = newValue, true));
   subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue, oldValue) => state.require = newValue as boolean, true));
@@ -247,6 +250,8 @@ onMounted(async() => {
     refreshOptionsLabel(options.value);
     options.value = [...options.value];
   }, true));
+
+  subs.push(node.subscribeViolated(() => state.valid = node.isValid, true));
 
 })
 
