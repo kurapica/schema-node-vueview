@@ -8,6 +8,7 @@ import schemaView from './schemaView.vue'
 import arrayView from './view/arrayView.vue'
 import boolView from './view/boolView.vue'
 import dateView from './view/dateView.vue'
+import yearView from './view/yearView.vue'
 import flagsEnumView from './view/flagEnumView.vue'
 import inputView from './view/inputView.vue'
 import localeStringView from "./view/localeStringView.vue"
@@ -42,7 +43,7 @@ regBaseSchemaKindView(SCHEMA_KIND_BOOL, boolView)
 regBaseSchemaKindView(SCHEMA_KIND_DATE, dateView)
 
 // type view
-regSchemaTypeView(NS_SYSTEM_YEAR, dateView)
+regSchemaTypeView(NS_SYSTEM_YEAR, yearView)
 regSchemaTypeView(NS_SYSTEM_RANGE_YEAR, rangeDateView)
 regSchemaTypeView(NS_SYSTEM_RANGE_MONTH, rangeDateView)
 regSchemaTypeView(NS_SYSTEM_RANGE_DATE, rangeDateView)

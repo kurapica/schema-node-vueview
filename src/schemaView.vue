@@ -27,7 +27,7 @@ import formView from './view/formView.vue'
 import { SchemaNodeFormType } from './enum/formType'
 import { getSchemaTypeView, useSingleView } from './schemaView'
 import { _L } from './utility/locale'
-import { DataNode, getNodeType, InVisible, isEmpty, SCHEMA_KIND_NODE, ValueType, Visible } from 'schema-node-core'
+import { DataNode, getNodeType, InVisible, SCHEMA_KIND_STRUCT_FIELD, ValueType, Visible } from 'schema-node-core'
 import { AppNode, Loaded } from 'schema-node-app'
 import DebugView from './view/debugView.vue'
 
@@ -114,11 +114,11 @@ onMounted(async () => {
           configWatcher = watch(props.props, () => {
             const rawConfig = toRaw(props.props)
             if (!rawConfig) return
-            node?.setPropertyValues(rawConfig)
+            node?.setPropertyValues(rawConfig, undefined, SCHEMA_KIND_STRUCT_FIELD)
           })
         }
         else
-          node.setPropertyValues(props.props)
+          node.setPropertyValues(toRaw(props.props), undefined, SCHEMA_KIND_STRUCT_FIELD)
       }
     }
   }

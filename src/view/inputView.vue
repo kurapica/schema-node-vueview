@@ -22,6 +22,7 @@
   </el-select>
   <el-cascader v-else-if="state.enableOptions"
     v-model="data"
+    :key="state.version"
     style="width: 100%;min-width: 120px"
     :options="options"
     :props="{
@@ -49,15 +50,12 @@
 </template>
 
 <script lang="ts" setup>
-import { AsSuggest, DataNode, Default, Disable, Display, Entry, getPropertyValue, isEmpty, isNull, LeafOnly, LocaleString, ReadOnly, Require, formatLocaleString, subscribeLanguage, ScalarNode, EntrySourceVersion, EntryAccess } from 'schema-node-core';
+import { AsSuggest, DataNode, Default, Disable, Display, Entry, getPropertyValue, isNull, LeafOnly, LocaleString, ReadOnly, Require, formatLocaleString, subscribeLanguage, ScalarNode, EntrySourceVersion, EntryAccess, NS_SYSTEM_SCHEMA_NODE_VALUE_KIND, NS_SYSTEM_BOOL, useQueueQuery } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw, useSlots } from 'vue';
 import { _L } from '../utility/locale';
 import { subscribeAncestorProperty } from '../utility/toolset';
 
 // ── Template ──────────────────────────────────────────────────────
-/** Debounce time */
-const DEBOUNCE_TIME = 50;
-
 const props = defineProps<{
   /** Input schema node */
   node: DataNode,
@@ -124,7 +122,9 @@ const state = reactive<{
 
   /** Whether to allow all root passed */
   enableNoneLeafNode?: boolean,
-}>({})
+
+  version: number
+}>({ version: 0 })
 
 /** Data model */
 const data = computed({
@@ -205,6 +205,24 @@ function refreshOptionsLabel(options: ICascaderOptionInfo[])
   })
 }
 
+function inOptions(options: ICascaderOptionInfo[], value: any): boolean
+{
+  return options.some(item => item.value == value || (item.children?.length && inOptions(item.children, value) || false));
+}
+
+async function rebuildOptions(incrVer = false)
+{
+  const values: ICascaderOptionInfo[] = [];
+  const value = node.value;
+  if (value) accessed.add(value);
+  for(const item of accessed)
+    saveEntryAccess(await node.getEntryAccessList(item), values);
+  options.value = values.length ? values : entryToOptions(await node.getSubEntryList());
+  if (incrVer) state.version++;
+}
+
+const queueRebuildOptions = useQueueQuery(rebuildOptions);
+
 // ── Life Cycle ────────────────────────────────────────────────────
 /** Subscription */
 const subs: Function[] = []
@@ -212,13 +230,19 @@ const subs: Function[] = []
 // mounted
 onMounted(async() => { 
   // data change
-  subs.push(node.subscribe(() => {
+  subs.push(node.subscribe(async () => {
     state.data = node.rawValue;
     state.changed = node.changed;
     state.multiple = Array.isArray(state.data);
     state.defaultAlign = typeof(state.data) === 'number' ? 'right' : 'left';
 
     if (props.text) state.display = node.getDisplayValue(' / ');
+
+    if (state.enableOptions && !isNull(state.data) && !inOptions(options.value, state.data))
+    {
+      accessed.add(state.data);
+      await queueRebuildOptions(true);
+    }
   }, true));
 
   // state change
@@ -234,12 +258,12 @@ onMounted(async() => {
     state.enableNoneLeafNode = node.isNonLeafNodeSelectable;
 
     // rebuild options
-    const values: ICascaderOptionInfo[] = [];
-    const value = node.value;
-    if (value) accessed.add(value);
-    for(const item of accessed)
-      saveEntryAccess(await node.getEntryAccessList(item), values);
-    options.value = values.length ? values : await entryToOptions(await node.getSubEntryList());
+    if (!state.enableOptions) {
+      options.value = [];
+      accessed.clear();
+      return;
+    }
+    await queueRebuildOptions();
   }, true));
 
   // display
