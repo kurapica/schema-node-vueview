@@ -60,6 +60,7 @@ const state = reactive<{
 const data = computed({
   get(): any { return state.data },
   set(value: any) { 
+    console.log("set", node.access, value)
     if (value) {
       node.value = value
     }

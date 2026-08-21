@@ -382,7 +382,7 @@ const refreshColumns = async () => {
 
   if (elementType) {
     for (const f of elementType.getFields()) {
-      if (f.displayOnly || f.getPropertyValue<boolean>(InVisible)) continue;
+      if (f.getPropertyValue<boolean>(InVisible)) continue;
       const columnInfo = genColumn(f, false);
       if (!columnInfo) continue;
       columnInfos.push(columnInfo);

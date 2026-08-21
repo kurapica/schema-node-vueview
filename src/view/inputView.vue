@@ -3,7 +3,7 @@
     :style="{'width': '100%', 'min-width': '120px', 'display': 'inline-block', 'text-align': text === true ? state.defaultAlign : text }">
     {{ _L(state.display) }}
   </span>
-  <el-select v-else-if="state.enableOptions && state.single"
+  <el-select v-else-if="state.enableOptions && state.single && !state.multiple"
     v-model="data"
     style="width: 100%;min-width: 120px;"
     :disabled="state.readonly || state.disable"
@@ -50,7 +50,7 @@
 </template>
 
 <script lang="ts" setup>
-import { AsSuggest, DataNode, Default, Disable, Display, Entry, getPropertyValue, isNull, LeafOnly, LocaleString, ReadOnly, Require, formatLocaleString, subscribeLanguage, ScalarNode, EntrySourceVersion, EntryAccess, NS_SYSTEM_SCHEMA_NODE_VALUE_KIND, NS_SYSTEM_BOOL, useQueueQuery } from 'schema-node-core';
+import { AsSuggest, DataNode, Default, Disable, Display, Entry, getPropertyValue, isNull, LeafOnly, LocaleString, ReadOnly, Require, formatLocaleString, subscribeLanguage, ScalarNode, EntrySourceVersion, EntryAccess, NS_SYSTEM_SCHEMA_NODE_VALUE_KIND, NS_SYSTEM_BOOL, useQueueQuery, SCHEMA_KIND_ARRAY } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw, useSlots } from 'vue';
 import { _L } from '../utility/locale';
 import { subscribeAncestorProperty } from '../utility/toolset';
@@ -233,7 +233,7 @@ onMounted(async() => {
   subs.push(node.subscribe(async () => {
     state.data = node.rawValue;
     state.changed = node.changed;
-    state.multiple = Array.isArray(state.data);
+    state.multiple = node.type.kind === SCHEMA_KIND_ARRAY;
     state.defaultAlign = typeof(state.data) === 'number' ? 'right' : 'left';
 
     if (props.text) state.display = node.getDisplayValue(' / ');
