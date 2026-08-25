@@ -3,7 +3,9 @@
     :key="fldnode.id"
     :node="fldnode"
     :in-form="getSubNodeFormType(fldnode, inForm, skin)"
-    :skin="skin">
+    :skin="skin"
+    :readonly="readonly"
+    :text="text">
     <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
       <component :is="slot" v-bind="slotProps" />
     </template>
@@ -28,7 +30,13 @@ const props = defineProps<{
   inForm?: SchemaNodeFormType
 
   /** Skin */
-  skin?: string
+  skin?: string,
+
+  /** Text */
+  text?: any,
+
+  /** Whether to show readonly */
+  readonly?: boolean
 }>()
 
 const node = toRaw(props.node) as StructNode

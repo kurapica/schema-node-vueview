@@ -56,17 +56,19 @@
 
 <script lang="ts" setup>
 import { ArrayNode, DataNode, Disable, Display, getPropertyValue, isNull, LocaleString, ReadOnly, ScalarNode, StructNode } from 'schema-node-core'
-import { onMounted, onUnmounted, reactive, ref, toRaw } from 'vue'
+import { onMounted, onUnmounted, reactive, toRaw } from 'vue'
 import schemaView from '../schemaView.vue'
 import { _L, getLanguageEntries } from '../utility/locale.js'
 import { subscribeAncestorProperty } from '../utility/toolset.js';
-import { unique } from 'element-plus/es/utils/arrays.js';
 
 // ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{
   /** Struct Schema node (locale string struct with key + trans fields) */
   node: DataNode,
-  
+
+  /** The readonly mode */
+  readonly?: boolean,
+
   /** Display readon only value as plain text */
   text?: any
 }>();
@@ -179,6 +181,10 @@ onMounted(() => {
   }, true))
 
   // state change
+  if (props.readonly) {
+    state.readonly = true;
+    return;
+  }
   subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true));
   subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true));  
 })

@@ -14,9 +14,9 @@
     :end-placeholder="_L(state.stopFieldDisplay)"
   ></el-date-picker>
   <div v-else style="display: flex; justify-content: space-between;">
-    <schema-view :node="startField!"></schema-view>
+    <schema-view :node="startField!" :readonly="readonly" :text="text"></schema-view>
     ~
-    <schema-view :node="stopField!"></schema-view>
+    <schema-view :node="stopField!" :readonly="readonly" :text="text"></schema-view>
   </div>
 </template>
 
@@ -39,6 +39,9 @@ const props = defineProps<{
   /** The range date node */
   node: DataNode,
   
+  /** The readonly mode */
+  readonly?: boolean,
+    
   /** Display readon only value as plain text */
   text?: boolean | 'left' | 'right' | 'center'
 }>()
@@ -134,9 +137,15 @@ onMounted(() => {
     state.display = display()
     state.changed = node.changed
   }, true));
-
-  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true));
-  subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true));
+  
+  // state change
+  if (props.readonly) {
+    state.readonly = true;
+  }
+  else {
+    subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true));
+    subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true));
+  }
   subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue) => state.require = newValue as boolean, true));
   
   // language

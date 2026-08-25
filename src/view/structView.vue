@@ -5,9 +5,9 @@
       :field="field.name"
       :in-form="inForm"
       :skin="skin"
-      :label-width="labelWidth"
       :debug="debug"
       :text="text"
+      :readonly="readonly"
       v-bind="$attrs">
       <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
         <component :is="slot" v-bind="slotProps" />
@@ -18,9 +18,9 @@
       :node="field.node as DataNode"
       :in-form="getSubNodeFormType(field.node as DataNode, inForm, skin)"
       :skin="skin"
-      :label-width="labelWidth"
       :debug="debug"
       :text="text"
+      :readonly="readonly"
       v-bind="$attrs">
       <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
         <component :is="slot" v-bind="slotProps" />
@@ -40,12 +40,12 @@ import schemaView from '../schemaView.vue'
 const props = defineProps<{
   /** Struct Schema node */
   node: DataNode,
+  /** Whether to show readonly */
+  readonly?: boolean,
   /** In-form settings */
   inForm?: SchemaNodeFormType
   /** Skin */
   skin?: string,
-  /** Label width */
-  labelWidth?: string,
   /** Debug mode */
   debug?: boolean,
   /** The text mode */

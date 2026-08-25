@@ -18,6 +18,7 @@
   "SAVE": "Save",
   "MOVETOP": "Move to Top",
   "NOTIFY": "Notice",
+  "VIEW": "View",
   "DEL_CONFIRM": "Confirm to delete {0}?",
   "frontend.view.error": "Submit failed. Please check your data.",
   "system.localetran.tran": "Translate",

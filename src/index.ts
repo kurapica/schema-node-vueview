@@ -17,43 +17,43 @@ import rangeDateView from './view/rangeDateView.vue'
 import structFieldView from './view/structFieldView.vue'
 import structView from './view/structView.vue'
 import tableView from './view/tableView.vue'
+import pageTableView from './view/pageTableView.vue'
 import { type App } from 'vue'
 import { getSubNodeFormType, regBaseSchemaKindView, regSchemaTypeView, useSingleView } from './schemaView'
 
 import { SchemaNodeFormType } from './enum/formType'
+import { PageNode } from 'schema-node-app'
 
 export { SchemaNodeFormType, schemaView, structFieldView, tableView, getSubNodeFormType }
 
 // base view
-regBaseSchemaKindView(SCHEMA_KIND_INT, inputView)
-regBaseSchemaKindView(SCHEMA_KIND_STRING, inputView)
-regBaseSchemaKindView(SCHEMA_KIND_DECIMAL, inputView)
+regBaseSchemaKindView(SCHEMA_KIND_INT, inputView);
+regBaseSchemaKindView(SCHEMA_KIND_STRING, inputView);
+regBaseSchemaKindView(SCHEMA_KIND_DECIMAL, inputView);
 regBaseSchemaKindView(SCHEMA_KIND_ENUM, inputView, (node: DataNode, skin?: string) => {
-  if ((node.type as EnumType).type === EnumValueType.Flags) return flagsEnumView
+  if ((node.type as EnumType).type === EnumValueType.Flags) return flagsEnumView;
   return undefined;
 })
-regBaseSchemaKindView(SCHEMA_KIND_STRUCT, structView)
+regBaseSchemaKindView(SCHEMA_KIND_STRUCT, structView);
 regBaseSchemaKindView(SCHEMA_KIND_ARRAY, arrayView, (node: DataNode, skin?: string) => {
   if (node instanceof EnumArrayNode) return inputView;
-  if ((node.type as ArrayType).element instanceof StructType && !useSingleView((node.type as ArrayType).element!, skin)) return tableView
+  if (node instanceof PageNode) return pageTableView;
+  if ((node.type as ArrayType).element instanceof StructType && !useSingleView((node.type as ArrayType).element!, skin)) return tableView;
   return undefined;
 })
-regBaseSchemaKindView(SCHEMA_KIND_OBJECT, anyView)
-regBaseSchemaKindView(SCHEMA_KIND_BOOL, boolView)
-regBaseSchemaKindView(SCHEMA_KIND_DATE, dateView)
+regBaseSchemaKindView(SCHEMA_KIND_OBJECT, anyView);
+regBaseSchemaKindView(SCHEMA_KIND_BOOL, boolView);
+regBaseSchemaKindView(SCHEMA_KIND_DATE, dateView);
 
 // type view
-regSchemaTypeView(NS_SYSTEM_YEAR, yearView)
-regSchemaTypeView(NS_SYSTEM_RANGE_YEAR, rangeDateView)
-regSchemaTypeView(NS_SYSTEM_RANGE_MONTH, rangeDateView)
-regSchemaTypeView(NS_SYSTEM_RANGE_DATE, rangeDateView)
-regSchemaTypeView(NS_SYSTEM_RANGE_FULL_DATE, rangeDateView)
-regSchemaTypeView(NS_SYSTEM_LOCALE_STRING, localeStringView, undefined, true)
+regSchemaTypeView(NS_SYSTEM_YEAR, yearView);
+regSchemaTypeView(NS_SYSTEM_RANGE_YEAR, rangeDateView);
+regSchemaTypeView(NS_SYSTEM_RANGE_MONTH, rangeDateView);
+regSchemaTypeView(NS_SYSTEM_RANGE_DATE, rangeDateView);
+regSchemaTypeView(NS_SYSTEM_RANGE_FULL_DATE, rangeDateView);
+regSchemaTypeView(NS_SYSTEM_LOCALE_STRING, localeStringView, undefined, true);
 
 schemaView.install = (app: App): void => { 
-  app.component("SchemaView", schemaView)
-  app.component("StructFieldView", structFieldView)
+  app.component("SchemaView", schemaView);
+  app.component("StructFieldView", structFieldView);
 }
-
-// default
-// export default schemaView

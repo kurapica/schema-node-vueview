@@ -11,6 +11,7 @@
         :text="text"
         :in-form="getSubNodeFormType(node.at(i - 1)!, inForm, skin)"
         no-label
+        :readonly="readonly"
         v-bind="$attrs"
       >
         <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
@@ -35,7 +36,8 @@ import { subscribeAncestorProperty } from '../utility/toolset.js'
 
 // ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{
-  node: ArrayNode
+  node: ArrayNode,
+  readonly?: boolean,
   text?: boolean | 'left' | 'right' | 'center',
   inForm?: SchemaNodeFormType,
   skin?: string
@@ -82,8 +84,12 @@ onMounted(() => {
     if (state.simple) state.display = ((node.value as any[]) || []).join()
   }, true))
 
-  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true))
-  subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true))
+  if (props.readonly) {
+    state.readonly = true
+  } else {
+    subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true))
+    subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true))
+  }
 
   subs.push(node.subscribeProperty(MaxSize, () => state.addAble = node.addAble))
   subs.push(node.subscribeProperty(MinSize, () => state.delAble = node.delAble))

@@ -23,7 +23,10 @@ import { subscribeAncestorProperty } from '../utility/toolset';
 const props = defineProps<{ 
   /** Input schema node */
   node: DataNode, 
-
+  
+  /** The readonly mode */
+  readonly?: boolean,
+  
   /** Display readon only value as plain text */
   text?: boolean | 'left' | 'right' | 'center'
 }>()
@@ -124,9 +127,15 @@ onMounted(async () => {
     if (props.text) state.display = display()
     state.changed = node.changed
   }, true))
-
-  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true))
-  subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true))
+  
+  // state change
+  if (props.readonly) {
+    state.readonly = true;
+  }
+  else {
+    subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true))
+    subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true))
+  }
   subs.push(node.subscribeProperty(Default, (owner, propCtor, newValue) => state.default = newValue, true))
   subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue) => state.require = newValue as boolean, true))
 

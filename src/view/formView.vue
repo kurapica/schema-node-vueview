@@ -1,6 +1,6 @@
 <template>
   <el-form-item :key="node?.id" :prop="node?.access" :error="error" :rules="shouldShowError ? rule : undefined"
-    v-bind="noLabel ? { labelWidth: '0px' } : labelWidth ? { labelWidth: labelWidth } : {}">
+    v-bind="noLabel ? { labelWidth: '0px' } : {}">
     <template v-if="!noLabel" #label>
       <el-tooltip v-if="node.getPropertyValue<LocaleString>(Description)?.key" class="item" :content="_L(node.getPropertyValue<LocaleString>(Description))">
         <span>
@@ -17,11 +17,11 @@
     </template>
     <slot name="pre" :node="node"></slot>
     <slot :node="node">
-      <schema-view v-if="useSingleView(node.type, skin)" :node="node" :skin="skin" :debug="debug" v-bind="$attrs">
+      <schema-view v-if="useSingleView(node.type, skin)" :node="node" :skin="skin" :debug="debug" v-bind="$attrs" :readonly="readonly">
       </schema-view>
       <schema-view v-else :node="node" :instantValid="instantValid" :debug="debug"
         :in-form="inForm === SchemaNodeFormType.ExpandAll ? SchemaNodeFormType.ExpandAll : SchemaNodeFormType.Expand"
-        :skin="skin" v-bind="$attrs" :label-width="labelWidth">
+        :skin="skin" v-bind="$attrs" :readonly="readonly">
       </schema-view>
     </slot>
     <slot name="tail" :node="node"><span></span></slot>
@@ -50,12 +50,12 @@ const props = defineProps<{
 
   /** The skin */
   skin?: string
+  
+  /** The readonly mode */
+  readonly?: boolean
 
   /** instant validate the value */
   instantValid?: boolean
-
-  /** The label width */
-  labelWidth?: string
 
   /** Debug mode */
   debug?: boolean

@@ -3,7 +3,7 @@
     <el-skeleton animated v-bind="$attrs"></el-skeleton>
   </div>
   <template v-else-if="schemaNode && !invisible">
-    <form-view v-if="inFormType === SchemaNodeFormType.Nest" :node="schemaNode" :in-form="inFormType" :label-width="labelWidth" :debug="debug"  :text="text"
+    <form-view v-if="inFormType === SchemaNodeFormType.Nest" :node="schemaNode" :in-form="inFormType" :debug="debug"  :text="text" :readonly="readonly"
       v-bind="$attrs">
       <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
         <component :is="slot" v-bind="slotProps" />
@@ -11,7 +11,7 @@
     </form-view>
     <template v-else-if="component">
       <debug-view v-if="debug" :node="node"/>
-      <component :is="component" :key="schemaNode.id" :node="schemaNode" :label-width="labelWidth" :debug="debug" :text="text"
+      <component :is="component" :key="schemaNode.id" :node="schemaNode" :debug="debug" :text="text" :readonly="readonly"
         v-bind="{ ...$attrs, ...(inFormType ? { 'in-form': inFormType } : {}) }">
         <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
           <component :is="slot" v-bind="slotProps" />
@@ -54,14 +54,14 @@ const props = defineProps<{
   /** The form item display style */
   inForm?: boolean | "nest" | "expand" | "expandall" | ""
 
-  /** The auto load container */
-  rootDiv?: string | HTMLElement
-
   /** The text align */
   text?: boolean | 'left' | 'right' | 'center'
 
-  /** The label width */
-  labelWidth?: string
+  /** The readonly mode */
+  readonly?: boolean
+
+  /** The auto load container */
+  rootDiv?: string | HTMLElement
   
   /** instant validate the value */
   instantValid?: boolean

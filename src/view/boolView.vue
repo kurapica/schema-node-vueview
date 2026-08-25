@@ -1,8 +1,4 @@
 <template>
-  <span v-if="state.readonly && text"
-    :style="{ 'width': '100%', 'min-width': '120px', 'display': 'inline-block', 'text-align': text === true ? state.defaultAlign : text }">
-    {{ state.data ? _L('YES') : _L('NO') }}
-  </span>
   <section style="width: 100%;min-width: 120px;">
     <el-switch
       v-model="data"
@@ -23,12 +19,12 @@ import { subscribeAncestorProperty } from '../utility/toolset';
 const props = defineProps<{
   /** Scalar schema node */
   node: DataNode,
-
+  
+  /** The readonly mode */
+  readonly?: boolean,
+  
   /** Display readon only value as plain text */
   text?: boolean | 'left' | 'right' | 'center',
-
-  /** Label width */
-  labelWidth?: string
 
   debug?: boolean
 }>()
@@ -60,7 +56,6 @@ const state = reactive<{
 const data = computed({
   get(): any { return state.data },
   set(value: any) { 
-    console.log("set", node.access, value)
     if (value) {
       node.value = value
     }
@@ -81,9 +76,15 @@ onMounted(() => {
   subs.push(node.subscribe(() => {
     state.data = node.value ?? false
   }, true))
-
-  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true))
-  subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true))
+  
+  // state change
+  if (props.readonly) {
+    state.readonly = true;
+  }
+  else {
+    subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true))
+    subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true))
+  }
   subs.push(node.subscribeProperty(Default, (owner, propCtor, newValue) => state.default = newValue as boolean, true))
   subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue) => state.require = newValue as boolean, true))
 })

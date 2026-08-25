@@ -12,6 +12,7 @@
         <span v-else>{{ item.part }}</span>
       </template>
       <span> ({{ node.type.name }})</span>
+      <span> - {{ node.id }}</span>
     </p>
     <el-divider></el-divider>
     <el-table :data="nodeProps">

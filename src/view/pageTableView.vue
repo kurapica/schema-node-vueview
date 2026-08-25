@@ -1,6 +1,17 @@
 <template>
-  <section style="width: 100%;">
-    <el-table :data="rows" :span-method="spanMethod" style="width: 100%" v-bind="$attrs" :class="sortable ? 'swap-table' : ''" border>
+  <section style="width: 100%">
+    <table-filter v-if="filters.length" ref="filterRef" :filters="filters" :columns-per-row="columnsPerRow"
+      :auto-filter="autoFilter" @expand="handleExpand" @reset="onResetFilter" @query="onQueryFilter" />
+    <div v-if="(!state.readonly && state.allowAdd && addPosition === 'header') || $slots.action"
+      :style="{ display: 'flex', marginBottom: '16px' }">
+      <template v-if="!state.readonly && state.allowAdd">
+        <el-button type="primary" v-if="addPosition === 'header'" @click="addRow(node)"
+          :style="{ marginRight: '12px' }">{{ _L('ADD') }}</el-button>
+      </template>
+      <slot name="action" />
+    </div>
+    <el-table ref="tableRef" :data="rows" :span-method="spanMethod" :row-style="getRowStyle" style="width: 100%"
+      v-bind="$attrs" border>
       <template v-for="col in state.columns.filter((v) => !v.invisible)" :key="col.prop">
         <!-- with sub cols -->
         <el-table-column v-if="col.subCols && col.subCols.length && !singleHeader" :prop="col.prop" :label="col.label"
@@ -19,8 +30,8 @@
                   v-if="scope.row.node.getAccessValue(col.prop).at(scope.row.index) instanceof StructNode"
                   :key="scope.row.node.getAccessValue(col.prop).at(scope.row.index)!.id"
                   :node="scope.row.node.getAccessValue(col.prop).at(scope.row.index)"
-                  :field="scol.prop" :in-form="inForm" :text="text" :skin="skin" :debug="debug"
-                  :readonly="readonly || state.viewEdit" no-label v-bind="$attrs"></struct-field-view>
+                  :field="scol.prop" :in-form="inForm" :text="plainText" :skin="skin"
+                  :disabled="state.readonly || state.disabled" no-label v-bind="$attrs"></struct-field-view>
                 <template v-else>
                   <span></span>
                 </template>
@@ -31,8 +42,7 @@
                 v-overflow-title="getFieldTipKey(scope.row.node.getAccessValue(col.prop), scol.prop)">
                 <struct-field-view :key="scope.row.node.getAccessValue(col.prop).getAccessValue(scol.prop)?.id"
                   :node="scope.row.node.getAccessValue(col.prop)" :field="scol.prop" :in-form="inForm"
-                  :text="text" :skin="skin" :debug="debug"
-                  :readonly="readonly || state.viewEdit" no-label
+                  :text="plainText" :skin="skin" :disabled="state.readonly || state.disabled" no-label
                   v-bind="$attrs"></struct-field-view>
                 <el-tooltip
                   :content="localStringTipMap[getFieldTipKey(scope.row.node.getAccessValue(col.prop), scol.prop)] || ''"
@@ -45,8 +55,7 @@
                 v-else-if="!col.isArray && scope.row.index === 0 && (scope.row.node.getAccessValue(col.prop) instanceof StructNode)"
                 :key="scope.row.node.getAccessValue(col.prop).getAccessValue(scol.prop)?.id"
                 :node="scope.row.node.getAccessValue(col.prop)" :field="scol.prop" :in-form="inForm"
-                :text="text" :skin="skin" :debug="debug"
-                :readonly="readonly || state.viewEdit" no-label
+                :text="plainText" :skin="skin" :disabled="state.readonly || state.disabled" no-label
                 v-bind="$attrs"></struct-field-view>
               <template v-else>
                 <span></span>
@@ -81,8 +90,8 @@
                 class="localstring-readonly-tooltip"
                 v-overflow-title="getFieldTipKey((scope.row.node as StructNode), col.prop)">
                 <struct-field-view :key="scope.row.node.getAccessValue(col.prop)!.id"
-                  :node="scope.row.node" :field="col.prop" :in-form="inForm" :text="text" :skin="skin" :debug="debug"
-                  :readonly="readonly || state.viewEdit" no-label v-bind="$attrs"></struct-field-view>
+                  :node="scope.row.node" :field="col.prop" :in-form="inForm" :text="plainText" :skin="skin"
+                  :disabled="state.readonly || state.disabled" no-label v-bind="$attrs"></struct-field-view>
                 <el-tooltip
                   :content="localStringTipMap[getFieldTipKey((scope.row.node as StructNode), col.prop)] || ''"
                   :disabled="!localStringOverflowMap[getFieldTipKey((scope.row.node as StructNode), col.prop)]"
@@ -91,47 +100,38 @@
                 </el-tooltip>
               </div>
               <struct-field-view v-else :key="scope.row.node.getAccessValue(col.prop)!.id"
-                :node="scope.row.node" :field="col.prop" :in-form="inForm" :text="text" :skin="skin" :debug="debug"
-                :readonly="readonly || state.viewEdit" no-label v-bind="$attrs"></struct-field-view>
+                :node="scope.row.node" :field="col.prop" :in-form="inForm" :text="plainText" :skin="skin"
+                :disabled="state.readonly || state.disabled" no-label v-bind="$attrs"></struct-field-view>
             </template>
           </template>
         </el-table-column>
       </template>
 
       <!-- Oper -->
-      <el-table-column v-if="$slots.operator || (!state.readonly && !state.disabled && (state.allowAdd || state.allowDel)) || state.viewEdit"
+      <el-table-column v-if="$slots.operator || (!state.readonly && !state.disabled && (state.allowAdd || state.allowDel))"
         :label="_L('OPER')" align="center" fixed="right" :width="operWidth || 100">
         <template #header>
-          <a href="javascript:void(0)" v-if="state.addAble && !state.readonly && state.allowAdd"
+          <a href="javascript:void(0)"
+            v-if="state.addAble && !state.readonly && state.allowAdd && addPosition !== 'header'"
             @click="addRow(node)" style="text-decoration: underline; color: lightseagreen">{{ _L('ADD') }}</a>
           <p v-else>{{ _L('OPER') }}</p>
         </template>
-        <template #default="scope" v-if="$slots.operator || state.allowDel || state.viewEdit">
+        <template #default="scope" v-if="$slots.operator || state.allowDel">
           <slot name="operator" :row="scope.row.node" :index="scope.row.eleIdx">
-            <template v-if="state.viewEdit">
-              <a href="javascript:void(0)" @click="openRowEditor(scope.row.node)">{{ state.delAble && !state.readonly ? _L('EDIT') : _L('VIEW') }}</a>
-            </template>
-            <a v-if="state.delAble && !state.readonly" href="javascript:void(0)" @click="delRow(node, scope.row.eleIdx)">{{ _L('DEL') }}</a>
+            <a v-if="state.delAble && !state.deleted[scope.row.eleIdx]" href="javascript:void(0)"
+              @click="delRow(node, scope.row.eleIdx)">{{ _L('DEL') }}</a>
+            <a v-else-if="!noDel && state.deleted[scope.row.eleIdx]" href="javascript:void(0)"
+              style="color: grey" @click="resumeRow(node, scope.row.eleIdx)">{{ _L('RESUME') }}</a>
           </slot>
         </template>
       </el-table-column>
     </el-table>
 
-    <!-- The row editor -->
-    <el-drawer v-model="showRowEditor" direction="rtl" size="80%" append-to-body
-      @closed="closeRowEditor">
-      <el-container style="height: 100%;">
-        <el-main>
-          <schema-view v-if="editingNode" :key="editingNode.id" :node="editingNode as StructNode" label-width="300px" :debug="debug"
-            in-form="expandall" text="left">
-          </schema-view>
-        </el-main>
-        <el-footer>
-          <br />
-          <el-button @click="closeRowEditor">{{ _L['frontend.view.close'] }}</el-button>
-        </el-footer>
-      </el-container>
-    </el-drawer>
+    <!-- page -->
+    <el-pagination v-if="state.pageCount && state.total" :current-page="(state.page || 0) + 1"
+      :page-size="state.pageCount" :total="state.total" layout="total, prev, pager, next"
+      :style="{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }" @current-change="handlePage">
+    </el-pagination>
   </section>
 </template>
 
@@ -139,30 +139,31 @@
 import {
   ArrayNode, ArrayType, DataNode, Display, InVisible, NS_SYSTEM_LOCALE_STRING,
   ReadOnly, StructNode, StructType, type StructFieldType, Unit, clearDebounce,
-  debounce, LocaleString, subscribeLanguage, MaxSize, MinSize, Disable
+  debounce, LocaleString, formatLocaleString, subscribeLanguage,
+  MaxSize,
+  MinSize,
 } from "schema-node-core";
+import { PageNode, type IArrayFieldFilter } from "schema-node-app";
 import { SchemaNodeFormType } from "../enum/formType";
-import { onMounted, onUnmounted, reactive, toRaw, shallowRef, nextTick, ref } from "vue";
+import {
+  onMounted, onUnmounted, reactive, toRaw, shallowRef, ref, computed, nextTick,
+} from "vue";
 import structFieldView from "./structFieldView.vue";
+import tableFilter from "./tableFilter.vue";
 import { _L } from "../utility/locale";
 import { useSingleView } from "../schemaView";
-import { subscribeAncestorProperty } from "../utility/toolset";
-import schemaView from "../schemaView.vue";
-import Sortable from 'sortablejs'
-import { te } from "element-plus/es/locale";
+import { ElMessageBox } from "element-plus";
 
 // Properties
 const props = defineProps<{
   /** The array node with struct elements */
   node: ArrayNode;
-  /** Whether to show readonly */
-  readonly?: boolean,
   /** form settings */
   inForm?: SchemaNodeFormType;
   /** Skin */
   skin?: string;
   /** Display readon only value as plain text */
-  text?: any;
+  plainText?: any;
   /** No add row */
   noAdd?: boolean;
   /** No del row */
@@ -171,16 +172,24 @@ const props = defineProps<{
   noSubAdd?: boolean;
   /** No sub row del */
   noSubDel?: boolean;
+  /** Hight light change row */
+  highLightChange?: boolean;
+  /** new row color */
+  newColor?: string;
+  /** change row color */
+  changeColor?: string;
   /** operation width */
   operWidth?: any;
   /** Render grouped headers in single line by merging parent and child labels */
   singleHeader?: boolean;
-  /** Enable sortable */
-  sortable?: boolean;
-  /** Debug mode */
-  debug?: boolean;
-  /** Columns to view */
-  viewColumns?: string[];
+  /** Auto confirm delete */
+  autoDel?: boolean;
+  /** Add button position */
+  addPosition?: "header" | "tableHeader";
+  /** Enable auto filter (query on filter change) */
+  autoFilter?: boolean;
+  /** Disable filter display */
+  noFilter?: boolean;
 }>();
 
 const node = toRaw(props.node) as ArrayNode;
@@ -194,20 +203,51 @@ const state = reactive<{
   spanCols: { [key: number]: boolean };
   readonly?: boolean;
   disabled?: boolean;
+  page?: number;
+  pageCount?: number;
+  total?: number;
+  deleted: boolean[];
   allowAdd: boolean;
   allowDel: boolean;
   addAble?: boolean;
   delAble?: boolean;
-  viewEdit?: boolean;
 }>({
   columns: [],
   spanCols: {},
+  deleted: [],
   allowAdd: props.noAdd ? false : true,
   allowDel: props.noDel ? false : true,
-  viewEdit: props.viewColumns?.length ? true : false,
 });
 
-const headerAlign = typeof props.text === "string" ? props.text : "center";
+const changedatacolor = props.changeColor || "#c7f3b1";
+const deldatacolor = "grey";
+const headerAlign = typeof props.plainText === "string" ? props.plainText : "center";
+const currentLang = ref((navigator.language || "").toLowerCase());
+const tableRef = ref();
+const filterRef = ref();
+
+// Whether the node is a PageNode (supports pagination & filtering)
+const pageNode = node instanceof PageNode ? (node as PageNode) : undefined;
+
+// Filter list (only for PageNode with filters initialized)
+const filters = computed<IArrayFieldFilter[]>(() => {
+  if (props.noFilter || !pageNode) return [];
+  return pageNode.filters || [];
+});
+
+// Responsive columns per row for filter layout
+const w = ref(window.innerWidth);
+const columnsPerRow = computed(() => {
+  if (w.value < 800) return 1;
+  if (w.value < 1080) return 2;
+  if (w.value <= 1440) return 3;
+  if (w.value <= 1920) return 4;
+  return 5;
+});
+
+// Expose table ref & current language for parent access
+defineExpose({ tableRef, currentLang });
+
 const isReadonlyField = (node: StructNode, field: string) => {
   const f = node.getAccessValue(field) as DataNode;
   if (!f) return false;
@@ -267,54 +307,18 @@ const vOverflowTitle = {
   },
 };
 
-// sort
-let sortble: Sortable | null = null
-let sortbleTime = 0
-const regSortable = () => {
-  sortble?.destroy()
-  if (!node || node.readonly) return
-
-  const el: any = document.querySelector(".swap-table .el-table__body-wrapper tbody")
-  if (!el) {
-    sortbleTime = setTimeout(regSortable, 200)
-    return
-  }
-  sortble = Sortable.create(el, {
-    draggable: ".el-table__row",
-    onEnd(params: any) {
-      sortble?.destroy()
-      let { oldIndex, newIndex } = params
-      if (oldIndex === newIndex) return
-      if (oldIndex == null || newIndex == null) return
-
-      node.moveRow(oldIndex, newIndex)
-      setTimeout(async () => {
-        rows.value = []
-        await nextTick()
-        instantGenRows()
-      }, 0)
-    }
-  })
-}
-
-// The row editor
-const showRowEditor = ref(false)
-const editingNode = ref<StructNode | undefined>(undefined)
-
-const openRowEditor = (node: StructNode) => {
-  editingNode.value = toRaw(node)
-  showRowEditor.value = true
-}
-
-const closeRowEditor = () => {
-  showRowEditor.value = false
-  editingNode.value = undefined
-}
-
 // data & state watcher
 const subs: Function[] = [];
 
 onMounted(async () => {
+  window.addEventListener("resize", resizefunc);
+
+  // init filters for PageNode
+  if (pageNode && !props.noFilter) {
+    await pageNode.initFilters();
+    pageNode.enableAutoFilter(props.autoFilter ?? false);
+  }
+
   await refreshColumns();
 
   // row change handler
@@ -324,40 +328,50 @@ onMounted(async () => {
     state.addAble = node.addAble;
     state.delAble = node.delAble;
 
+    // update pagination state for PageNode
+    if (pageNode) {
+      state.page = pageNode.page;
+      state.pageCount = pageNode.pageCount;
+      state.total = pageNode.total;
+      // update deleted state for each row
+      const elements = Array.from(node.elements);
+      state.deleted = elements.map((e) => pageNode.isRowDeleted(e));
+    }
+
     genRows();
   }, true));
 
   // state handler
-  if (props.readonly) {
-    state.readonly = true;
-    state.allowAdd = false;
-    state.allowDel = false;
-  } else {
-    subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => {
-      state.readonly = values.some((v) => v);
-      state.allowAdd = !props.noAdd && !state.readonly;
-      state.allowDel = !props.noDel && !state.readonly;
-    }, true));
-    subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disabled = values.some((v) => v)));
-  }
+  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => {
+    state.readonly = values.some((v) => v);
+    state.allowAdd = !props.noAdd && !state.readonly;
+    state.allowDel = !props.noDel && !state.readonly;
+  }, true));
+  subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disabled = node.getPropertyValue<boolean>(Disable) || values.some((v) => v)));
   subs.push(node.subscribeProperty(MaxSize, () => state.addAble = node.addAble));
   subs.push(node.subscribeProperty(MinSize, () => state.delAble = node.delAble));
 
   // lang handler
   subs.push(subscribeLanguage((lang: string) => {
+    currentLang.value = (lang || navigator.language || "").toLowerCase();
     refreshColumnLabels(state.columns);
     state.columns = [...state.columns];
   }));
-
-  // sortable
-  if (props.sortable)
-    regSortable();
 });
 
+function resizefunc() {
+  w.value = window.innerWidth;
+}
+
 onUnmounted(() => {
+  window.removeEventListener("resize", resizefunc);
   subs.forEach((sub) => sub());
   clearDebounce(genRows);
 });
+
+// Disable property ctor accessor (kept indirect to avoid pulling the import when unused)
+import { Disable } from "schema-node-core";
+import { subscribeAncestorProperty } from "../utility/toolset";
 
 // columns
 const refreshColumns = async () => {
@@ -369,7 +383,6 @@ const refreshColumns = async () => {
   if (elementType) {
     for (const f of elementType.getFields()) {
       if (f.getPropertyValue<boolean>(InVisible)) continue;
-      if (props.viewColumns && !props.viewColumns.includes(f.name)) continue;
       const columnInfo = genColumn(f, false);
       if (!columnInfo) continue;
       columnInfos.push(columnInfo);
@@ -448,20 +461,68 @@ const spanMethod = (data: any) => {
 const addRow = (arrayNode: ArrayNode) => {
   toRaw(arrayNode).addRow();
   genRows();
-  if (state.viewEdit)
-    openRowEditor(arrayNode.at(arrayNode.length - 1) as StructNode);
 };
 
 // del row — for PageNode, autoDel confirms only for non-new (existing) rows
 const delRow = async (arrayNode: ArrayNode, index: number) => {
   const array = toRaw(arrayNode);
   const elements = Array.from(array.elements);
+  const isNew = !pageNode || !elements[index]?.changed;
+
+  if (props.autoDel && !isNew) {
+    try {
+      await ElMessageBox.confirm(
+        formatLocaleString("DEL_CONFIRM", node.getPropertyValue(Display) ?? node.name),
+        _L.value("NOTIFY"),
+        { type: "warning", dangerouslyUseHTMLString: true }
+      );
+    } catch {
+      return;
+    }
+  }
   array.delRows(index, 1);
+  if (pageNode && elements[index]) {
+    state.deleted[index] = pageNode.isRowDeleted(elements[index]);
+  }
   genRows();
 };
 
+// resume a deleted row (PageNode only)
+const resumeRow = (arrayNode: ArrayNode, index: number) => {
+  const array = toRaw(arrayNode);
+  if (pageNode) {
+    pageNode.resumeRows(index, 1);
+    const elements = Array.from(array.elements);
+    if (elements[index]) {
+      state.deleted[index] = pageNode.isRowDeleted(elements[index]);
+    }
+    genRows();
+  }
+};
 
-const instantGenRows = () => {
+// handle page change
+const handlePage = async (page: number) => {
+  if (!pageNode) return;
+  await pageNode.setPage(page - 1);
+  const elements = Array.from(node.elements);
+  state.deleted = elements.map((e) => pageNode.isRowDeleted(e));
+};
+
+// filter handlers
+const onResetFilter = () => {
+  pageNode?.resetFilter(true);
+};
+
+const onQueryFilter = () => {
+  pageNode?.processFilter();
+};
+
+// filter expand handler
+const handleExpand = (_isExpand: boolean) => {
+  // layout adjustment can be handled here if needed
+};
+
+const genRows = debounce(() => {
   const rowDatas: ITableRow[] = [];
   const elements = Array.from(node.elements);
   elements.forEach((ele: DataNode, eleIdx: number) => {
@@ -478,8 +539,17 @@ const instantGenRows = () => {
       rowDatas.push({ node: ele, eleIdx, index, count });
   });
   rows.value = rowDatas;
-}
-const genRows = debounce(instantGenRows, 100);
+}, 100);
+
+const getRowStyle = (data: any) => {
+  if (state.deleted[data.row.eleIdx]) {
+    return { backgroundColor: deldatacolor };
+  }
+  if (props.highLightChange && data.row.node?.changed) {
+    return { backgroundColor: changedatacolor };
+  }
+  return null;
+};
 
 interface IColumnInfo {
   prop: string;
@@ -519,9 +589,5 @@ interface ITableRow {
   bottom: -12px;
   right: 32px;
   z-index: 3;
-}
-
-:deep(.swap-table .el-table__row) {
-  cursor: move;
 }
 </style>

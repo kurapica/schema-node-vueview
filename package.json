@@ -28,8 +28,10 @@
   "author": "kurapica125@outlook.com",
   "license": "Apache License 2.0",
   "devDependencies": {
+    "@types/sortablejs": "^1.15.9",
     "@vitejs/plugin-vue": "^5.2.3",
     "sass-embedded": "^1.89.0",
+    "sortablejs": "^1.15.7",
     "vite": "^6.3.2",
     "vite-plugin-dts": "^4.5.4",
     "vue-tsc": "^2.2.10"
@@ -51,7 +53,7 @@
   },
   "dependencies": {
     "less": "^4.5.1",
-    "schema-node-core": "workspace:*",
-    "schema-node-app": "workspace:*"
+    "schema-node-app": "workspace:*",
+    "schema-node-core": "workspace:*"
   }
 }

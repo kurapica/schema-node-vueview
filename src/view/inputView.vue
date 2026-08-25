@@ -60,6 +60,9 @@ const props = defineProps<{
   /** Input schema node */
   node: DataNode,
 
+  /** The readonly mode */
+  readonly?: boolean,
+
   /** Display readon only value as plain text */
   text?: boolean | 'left' | 'right' | 'center'
 }>();
@@ -236,7 +239,7 @@ onMounted(async() => {
     state.multiple = node.type.kind === SCHEMA_KIND_ARRAY;
     state.defaultAlign = typeof(state.data) === 'number' ? 'right' : 'left';
 
-    if (props.text) state.display = node.getDisplayValue(' / ');
+    if (props.text) state.display = await node.getDisplayValue(' / ');
 
     if (state.enableOptions && !isNull(state.data) && !inOptions(options.value, state.data))
     {
@@ -246,8 +249,13 @@ onMounted(async() => {
   }, true));
 
   // state change
-  subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true));
-  subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true));
+  if (props.readonly) {
+    state.readonly = true;
+  }
+  else {
+    subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true));
+    subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true));
+  }
   subs.push(node.subscribeProperty(Default, (owner, propCtor, newValue, oldValue) => state.default = newValue, true));
   subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue, oldValue) => state.require = newValue as boolean, true));
   subs.push(node.subscribeProperty(AsSuggest, (owner, propCtor, newValue, oldValue) => state.asSuggest = newValue as boolean, true));
@@ -267,10 +275,10 @@ onMounted(async() => {
   }, true));
 
   // display
-  subs.push(subscribeLanguage(() => {
+  subs.push(subscribeLanguage(async () => {
     state.inputPlaceHolder = formatLocaleString("PLACEHOLDER_INPUT", node.getPropertyValue(Display) ?? node.name);
     state.selectPlaceHolder = formatLocaleString("PLACEHOLDER_SELECT", node.getPropertyValue(Display) ?? node.name);
-    if (props.text) state.display = node.getDisplayValue(' / ');
+    if (props.text) state.display = await node.getDisplayValue(' / ');
     refreshOptionsLabel(options.value);
     options.value = [...options.value];
   }, true));
