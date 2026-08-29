@@ -10,7 +10,7 @@
 </template>
 
 <script lang="ts" setup>
-import { DataNode, Default, Disable, Display, isNull, ReadOnly, Require } from 'schema-node-core'
+import { DataNode, Default, Disable, isNull, ReadOnly, Require } from 'schema-node-core'
 import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
 import { _L } from '../utility/locale'
 import { subscribeAncestorProperty } from '../utility/toolset';

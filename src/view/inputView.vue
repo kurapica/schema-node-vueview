@@ -18,6 +18,9 @@
         :key="item.value"
         :label="_L(item.localename ?? item.label ?? item.value)"
         :value="item.value">
+        <slot name="default" :node="item">
+          <span>{{ item.label ?? item.value }}</span>
+        </slot>
     </el-option>
   </el-select>
   <el-cascader v-else-if="state.enableOptions"
@@ -35,8 +38,13 @@
     :placeholder="state.selectPlaceHolder"
     :disabled="state.readonly || state.disable"
     :clearable="!state.require"
-    v-bind="$attrs"
-  ></el-cascader>
+    v-bind="$attrs">
+    <template #default="{ node }">
+      <slot name="default" :node="node">
+        <span>{{ node.label ?? node.value }}</span>
+      </slot>
+    </template>
+  </el-cascader>
   <el-input v-else
     v-model="data"
     :disabled="state.readonly || state.disable"
@@ -196,7 +204,11 @@ function saveEntryAccess(entryAccess: EntryAccess<any>[], options: ICascaderOpti
 const lazyLoad = async (treeNode: { value: any }, resolve: Function, reject: any): Promise<void> => {
   const { value } = treeNode
   accessed.add(value);
-  resolve(entryToOptions(await node.getSubEntryList(value)));
+  const opt = inOptions(options.value, value);
+  if (!opt || opt.leaf) return resolve([]);
+  const list = await node.getSubEntryList(value);
+  opt.children = entryToOptions(list);
+  resolve(opt.children);
 }
 
 /** refresh options label */
@@ -208,9 +220,20 @@ function refreshOptionsLabel(options: ICascaderOptionInfo[])
   })
 }
 
-function inOptions(options: ICascaderOptionInfo[], value: any): boolean
+function inOptions(options: ICascaderOptionInfo[], value: any): ICascaderOptionInfo | undefined
 {
-  return options.some(item => item.value == value || (item.children?.length && inOptions(item.children, value) || false));
+  if (!options.length) return undefined;
+  for (const item of options) {
+    if (item.value == value)
+      return item;
+
+    if (item.children?.length)
+    {
+      const child = inOptions(item.children, value);
+      if (child) return child;
+    }
+  }
+  return undefined;
 }
 
 async function rebuildOptions(incrVer = false)
@@ -241,9 +264,17 @@ onMounted(async() => {
 
     if (props.text) state.display = await node.getDisplayValue(' / ');
 
-    if (state.enableOptions && !isNull(state.data) && !inOptions(options.value, state.data))
+    if (state.enableOptions && !isNull(state.data) && Array.isArray(state.data) ? state.data.some(d => !inOptions(options.value, d)) : !inOptions(options.value, state.data))
     {
-      accessed.add(state.data);
+      if (Array.isArray(state.data))
+      {
+        for(const d of state.data)
+          accessed.add(d);
+      }
+      else
+      {
+        accessed.add(state.data);
+      }
       await queueRebuildOptions(true);
     }
   }, true));

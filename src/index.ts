@@ -1,6 +1,7 @@
 export { regBaseSchemaKindView, regSchemaTypeView } from './schemaView'
 export * from './utility/locale'
 export * from './utility/logger'
+export * from './utility/toolset'
 
 import { ArrayType, DataNode, EnumArrayNode, EnumType, EnumValueType, NS_SYSTEM_LOCALE_STRING, NS_SYSTEM_RANGE_DATE, NS_SYSTEM_RANGE_FULL_DATE, NS_SYSTEM_RANGE_MONTH, NS_SYSTEM_RANGE_YEAR, NS_SYSTEM_YEAR, SCHEMA_KIND_ARRAY, SCHEMA_KIND_BOOL, SCHEMA_KIND_DATE, SCHEMA_KIND_DECIMAL, SCHEMA_KIND_ENUM, SCHEMA_KIND_INT, SCHEMA_KIND_OBJECT, SCHEMA_KIND_STRING, SCHEMA_KIND_STRUCT, StructType } from 'schema-node-core'
 
@@ -24,7 +25,7 @@ import { getSubNodeFormType, regBaseSchemaKindView, regSchemaTypeView, useSingle
 import { SchemaNodeFormType } from './enum/formType'
 import { PageNode } from 'schema-node-app'
 
-export { SchemaNodeFormType, schemaView, structFieldView, tableView, getSubNodeFormType }
+export { SchemaNodeFormType, getSubNodeFormType }
 
 // base view
 regBaseSchemaKindView(SCHEMA_KIND_INT, inputView);
@@ -56,4 +57,21 @@ regSchemaTypeView(NS_SYSTEM_LOCALE_STRING, localeStringView, undefined, true);
 schemaView.install = (app: App): void => { 
   app.component("SchemaView", schemaView);
   app.component("StructFieldView", structFieldView);
+}
+
+export {
+  schemaView,
+  arrayView,
+  boolView,
+  dateView,
+  yearView,
+  flagsEnumView,
+  inputView,
+  localeStringView,
+  anyView,
+  rangeDateView,
+  structFieldView,
+  structView,
+  tableView,
+  pageTableView,
 }

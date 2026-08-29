@@ -1,10 +1,11 @@
 <template>
   <el-popover
+    ref="popoverRef"
     placement="left"
     width="800"
     trigger="hover"
     :onShow="show"
-    :onHide="hide">
+    :onHide="hide" :boundaries-padding="10">
     <p v-if="access?.length">
       <template v-for="(item, index) in access" :key="item.part">
         <span v-if="index > 0">/</span>
@@ -36,19 +37,21 @@
 </template>
 
 <script setup lang="ts">
-import { DataNode, getPropertyName, IProperty, isEmpty, isNull, RelationType, SCHEMA_KIND_NODE } from 'schema-node-core';
-import { onMounted, ref, toRaw } from 'vue'
+import { DataNode, getPropertyName, IProperty, isEmpty, RelationType, SCHEMA_KIND_NODE } from 'schema-node-core';
+import { nextTick, onMounted, ref, toRaw } from 'vue'
 import { _L } from '../utility/locale';
+import { ElPopover } from 'element-plus';
 
 const props = defineProps({ node: DataNode });
 const nodeProps = ref<{ name: string, value: any, source: string }[]>([])
 const nodeRelations = ref<{ property: string, mode: string, data: any }[]>([])
 const access = ref<{ part: string, node?: DataNode }[]>()
+const popoverRef = ref<InstanceType<typeof ElPopover>>()
 
 let node = toRaw(props.node)!
 let originNode = node
 
-const show = () => {
+const show = async () => {
   const newAccess: { part: string, node?: DataNode }[] = [ { part: node.access } ]
 
   let currentNode: DataNode | undefined= node
@@ -71,12 +74,15 @@ const show = () => {
     if (prop.forSchema(SCHEMA_KIND_NODE)) continue;
     const value = prop.getValue();
     if (!isEmpty(value))
-      result.push({ name: prop.name, value: Array.isArray(value) || typeof value === 'object' ? JSON.stringify(value) : value, source: getSource(prop) })
+      result.push({ name: prop.name, value: Array.isArray(value) || typeof value === 'object' ? JSON.stringify(value) : value, source: getSource(prop) });
   }
-  result.sort((a, b) => a.name == 'name' ? -1 : b.name == 'name' ? 1 : a.name.localeCompare(b.name))
-  nodeProps.value = result
+  result.sort((a, b) => a.name == 'name' ? -1 : b.name == 'name' ? 1 : a.name.localeCompare(b.name));
+  nodeProps.value = result;
 
-  nodeRelations.value = Array.from(node.getAttachedRelations()).map(r => ({ property: getPropertyName(r.propertyCtor!), mode: (r as RelationType).kind, data: JSON.stringify((r as RelationType).schema[(r as RelationType).kind]) }))
+  nodeRelations.value = Array.from(node.getAttachedRelations()).map(r => ({ property: getPropertyName(r.propertyCtor!), mode: (r as RelationType).kind, data: JSON.stringify((r as RelationType).schema[(r as RelationType).kind]) }));
+
+  await nextTick();
+  popoverRef.value?.popperRef?.popperInstanceRef?.update();
 }
 
 const getSource = (prop: IProperty) => {

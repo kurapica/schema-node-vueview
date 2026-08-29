@@ -37,6 +37,8 @@ import { getSubNodeFormType } from '../schemaView'
 import structFieldView from './structFieldView.vue'
 import schemaView from '../schemaView.vue'
 
+defineOptions({ inheritAttrs: false })
+
 const props = defineProps<{
   /** Struct Schema node */
   node: DataNode,

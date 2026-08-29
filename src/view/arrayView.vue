@@ -27,12 +27,16 @@
 </template>
 
 <script setup lang="ts">
-import { ArrayNode, ArrayType, Disable, isNull, MaxSize, MinSize, ReadOnly, ScalarType, StructType } from 'schema-node-core'
+import { ArrayNode, ArrayType, Disable, isNull, MaxSize, MinSize, ReadOnly, StructType } from 'schema-node-core'
 import { onMounted, onUnmounted, reactive, toRaw, useSlots } from 'vue'
 import schemaView from '../schemaView.vue'
 import { SchemaNodeFormType } from '../enum/formType'
 import { getSubNodeFormType } from '../schemaView'
 import { subscribeAncestorProperty } from '../utility/toolset.js'
+
+defineOptions({
+  inheritAttrs: false
+})
 
 // ── Template ──────────────────────────────────────────────────────
 const props = defineProps<{

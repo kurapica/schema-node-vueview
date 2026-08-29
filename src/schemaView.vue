@@ -31,6 +31,8 @@ import { DataNode, getNodeType, InVisible, SCHEMA_KIND_STRUCT_FIELD, ValueType, 
 import { AppNode, Loaded } from 'schema-node-app'
 import DebugView from './view/debugView.vue'
 
+defineOptions({ inheritAttrs: false })
+
 // props
 const props = defineProps<{
   /** The schema node */
@@ -52,7 +54,7 @@ const props = defineProps<{
   skin?: string
 
   /** The form item display style */
-  inForm?: boolean | "nest" | "expand" | "expandall" | ""
+  inForm?: SchemaNodeFormType | boolean
 
   /** The text align */
   text?: boolean | 'left' | 'right' | 'center'

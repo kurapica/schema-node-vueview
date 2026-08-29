@@ -102,7 +102,7 @@
       <el-table-column v-if="$slots.operator || (!state.readonly && !state.disabled && (state.allowAdd || state.allowDel)) || state.viewEdit"
         :label="_L('OPER')" align="center" fixed="right" :width="operWidth || 100">
         <template #header>
-          <a href="javascript:void(0)" v-if="state.addAble && !state.readonly && state.allowAdd"
+          <a href="javascript:void(0)" v-if="state.addAble && !readonly && !state.readonly && state.allowAdd"
             @click="addRow(node)" style="text-decoration: underline; color: lightseagreen">{{ _L('ADD') }}</a>
           <p v-else>{{ _L('OPER') }}</p>
         </template>
@@ -118,13 +118,13 @@
     </el-table>
 
     <!-- The row editor -->
-    <el-drawer v-model="showRowEditor" direction="rtl" size="80%" append-to-body
+    <el-drawer v-model="showRowEditor" direction="rtl" size="60%" append-to-body
       @closed="closeRowEditor">
       <el-container style="height: 100%;">
         <el-main>
-          <schema-view v-if="editingNode" :key="editingNode.id" :node="editingNode as StructNode" label-width="300px" :debug="debug"
-            in-form="expandall" text="left">
-          </schema-view>
+          <el-form v-if="editingNode" label-width="300px" :model="editingNode!.rawValue!" label-position="left" style="width: 100%; height: 90%;">
+            <schema-view :key="editingNode.id" :node="editingNode as StructNode" :debug="debug" :in-form="SchemaNodeFormType.Expand2" text="left"/>
+          </el-form>
         </el-main>
         <el-footer>
           <br />
@@ -200,6 +200,8 @@ const state = reactive<{
   delAble?: boolean;
   viewEdit?: boolean;
 }>({
+  readonly: props.readonly,
+  disabled: props.readonly,
   columns: [],
   spanCols: {},
   allowAdd: props.noAdd ? false : true,
@@ -330,11 +332,12 @@ onMounted(async () => {
   // state handler
   if (props.readonly) {
     state.readonly = true;
+    state.disabled = true;
     state.allowAdd = false;
     state.allowDel = false;
   } else {
     subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => {
-      state.readonly = values.some((v) => v);
+      state.readonly = props.readonly || values.some((v) => v);
       state.allowAdd = !props.noAdd && !state.readonly;
       state.allowDel = !props.noDel && !state.readonly;
     }, true));
