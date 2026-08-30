@@ -86,15 +86,7 @@ const show = async () => {
 }
 
 const getSource = (prop: IProperty) => {
-  const source = toRaw(prop.source) as DataNode;
-  let curr = node;
-  let path = "";
-  while (source !== curr && curr.parent instanceof DataNode) {
-    curr = curr.parent
-    if (curr.access?.length) return path.length ? (curr.access + '.' + path) : curr.access
-    path = path.length ? `$parent.${path}` : '$parent'
-  }
-  return path;
+  return prop.source && prop.source != node ? prop.source.access : ''
 }
 
 const toNode = (to: DataNode) => {

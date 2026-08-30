@@ -52,7 +52,7 @@ export function useSingleView(
         )
     );
   else if (node instanceof ArrayType)
-    return simpleType.includes(node.element!.name);
+    return simpleType.includes(node.element!.kind);
   return true;
 }
 
