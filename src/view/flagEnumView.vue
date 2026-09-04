@@ -136,7 +136,7 @@ onMounted(async () => {
       disabled: getPropertyValue<boolean>(a, Disable),
       leaf: true,
     })) || [];
-  }));
+  }, true));
 
   // language change
   subs.push(subscribeLanguage(() => {

@@ -1,9 +1,5 @@
 <template>
-  <span v-if="state.simple && state.readonly && text"
-    :style="{ 'width': '100%', 'text-align': text === true ? 'center' : text }">
-    {{ state.display }}
-  </span>
-  <div v-else style="display: flex;">
+  <div style="display: flex;">
     <template v-for="i in state.length" :key="i">
       <schema-view v-if="node.at(i - 1)"
         style="min-width: 120px;margin-right: 8px;"
@@ -27,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { ArrayNode, ArrayType, Disable, isNull, MaxSize, MinSize, ReadOnly, StructType } from 'schema-node-core'
+import { ArrayNode, ArrayType, Disable, isNull, MaxSize, MinSize, ReadOnly, Require, StructType } from 'schema-node-core'
 import { onMounted, onUnmounted, reactive, toRaw, useSlots } from 'vue'
 import schemaView from '../schemaView.vue'
 import { SchemaNodeFormType } from '../enum/formType'
@@ -56,7 +52,6 @@ const slotEntries = Object.entries(slots) as [string, (...args: any[]) => any][]
 const state = reactive<{
   readonly?: boolean
   disable?: boolean
-  display?: string
   length: number,
   simple?: boolean,
   addAble?: boolean,
@@ -70,30 +65,31 @@ const subs: Function[] = []
 onMounted(() => {
   state.simple = !((node.type as ArrayType).element instanceof StructType)
 
-  subs.push(node.subscribe(() => {
-    if (!node.readonly && state.simple) {
-      const length = node.length
-      const last = node.at(length - 1)
-      if ((length === 0 || !isNull(last?.rawValue)) && node.addAble) {
-        return node.addRow()
-      }
-      else if (length >= 2 && isNull(node.at(length - 2)?.rawValue) && node.delAble) {
-        return node.delRows(length - 1)
-      }
-    }
-
-    state.length = node.length
-    state.addAble = node.addAble
-    state.delAble = node.delAble
-    if (state.simple) state.display = ((node.value as any[]) || []).join()
-  }, true))
-
   if (props.readonly) {
     state.readonly = true
   } else {
     subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true))
     subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true))
   }
+
+  subs.push(node.subscribe(() => {
+    if (!state.readonly && state.simple) {
+      const length = node.length
+      const last = node.at(length - 1)
+      if ((length === 0 || !isNull(last?.rawValue)) && node.addAble) {
+        if (node.length > 0) node.at(node.length - 1)?.setPropertyValue(Require, undefined, node); // clear
+        node.addRow()?.setPropertyValue(Require, false, node); // make not required
+      }
+      else if (length >= 2 && isNull(node.at(length - 2)?.rawValue) && node.delAble) {
+        node.delRows(length - 1);
+        if (node.length > 0) node.at(node.length - 1)?.setPropertyValue(Require, false, node);
+      }
+    }
+
+    state.length = node.length
+    state.addAble = node.addAble
+    state.delAble = node.delAble
+  }, true))
 
   subs.push(node.subscribeProperty(MaxSize, () => state.addAble = node.addAble))
   subs.push(node.subscribeProperty(MinSize, () => state.delAble = node.delAble))

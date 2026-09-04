@@ -250,6 +250,9 @@ async function rebuildOptions(incrVer = false)
     saveEntryAccess(await node.getEntryAccessList(item), values);
   options.value = values.length ? values : entryToOptions(await node.getSubEntryList());
   if (incrVer) state.version++;
+
+  // refresh display value
+  if (props.text) state.display = await node.getDisplayValue(' / ');
 }
 
 const queueRebuildOptions = useQueueQuery(rebuildOptions);
