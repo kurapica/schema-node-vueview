@@ -1,6 +1,7 @@
 <template>
   <template v-for="field in fields" :key="field.name">
     <struct-field-view v-if="field.isChangable"
+      style="width: 100%;"
       :node="node"
       :field="field.name"
       :in-form="inForm"
@@ -14,6 +15,7 @@
       </template>
     </struct-field-view>
     <schema-view v-else
+      style="width: 100%;"
       :key="field.node.id"
       :node="field.node as DataNode"
       :in-form="getSubNodeFormType(field.node as DataNode, inForm, skin)"

@@ -58,7 +58,7 @@
 </template>
 
 <script lang="ts" setup>
-import { AsSuggest, DataNode, Default, Disable, Display, Entry, getPropertyValue, isNull, LeafOnly, LocaleString, ReadOnly, Require, formatLocaleString, subscribeLanguage, ScalarNode, EntrySourceVersion, EntryAccess, NS_SYSTEM_SCHEMA_NODE_VALUE_KIND, NS_SYSTEM_BOOL, useQueueQuery, SCHEMA_KIND_ARRAY } from 'schema-node-core';
+import { AsSuggest, DataNode, Default, Disable, Display, Entry, getPropertyValue, isNull, LeafOnly, LocaleString, ReadOnly, Require, formatLocaleString, subscribeLanguage, ScalarNode, EntrySourceVersion, EntryAccess, useQueueQuery, SCHEMA_KIND_ARRAY } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw, useSlots } from 'vue';
 import { _L } from '../utility/locale';
 import { subscribeAncestorProperty } from '../utility/toolset';
@@ -240,7 +240,12 @@ async function rebuildOptions(incrVer = false)
 {
   const values: ICascaderOptionInfo[] = [];
   const value = node.value;
-  if (value) accessed.add(value);
+  if (Array.isArray(value))
+    for(const d of value)
+      accessed.add(d);
+  else if (value) 
+    accessed.add(value);
+
   for(const item of accessed)
     saveEntryAccess(await node.getEntryAccessList(item), values);
   options.value = values.length ? values : entryToOptions(await node.getSubEntryList());

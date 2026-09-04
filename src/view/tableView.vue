@@ -3,8 +3,7 @@
     <el-table :data="rows" :span-method="spanMethod" style="width: 100%" v-bind="$attrs" :class="sortable ? 'swap-table' : ''" border>
       <template v-for="col in state.columns.filter((v) => !v.invisible)" :key="col.prop">
         <!-- with sub cols -->
-        <el-table-column v-if="col.subCols && col.subCols.length && !singleHeader" :prop="col.prop" :label="col.label"
-          :header-align="headerAlign">
+        <el-table-column v-if="col.subCols && col.subCols.length" :prop="col.prop" :label="col.label" :header-align="headerAlign">
           <el-table-column v-for="scol in col.subCols" :prop="`${col.prop}.${scol.prop}`" :label="scol.label"
             :min-width="scol.localString ? 200 : 140" :header-align="headerAlign"
             :show-overflow-tooltip="!scol.localString">
@@ -149,7 +148,6 @@ import { useSingleView } from "../schemaView";
 import { subscribeAncestorProperty } from "../utility/toolset";
 import schemaView from "../schemaView.vue";
 import Sortable from 'sortablejs'
-import { te } from "element-plus/es/locale";
 
 // Properties
 const props = defineProps<{
@@ -173,8 +171,6 @@ const props = defineProps<{
   noSubDel?: boolean;
   /** operation width */
   operWidth?: any;
-  /** Render grouped headers in single line by merging parent and child labels */
-  singleHeader?: boolean;
   /** Enable sortable */
   sortable?: boolean;
   /** Debug mode */
@@ -372,12 +368,15 @@ const refreshColumns = async () => {
   if (elementType) {
     for (const f of elementType.getFields()) {
       if (f.getPropertyValue<boolean>(InVisible)) continue;
-      if (props.viewColumns && !props.viewColumns.includes(f.name)) continue;
+      if (props.viewColumns && !(props.viewColumns.includes(f.name) || props.viewColumns.some((c) => c.startsWith(`${f.name}.`)))) continue;
       const columnInfo = genColumn(f, false);
       if (!columnInfo) continue;
       columnInfos.push(columnInfo);
 
       if (columnInfo.subCols) {
+        if (props.viewColumns && !props.viewColumns.includes(f.name))
+          columnInfo.subCols = columnInfo.subCols.filter((c) => props.viewColumns!.includes(`${f.name}.${c.prop}`));
+
         if (!columnInfo.isArray) {
           for (let j = 0; j < columnInfo.subCols.length; j++) spanCols[columnIndex++] = true;
         } else {

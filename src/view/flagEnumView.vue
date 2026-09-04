@@ -3,7 +3,7 @@
     :style="{'width': '100%', 'min-width': '120px', 'display': 'inline-block', 'text-align': text === true ? state.defaultAlign : text }">
     {{ _L(state.display) }}
   </span>
-  <el-cascader
+  <el-cascader v-else
     v-model="data"
     style="width: 100%;min-width: 120px"
     :options="options"
@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { DataNode, Disable, Display, EnumType, getPropertyValue, LocaleString, ReadOnly, Require, formatLocaleString, SingleFlag, subscribeLanguage } from 'schema-node-core';
+import { DataNode, Disable, Display, EnumType, getPropertyValue, LocaleString, ReadOnly, Require, formatLocaleString, SingleFlag, subscribeLanguage, EntrySourceVersion } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, ref, toRaw } from 'vue';
 import { _L } from '../utility/locale';
 import { subscribeAncestorProperty } from '../utility/toolset';
@@ -69,7 +69,7 @@ const state = reactive<{
 /** Data model */
 const data = computed({
   get (): any { return state.data },
-  set(value: any) { state.data = Array.isArray(value) ? value.includes(0) && options.value.some(a => a.value === 0) ? 0 : joinFlags(value) : value; }
+  set(value: any) { node.value = Array.isArray(value) ? value.includes(0) && options.value.some(a => a.value === 0) ? 0 : joinFlags(value) : value; }
 })
 
 // ── Entry List ────────────────────────────────────────────────────
@@ -90,7 +90,7 @@ const options = ref<ICascaderOptionInfo[]>([]);
 
 /** Split flags into binary array */
 const splitFlags = (flags: number): number[] => {
-  return flags.toString(2).split('').reverse().map((a, i) => Number(a) * Math.pow(2, i)).filter(a => a > 0)
+  return (flags || 0).toString(2).split('').reverse().map((a, i) => Number(a) * Math.pow(2, i)).filter(a => a > 0)
 }
 
 /** Join binary array into flags */
@@ -127,14 +127,16 @@ onMounted(async () => {
   }, true));
 
   // options
-  const access = await (node.type as EnumType).getEnumEntryAccess(); // root;
-  options.value = access[0].children?.map(a => ({
-    value: a.value,
-    localename: getPropertyValue<LocaleString>(a, Display),
-    label: _L.value(getPropertyValue<LocaleString>(a, Display) ?? a.value),
-    disabled: getPropertyValue<boolean>(a, Disable),
-    leaf: true,
-  })) || [];
+  subs.push(node.subscribeProperty(EntrySourceVersion, async (owner, propCtor, newValue, oldValue) => {
+    const access = await (node.type as EnumType).getEnumEntryAccess(); // root;
+    options.value = access[0].children?.map(a => ({
+      value: a.value,
+      localename: getPropertyValue<LocaleString>(a, Display),
+      label: _L.value(getPropertyValue<LocaleString>(a, Display) ?? a.value),
+      disabled: getPropertyValue<boolean>(a, Disable),
+      leaf: true,
+    })) || [];
+  }));
 
   // language change
   subs.push(subscribeLanguage(() => {
