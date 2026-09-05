@@ -112,7 +112,7 @@ onMounted(async () => {
     const blackList = node.getPropertyValue<string[]>(BlackList)?.filter(f => !isNull(f))?.map(parseYear)
     if (whiteList?.length) {
       state.useWhiteList = true
-      if (blackList?.length) whiteList = whiteList.filter(w => !blackList.includes(w))
+      if (blackList?.length) whiteList = whiteList.filter((w: number) => !blackList.includes(w))
       state.whiteList = whiteList
     } else {
       state.useWhiteList = false

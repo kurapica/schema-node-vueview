@@ -88,12 +88,12 @@ const loaded = ref(true)
 const mask = ref(null)
 
 let observer: any = null
-
 let configWatcher: WatchHandle | null = null
 let updatevalue = false
 let timeOut: number | null = null
 let buildObserver: Function | null = null
 let subscribes: Function[] = []
+const abortController: AbortController = new AbortController()
 
 if (!props.node) {
   watch(() => props.modelValue, () => {
@@ -110,6 +110,7 @@ onMounted(async () => {
   if (!node) {
     if (props.type) {
       const type = await getNodeType(props.type) as ValueType
+      if (abortController.signal.aborted) return
       node = type?.create(props.modelValue) as DataNode
       if (node && props.props) {
         if (isRef(props.props) || isReactive(props.props)) {
@@ -130,6 +131,7 @@ onMounted(async () => {
   if (node.parent instanceof AppNode) {
     const root = typeof (props.rootDiv) === "string" ? document.querySelector(props.rootDiv) : props.rootDiv
     buildObserver = async ([entry]: any) => {
+      if (abortController.signal.aborted) return
       observer?.disconnect()
       observer = null;
 
@@ -185,6 +187,8 @@ onMounted(async () => {
     }
   }))
 
+  if (abortController.signal.aborted) return
+
   // visible change
   subscribes.push(node.subscribeProperty(Visible, () => invisible.value = !node.visible))
   subscribes.push(node.subscribeProperty(InVisible, () => invisible.value = !node.visible, true))
@@ -204,6 +208,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  abortController.abort()
   loaded.value = true
   subscribes.forEach((sub) => sub())
   if (configWatcher) configWatcher.stop()
