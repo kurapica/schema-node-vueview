@@ -28,6 +28,8 @@ import {
   ScalarNode,
   subscribeLanguage,
   LocaleString,
+  IValueAccess,
+  PropertyCtor,
 } from 'schema-node-core'
 import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
 import schemaView from '../schemaView.vue'
@@ -146,7 +148,7 @@ onMounted(() => {
     subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true));
     subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true));
   }
-  subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue) => state.require = newValue as boolean, true));
+  subs.push(node.subscribeProperty(Require, (owner: IValueAccess, propChange: PropertyCtor, newValue: any, oldValue: any) => state.require = newValue as boolean, true));
   
   // language
   subs.push(subscribeLanguage(() => {

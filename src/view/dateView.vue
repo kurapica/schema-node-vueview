@@ -14,7 +14,7 @@
 </template>
 
 <script lang="ts" setup>
-import { DataNode, DateNode, Default, Disable, Display, NS_SYSTEM_FULL_DATE, NS_SYSTEM_YEARMONTH, ReadOnly, Require, ScalarType, formatLocaleString, subscribeLanguage, parseDate } from 'schema-node-core'
+import { DataNode, DateNode, Default, Disable, Display, NS_SYSTEM_FULL_DATE, NS_SYSTEM_YEARMONTH, ReadOnly, Require, ScalarType, formatLocaleString, subscribeLanguage, parseDate, IValueAccess, PropertyCtor } from 'schema-node-core'
 import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
 import { _L } from '../utility/locale'
 import { subscribeAncestorProperty } from '../utility/toolset';
@@ -136,8 +136,8 @@ onMounted(async () => {
     subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true))
     subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true))
   }
-  subs.push(node.subscribeProperty(Default, (owner, propCtor, newValue) => state.default = newValue, true))
-  subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue) => state.require = newValue as boolean, true))
+  subs.push(node.subscribeProperty(Default, (owner: IValueAccess, propCtor: PropertyCtor, newValue: any) => state.default = newValue, true))
+  subs.push(node.subscribeProperty(Require, (owner: IValueAccess, propCtor: PropertyCtor, newValue: any) => state.require = newValue as boolean, true))
 
   // language
   subs.push(subscribeLanguage(() => {

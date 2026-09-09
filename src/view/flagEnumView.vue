@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { DataNode, Disable, Display, EnumType, getPropertyValue, LocaleString, ReadOnly, Require, formatLocaleString, SingleFlag, subscribeLanguage, EntrySourceVersion } from 'schema-node-core';
+import { DataNode, Disable, Display, EnumType, getPropertyValue, LocaleString, ReadOnly, Require, formatLocaleString, SingleFlag, subscribeLanguage, EntrySourceVersion, IValueAccess, PropertyCtor } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, ref, toRaw } from 'vue';
 import { _L } from '../utility/locale';
 import { subscribeAncestorProperty } from '../utility/toolset';
@@ -117,8 +117,8 @@ onMounted(async () => {
     subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true));
     subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true));
   } 
-  subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue, oldValue) => state.require = newValue as boolean, true));
-  subs.push(node.subscribeProperty(SingleFlag, (owner, propChange, newValue, oldValue) => { state.single = newValue as boolean; }, true));
+  subs.push(node.subscribeProperty(Require, (owner: IValueAccess, propCtor: PropertyCtor, newValue: any, oldValue: any) => state.require = newValue as boolean, true));
+  subs.push(node.subscribeProperty(SingleFlag, (owner: IValueAccess, propChange: PropertyCtor, newValue: any, oldValue: any) => { state.single = newValue as boolean; }, true));
 
   // data change
   subs.push(node.subscribe(() => {
@@ -127,7 +127,7 @@ onMounted(async () => {
   }, true));
 
   // options
-  subs.push(node.subscribeProperty(EntrySourceVersion, async (owner, propCtor, newValue, oldValue) => {
+  subs.push(node.subscribeProperty(EntrySourceVersion, async (owner: IValueAccess, propCtor: PropertyCtor, newValue: any, oldValue: any) => {
     const access = await (node.type as EnumType).getEnumEntryAccess(); // root;
     options.value = access[0].children?.map(a => ({
       value: a.value,

@@ -29,7 +29,7 @@
 </template>
 
 <script lang="ts" setup>
-import { AsSuggest, BlackList, DataNode, Default, Disable, Display, IntNode, isNull, ReadOnly, Require, formatLocaleString, subscribeLanguage, WhiteList } from 'schema-node-core'
+import { AsSuggest, BlackList, DataNode, Default, Disable, Display, IntNode, isNull, ReadOnly, Require, formatLocaleString, subscribeLanguage, WhiteList, IValueAccess, PropertyCtor } from 'schema-node-core'
 import { computed, onMounted, onUnmounted, reactive, toRaw } from 'vue'
 import { _L } from '../utility/locale'
 import { subscribeAncestorProperty } from '../utility/toolset';
@@ -102,14 +102,14 @@ onMounted(async () => {
     subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true))
     subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true))
   }
-  subs.push(node.subscribeProperty(Default, (owner, propCtor, newValue) => state.default = newValue, true))
-  subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue) => state.require = newValue as boolean, true))
-  subs.push(node.subscribeProperty(AsSuggest, (owner, propCtor, newValue) => state.asSuggest = newValue as boolean, true))
+  subs.push(node.subscribeProperty(Default, (owner: IValueAccess, propChange: PropertyCtor, newValue: any, oldValue: any) => state.default = newValue, true))
+  subs.push(node.subscribeProperty(Require, (owner: IValueAccess, propChange: PropertyCtor, newValue: any, oldValue: any) => state.require = newValue as boolean, true))
+  subs.push(node.subscribeProperty(AsSuggest, (owner: IValueAccess, propChange: PropertyCtor, newValue: any, oldValue: any) => state.asSuggest = newValue as boolean, true))
 
   // white/black list
   const refreshWhiteList = () => {
-    let whiteList = node.getPropertyValue<string[]>(WhiteList)?.filter(f => !isNull(f))?.map(parseYear)
-    const blackList = node.getPropertyValue<string[]>(BlackList)?.filter(f => !isNull(f))?.map(parseYear)
+    let whiteList = node.getPropertyValue<string[]>(WhiteList)?.filter((f: string) => !isNull(f))?.map(parseYear)
+    const blackList = node.getPropertyValue<string[]>(BlackList)?.filter((f: string) => !isNull(f))?.map(parseYear)
     if (whiteList?.length) {
       state.useWhiteList = true
       if (blackList?.length) whiteList = whiteList.filter((w: number) => !blackList.includes(w))

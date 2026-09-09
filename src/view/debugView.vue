@@ -109,10 +109,7 @@ onMounted(() => {})
 
 <style lang="scss" scoped>
 .schema-node-debug {
-  position: absolute;
-  align-items: center;
-  left: -20px;
-  top: 0px;
+  display: inline-block;
   z-index: 99;
 }
 .debug-mark {

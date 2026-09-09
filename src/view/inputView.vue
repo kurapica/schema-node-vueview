@@ -58,7 +58,7 @@
 </template>
 
 <script lang="ts" setup>
-import { AsSuggest, DataNode, Default, Disable, Display, Entry, getPropertyValue, isNull, LeafOnly, LocaleString, ReadOnly, Require, formatLocaleString, subscribeLanguage, ScalarNode, EntrySourceVersion, EntryAccess, useQueueQuery, SCHEMA_KIND_ARRAY } from 'schema-node-core';
+import { AsSuggest, DataNode, Default, Disable, Display, Entry, getPropertyValue, isNull, LeafOnly, LocaleString, ReadOnly, Require, formatLocaleString, subscribeLanguage, ScalarNode, EntrySourceVersion, EntryAccess, useQueueQuery, SCHEMA_KIND_ARRAY, IValueAccess, PropertyCtor } from 'schema-node-core';
 import { computed, onMounted, onUnmounted, reactive, shallowRef, toRaw, useSlots } from 'vue';
 import { _L } from '../utility/locale';
 import { subscribeAncestorProperty } from '../utility/toolset';
@@ -295,11 +295,11 @@ onMounted(async() => {
     subs.push(subscribeAncestorProperty(node, ReadOnly, (values: boolean[]) => state.readonly = values.some(v => v), true));
     subs.push(subscribeAncestorProperty(node, Disable, (values: boolean[]) => state.disable = values.some(v => v), true));
   }
-  subs.push(node.subscribeProperty(Default, (owner, propCtor, newValue, oldValue) => state.default = newValue, true));
-  subs.push(node.subscribeProperty(Require, (owner, propCtor, newValue, oldValue) => state.require = newValue as boolean, true));
-  subs.push(node.subscribeProperty(AsSuggest, (owner, propCtor, newValue, oldValue) => state.asSuggest = newValue as boolean, true));
-  subs.push(node.subscribeProperty(LeafOnly, (owner, propCtor, newValue, oldValue) => state.leafOnly = newValue as boolean, true));
-  subs.push(node.subscribeProperty(EntrySourceVersion, async (owner, propCtor, newValue, oldValue) => {
+  subs.push(node.subscribeProperty(Default, (owner: IValueAccess, propCtor: PropertyCtor, newValue: any, oldValue: any) => state.default = newValue, true));
+  subs.push(node.subscribeProperty(Require, (owner: IValueAccess, propChange: PropertyCtor, newValue: any, oldValue: any) => state.require = newValue as boolean, true));
+  subs.push(node.subscribeProperty(AsSuggest, (owner: IValueAccess, propChange: PropertyCtor, newValue: any, oldValue: any) => state.asSuggest = newValue as boolean, true));
+  subs.push(node.subscribeProperty(LeafOnly, (owner: IValueAccess, propChange: PropertyCtor, newValue: any, oldValue: any) => state.leafOnly = newValue as boolean, true));
+  subs.push(node.subscribeProperty(EntrySourceVersion, async (owner: IValueAccess, propChange: PropertyCtor, newValue: any, oldValue: any) => {
     state.enableOptions = node.hasEntrySource;
     state.single = node.isSingleLevel;
     state.enableNoneLeafNode = node.isNonLeafNodeSelectable;

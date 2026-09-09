@@ -10,8 +10,16 @@
       </template>
     </form-view>
     <template v-else-if="component">
-      <debug-view v-if="debug" :node="node"/>
-      <component :is="component" :key="schemaNode.id" :node="schemaNode" :debug="debug" :text="text" :readonly="readonly"
+      <div v-if="debug && schemaNode.type.kind !== SCHEMA_KIND_STRUCT && schemaNode.type.kind !== SCHEMA_KIND_ARRAY" style="display: flex;width: 100%;">
+        <debug-view :key="schemaNode.id" :node="schemaNode"/>
+        <component :is="component" :key="schemaNode.id" :node="schemaNode" :debug="debug" :text="text" :readonly="readonly"
+          v-bind="{ ...$attrs, ...(inFormType ? { 'in-form': inFormType } : {}) }">
+          <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
+            <component :is="slot" v-bind="slotProps" />
+          </template>
+        </component>
+      </div>
+      <component v-else :is="component" :key="schemaNode.id" :node="schemaNode" :debug="debug" :text="text" :readonly="readonly"
         v-bind="{ ...$attrs, ...(inFormType ? { 'in-form': inFormType } : {}) }">
         <template v-for="[name, slot] in slotEntries" :key="name" #[name]="slotProps">
           <component :is="slot" v-bind="slotProps" />
@@ -27,7 +35,7 @@ import formView from './view/formView.vue'
 import { SchemaNodeFormType } from './enum/formType'
 import { getSchemaTypeView, useSingleView } from './schemaView'
 import { _L } from './utility/locale'
-import { DataNode, getNodeType, InVisible, SCHEMA_KIND_STRUCT_FIELD, ValueType, Visible } from 'schema-node-core'
+import { DataNode, getNodeType, InVisible, IValueAccess, PropertyCtor, SCHEMA_KIND_ARRAY, SCHEMA_KIND_STRUCT, SCHEMA_KIND_STRUCT_FIELD, ValueType, Visible } from 'schema-node-core'
 import { AppNode, Loaded } from 'schema-node-app'
 import DebugView from './view/debugView.vue'
 
@@ -195,7 +203,7 @@ onMounted(async () => {
 
   // loaded change
   if (node.parent instanceof AppNode) {
-    subscribes.push(node.subscribeProperty(Loaded, (owner, propCtor, newValue, oldValue) => {
+    subscribes.push(node.subscribeProperty(Loaded, (owner: IValueAccess, propCtor: PropertyCtor, newValue: any, oldValue: any) => {
       // Re-trigger lazy load if the field was unloaded externally (e.g. activeWorkflow reload)
       if (loaded.value && node.parent instanceof AppNode && !newValue) {
         loaded.value = false
